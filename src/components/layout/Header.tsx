@@ -29,7 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tent, LogOut, PlusCircle, Home, Menu, User } from 'lucide-react';
+import { Tent, LogOut, PlusCircle, Home, Menu, User, CalendarCheck } from 'lucide-react'; // Added CalendarCheck
 
 // Helper to generate initials for fallback avatar
 const getInitials = (email: string | null | undefined) => {
@@ -109,6 +109,14 @@ export default function Header() {
                            </Link>
                          </Button>
                      </SheetClose>
+                      <SheetClose asChild>
+                         <Button variant="ghost" asChild className="justify-start">
+                           <Link href="/my-events" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground" prefetch={false}>
+                               <CalendarCheck className="h-5 w-5" />
+                               <span className="text-base font-medium">My Events</span>
+                           </Link>
+                         </Button>
+                     </SheetClose>
                      {/* Always show Create Camp if user is logged in */}
                      <SheetClose asChild>
                          <Button variant="ghost" asChild className="justify-start">
@@ -171,6 +179,12 @@ export default function Header() {
                      <Link href="/profile" className="flex items-center cursor-pointer">
                        <User className="mr-2 h-4 w-4" />
                        <span>Profile</span>
+                     </Link>
+                  </DropdownMenuItem>
+                   <DropdownMenuItem asChild>
+                     <Link href="/my-events" className="flex items-center cursor-pointer">
+                       <CalendarCheck className="mr-2 h-4 w-4" />
+                       <span>My Events</span>
                      </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
