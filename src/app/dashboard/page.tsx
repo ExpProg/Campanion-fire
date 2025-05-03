@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -8,7 +9,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import Image from 'next/image';
 import { collection, getDocs, deleteDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
-import { Trash2, Pencil } from 'lucide-react';
+import { Trash2, Pencil, PlusCircle } from 'lucide-react'; // Added PlusCircle
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
@@ -42,6 +43,39 @@ interface Camp {
   createdAt?: Timestamp;
   activities?: string[];
 }
+
+// Banner Component
+const Banner = ({ title, description, buttonText, buttonLink, imageUrl, imageAlt, imageHint }: {
+    title: string;
+    description: string;
+    buttonText: string;
+    buttonLink: string;
+    imageUrl: string;
+    imageAlt: string;
+    imageHint: string;
+}) => (
+    <div className="relative w-full h-64 md:h-80 rounded-lg overflow-hidden shadow-lg mb-12">
+        <Image
+            src={imageUrl}
+            alt={imageAlt}
+            fill
+            style={{ objectFit: 'cover' }}
+            sizes="100vw"
+            priority // Prioritize banner images if they are above the fold
+            data-ai-hint={imageHint}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent p-8 md:p-12 flex flex-col justify-center items-start text-white">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">{title}</h2>
+            <p className="text-lg md:text-xl mb-6 max-w-xl">{description}</p>
+            <Button size="lg" asChild>
+                <Link href={buttonLink} prefetch={false}>
+                    {buttonText}
+                </Link>
+            </Button>
+        </div>
+    </div>
+);
+
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -240,6 +274,14 @@ export default function DashboardPage() {
     </div>
   );
 
+    // Skeleton for Banners
+    const BannerSkeleton = () => (
+        <div className="mb-12">
+             <Skeleton className="w-full h-64 md:h-80 rounded-lg" />
+        </div>
+    );
+
+
   if (authLoading || (!user && !authLoading) ) { // Show skeleton if loading or if redirect hasn't happened yet
     return (
        <div className="flex flex-col min-h-screen">
@@ -252,6 +294,9 @@ export default function DashboardPage() {
                </div>
            </header>
            <main className="flex-1 p-4 md:p-8 lg:p-12">
+                {/* Banner Skeleton */}
+                <BannerSkeleton />
+                {/* Camps Skeleton */}
                <Skeleton className="h-8 w-1/3 mb-8" />
                <SkeletonCard count={6} /> {/* Show more skeletons initially */}
            </main>
@@ -267,10 +312,34 @@ export default function DashboardPage() {
     <div className="flex flex-col min-h-screen bg-background">
       <Header /> {/* Use the reusable Header component */}
 
-      <main className="flex-1 p-4 md:p-8 lg:p-12 space-y-12">
+      <main className="flex-1 p-4 md:p-8 lg:p-12"> {/* Reduced top-level space-y-12 */}
+
+         {/* Banners Section */}
+         <div className="mb-12"> {/* Margin bottom to separate from camps */}
+             <Banner
+                 title="Create Your Own Camp Adventure!"
+                 description="Got a great idea for a camp? Share your passion and host your own event on Campanion."
+                 buttonText="Create a Camp"
+                 buttonLink="/camps/new"
+                 imageUrl="https://picsum.photos/seed/banner-create/1200/400"
+                 imageAlt="Scenic view with a tent"
+                 imageHint="camp create hosting"
+             />
+             {/* Add another banner if needed */}
+              {/* <Banner
+                 title="Discover Unique Summer Camps"
+                 description="Explore a wide variety of camps, from outdoor adventures to creative workshops."
+                 buttonText="Explore Camps"
+                 buttonLink="#available-camps" // Link to the section below
+                 imageUrl="https://picsum.photos/seed/banner-discover/1200/400"
+                 imageAlt="Children doing activities at camp"
+                 imageHint="camp discover explore"
+             /> */}
+         </div>
+
 
         {/* Section for All Available Firestore Camps */}
-        <div>
+        <div id="available-camps"> {/* Added ID for potential linking */}
           <h2 className="text-2xl font-bold mb-6 text-foreground">Available Camps</h2>
           {firestoreLoading ? (
             <SkeletonCard count={firestoreCamps.length > 0 ? firestoreCamps.length : 3} /> // Show reasonable number during load
@@ -298,3 +367,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
