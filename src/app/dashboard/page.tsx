@@ -10,7 +10,7 @@ import Image from 'next/image';
 import { signOut } from 'firebase/auth';
 import { collection, getDocs, deleteDoc, doc, query, where, Timestamp } from 'firebase/firestore';
 import { auth, db } from '@/config/firebase';
-import { Tent, LogOut, PlusCircle, Trash2, Home } from 'lucide-react';
+import { Tent, LogOut, PlusCircle, Trash2, Home } from 'lucide-react'; // Removed unused icons
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
@@ -26,21 +26,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
-import {
-  SidebarProvider,
-  Sidebar,
-  SidebarTrigger,
-  SidebarContent,
-  SidebarHeader,
-  SidebarFooter,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarInset,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
-} from '@/components/ui/sidebar'; // Import Sidebar components
 
 // Camp Data Interface - reflects Firestore structure
 interface Camp {
@@ -302,22 +287,17 @@ export default function DashboardPage() {
        <div className="flex flex-col min-h-screen">
            {/* Simplified Header Skeleton */}
            <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background z-10">
-                <Skeleton className="h-8 w-8 mr-4" /> {/* Trigger Skeleton */}
-               <Skeleton className="h-6 w-32" />
+               <Skeleton className="h-6 w-6 mr-2" /> {/* Icon Skeleton */}
+               <Skeleton className="h-6 w-32" />     {/* Title Skeleton */}
                <div className="ml-auto flex gap-4 sm:gap-6 items-center">
-                   {/* Maybe user avatar skeleton? */}
-                   <Skeleton className="h-8 w-8 rounded-full" />
+                   <Skeleton className="h-8 w-20" /> {/* Button Skeleton */}
                </div>
            </header>
            {/* Main Content Skeleton */}
-           <div className="flex flex-1">
-                {/* Sidebar area skeleton (optional, could be empty) */}
-                {/* <div className="w-16 border-r"><Skeleton className="h-full w-full"/></div> */}
-               <main className="flex-1 p-4 md:p-8 lg:p-12">
-                   <Skeleton className="h-8 w-1/3 mb-8" />
-                   <SkeletonCard count={6} />
-               </main>
-           </div>
+           <main className="flex-1 p-4 md:p-8 lg:p-12">
+               <Skeleton className="h-8 w-1/3 mb-8" />
+               <SkeletonCard count={6} />
+           </main>
            {/* Footer Skeleton */}
            <footer className="py-6 px-4 md:px-6 border-t">
                <Skeleton className="h-4 w-1/4" />
@@ -333,121 +313,86 @@ export default function DashboardPage() {
     : []; // Non-organizers see no "My Camps"
 
   return (
-    <SidebarProvider>
-      <div className="flex flex-col min-h-screen">
-        <Sidebar side="left">
-          <SidebarHeader>
-             {/* You can add a logo or title here inside the sidebar */}
-             <Link href="/dashboard" className="flex items-center gap-2" prefetch={false}>
-                <Tent className="h-6 w-6 text-sidebar-primary" />
-                <span className="text-xl font-semibold">Campanion</span>
-            </Link>
-          </SidebarHeader>
-          <SidebarContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="/dashboard" prefetch={false}>
-                    <Home />
-                    Dashboard
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              {userIsOrganizer && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link href="/camps/new" prefetch={false}>
-                      <PlusCircle />
-                      Create Camp
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-              {/* Add more menu items here */}
-            </SidebarMenu>
-          </SidebarContent>
-           <SidebarFooter>
-              <div className="px-2 py-2 text-sm text-sidebar-foreground/70">
-                 Welcome, {user.email}
-              </div>
-              <Button variant="ghost" onClick={handleLogout} className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-                  <LogOut className="mr-2 h-4 w-4" /> Logout
-              </Button>
-           </SidebarFooter>
-        </Sidebar>
+    <div className="flex flex-col min-h-screen">
+      <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background z-10">
+        <Link href="/dashboard" className="flex items-center justify-center" prefetch={false}>
+          <Tent className="h-6 w-6 text-primary" />
+          <span className="ml-2 text-xl font-semibold">Campanion</span>
+        </Link>
+        <div className="ml-auto flex items-center gap-4">
+          {userIsOrganizer && (
+             <Button asChild size="sm">
+                <Link href="/camps/new" prefetch={false}>
+                   <PlusCircle className="mr-2 h-4 w-4" /> Create Camp
+                </Link>
+             </Button>
+          )}
+          <span className="text-sm text-muted-foreground hidden sm:inline">
+              Welcome, {user.email}
+          </span>
+          <Button variant="ghost" onClick={handleLogout} size="sm">
+            <LogOut className="mr-2 h-4 w-4" /> Logout
+          </Button>
+        </div>
+      </header>
 
-        <SidebarInset> {/* This wraps the main content area */}
-          <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background z-10">
-            <SidebarTrigger className="mr-4" /> {/* Sidebar toggle button */}
-            <Link href="/dashboard" className="flex items-center justify-center" prefetch={false}>
-              <Tent className="h-6 w-6 text-primary" />
-              <span className="ml-2 text-xl font-semibold hidden sm:inline">Campanion</span>
-            </Link>
-            <div className="ml-auto" /> {/* Pushes the user info/logout button to the right if still needed */}
-             {/* You might want user avatar/menu here instead of repeating logout */}
-          </header>
-
-          <main className="flex-1 p-4 md:p-8 lg:p-12 space-y-12">
-            {/* Section for User's Firestore Camps (if organizer) */}
-            {userIsOrganizer && (
-              <div>
-                <h2 className="text-2xl font-bold mb-6">My Camps</h2>
-                {firestoreLoading ? (
-                  <SkeletonCard count={3} />
-                ) : myFirestoreCamps.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {myFirestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
-                  </div>
-                ) : (
-                  <p className="text-center text-muted-foreground">
-                    You haven't created any camps yet. <Link href="/camps/new" className="text-primary hover:underline">Create one!</Link>
-                  </p>
-                )}
+      <main className="flex-1 p-4 md:p-8 lg:p-12 space-y-12">
+        {/* Section for User's Firestore Camps (if organizer) */}
+        {userIsOrganizer && (
+          <div>
+            <h2 className="text-2xl font-bold mb-6">My Camps</h2>
+            {firestoreLoading ? (
+              <SkeletonCard count={myFirestoreCamps.length > 0 ? myFirestoreCamps.length : 1} />
+            ) : myFirestoreCamps.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {myFirestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
               </div>
+            ) : (
+              <p className="text-center text-muted-foreground">
+                You haven't created any camps yet. <Link href="/camps/new" className="text-primary hover:underline">Create one!</Link>
+              </p>
             )}
-            {userIsOrganizer && <Separator />}
+          </div>
+        )}
+        {userIsOrganizer && myFirestoreCamps.length > 0 && <Separator />}
 
-            {/* Section for All Firestore Camps */}
-            <div>
-              <h2 className="text-2xl font-bold mb-6">Discover Camps (Database)</h2>
-              {firestoreLoading ? (
-                <SkeletonCard count={3} />
-              ) : firestoreCamps.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {firestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
-                </div>
-              ) : (
-                <p className="text-center text-muted-foreground">
-                  No camps found in the database yet.
-                  {userIsOrganizer && <> Be the first to <Link href="/camps/new" className="text-primary hover:underline">create one!</Link></>}
-                </p>
-              )}
+        {/* Section for All Firestore Camps */}
+        <div>
+          <h2 className="text-2xl font-bold mb-6">Discover Camps (Database)</h2>
+          {firestoreLoading ? (
+            <SkeletonCard count={3} />
+          ) : firestoreCamps.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {firestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
             </div>
+          ) : (
+            <p className="text-center text-muted-foreground">
+              No camps found in the database yet.
+              {userIsOrganizer && <> Be the first to <Link href="/camps/new" className="text-primary hover:underline">create one!</Link></>}
+            </p>
+          )}
+        </div>
 
-            <Separator />
+        <Separator />
 
-            {/* Section for Sample Camps */}
-            <div>
-              <h2 className="text-2xl font-bold mb-6">Featured Camps (Samples)</h2>
-              {sampleLoading ? (
-                <SkeletonCard count={3} />
-              ) : camps.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {camps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={false} />)}
-                </div>
-              ) : (
-                <p className="text-center text-muted-foreground">No sample camps available.</p>
-              )}
+        {/* Section for Sample Camps */}
+        <div>
+          <h2 className="text-2xl font-bold mb-6">Featured Camps (Samples)</h2>
+          {sampleLoading ? (
+            <SkeletonCard count={3} />
+          ) : camps.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {camps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={false} />)}
             </div>
-          </main>
+          ) : (
+            <p className="text-center text-muted-foreground">No sample camps available.</p>
+          )}
+        </div>
+      </main>
 
-          <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t mt-auto">
-            <p className="text-xs text-muted-foreground">&copy; 2024 Campanion. All rights reserved.</p>
-          </footer>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t mt-auto">
+        <p className="text-xs text-muted-foreground">&copy; 2024 Campanion. All rights reserved.</p>
+      </footer>
+    </div>
   );
 }
-
-    
