@@ -332,8 +332,8 @@ export default function DashboardPage() {
                <span className="sr-only">Open Menu</span>
             </Button>
           </SheetTrigger>
-          {/* Updated width classes here */}
-          <SheetContent side="left" className="w-[300px] sm:w-[400px] bg-background/80 backdrop-blur-sm">
+          {/* Updated width classes here - reduced width */}
+          <SheetContent side="left" className="w-[250px] sm:w-[300px] bg-background/80 backdrop-blur-sm">
             <SheetHeader>
               <SheetTitle>
                 <Link href="/dashboard" className="flex items-center justify-center sm:justify-start" prefetch={false}>
@@ -453,3 +453,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
