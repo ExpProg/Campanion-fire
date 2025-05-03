@@ -332,7 +332,8 @@ export default function DashboardPage() {
                <span className="sr-only">Open Menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+          {/* Updated width classes here */}
+          <SheetContent side="left" className="w-[300px] sm:w-[400px] bg-background/80 backdrop-blur-sm">
             <SheetHeader>
               <SheetTitle>
                 <Link href="/dashboard" className="flex items-center justify-center sm:justify-start" prefetch={false}>
@@ -405,7 +406,8 @@ export default function DashboardPage() {
             )}
           </div>
         )}
-        {userIsOrganizer && myFirestoreCamps.length > 0 && <Separator />}
+        {/* Reordered: Moved this separator check after My Camps section */}
+        {userIsOrganizer && myFirestoreCamps.length > 0 && firestoreCamps.length > 0 && <Separator />}
 
         {/* Section for All Firestore Camps */}
         <div>
@@ -414,7 +416,10 @@ export default function DashboardPage() {
             <SkeletonCard count={3} />
           ) : firestoreCamps.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {firestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
+              {/* Filter out camps that are already shown in "My Camps" */}
+              {firestoreCamps
+                .filter(camp => !(userIsOrganizer && camp.organizerId === user.uid))
+                .map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
             </div>
           ) : (
             <p className="text-center text-muted-foreground">
@@ -424,7 +429,8 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <Separator />
+        {/* Only show separator if there are database camps AND sample camps */}
+        {firestoreCamps.length > 0 && camps.length > 0 && <Separator />}
 
         {/* Section for Sample Camps */}
         <div>
