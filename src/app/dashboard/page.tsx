@@ -334,7 +334,30 @@ export default function DashboardPage() {
        </header>
 
        <main className="flex-1 p-4 md:p-8 lg:p-12 space-y-12">
-          {/* Section for Sample Camps */}
+
+          {/* Section for Firestore Camps (Moved Up) */}
+          <div>
+              <h2 className="text-2xl font-bold mb-6">My Camps (Database)</h2>
+              {firestoreLoading ? (
+                  <SkeletonCard count={3} />
+              ) : firestoreCamps.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {firestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground">
+                    {profile?.isOrganizer ? (
+                        <>You haven't created any camps yet. <Link href="/camps/new" className="text-primary hover:underline">Create one!</Link></>
+                    ) : (
+                        'No camps found in the database.'
+                    )}
+                </p>
+              )}
+          </div>
+
+          <Separator />
+
+          {/* Section for Sample Camps (Moved Down) */}
           <div>
               <h2 className="text-2xl font-bold mb-6">Featured Camps (Samples)</h2>
               {sampleLoading ? (
@@ -348,22 +371,6 @@ export default function DashboardPage() {
               )}
           </div>
 
-          <Separator />
-
-          {/* Section for Firestore Camps */}
-          <div>
-              <h2 className="text-2xl font-bold mb-6">My Camps (Database)</h2>
-              {firestoreLoading ? (
-                  <SkeletonCard count={3} />
-              ) : firestoreCamps.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {firestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
-                </div>
-              ) : (
-                <p className="text-center text-muted-foreground">No camps found in the database. {profile?.isOrganizer ? (<Link href="/camps/new" className="text-primary hover:underline">Create one!</Link>) : 'Check back soon!'}</p>
-              )}
-          </div>
-
         </main>
 
         <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t mt-auto">
@@ -373,3 +380,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
