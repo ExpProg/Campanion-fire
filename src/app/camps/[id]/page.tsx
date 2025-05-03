@@ -11,8 +11,10 @@ import Image from 'next/image';
 import { ArrowLeft, CalendarDays, MapPin, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/config/firebase';
 
-// Sample Camp Data Interface (ensure consistency)
+// Camp Data Interface (ensure consistency with Firestore structure)
 interface Camp {
   id: string;
   name: string;
@@ -21,70 +23,46 @@ interface Camp {
   location: string;
   imageUrl: string;
   price: number;
-  // Add more detailed fields if needed
-  organizerName?: string;
-  contactEmail?: string;
+  organizerName?: string; // This might come from a related document or be denormalized
+  organizerEmail?: string; // Assuming this is stored in the camp document
+  contactEmail?: string; // Might be the same as organizerEmail or a separate field
   activities?: string[];
+  // Add any other fields present in your Firestore document
 }
 
-// Placeholder function for fetching camp details - replace with actual data fetching
-async function fetchCampDetails(id: string): Promise<Camp | null> {
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
+// Function to fetch camp details from Firestore
+async function fetchCampDetailsFromFirestore(id: string): Promise<Camp | null> {
+  try {
+    const campDocRef = doc(db, 'camps', id);
+    const campDocSnap = await getDoc(campDocRef);
 
-  // Sample data - find camp by ID from a mock list or API
-  const sampleCamps: Camp[] = [
-    {
-      id: '1',
-      name: 'Adventure Camp Alpha',
-      description: 'Experience the thrill of the outdoors with hiking, climbing, kayaking, and campfire stories under the stars. Suitable for ages 12-16.',
-      dates: 'July 10 - July 20, 2024',
-      location: 'Rocky Mountains, CO',
-      imageUrl: 'https://picsum.photos/seed/camp1/800/500',
-      price: 1200,
-      organizerName: 'Outdoor Adventures Inc.',
-      contactEmail: 'info@outdooradventures.com',
-      activities: ['Hiking', 'Rock Climbing', 'Kayaking', 'Campfire Skills'],
-    },
-    {
-      id: '2',
-      name: 'Creative Arts Camp Beta',
-      description: 'Unleash your creativity with painting, pottery, music workshops, and a final showcase performance. Perfect for aspiring artists aged 10-15.',
-      dates: 'August 5 - August 15, 2024',
-      location: 'Forest Retreat, CA',
-      imageUrl: 'https://picsum.photos/seed/camp2/800/500',
-      price: 950,
-      organizerName: 'Artistic Souls Collective',
-      contactEmail: 'contact@artisticsouls.org',
-      activities: ['Painting', 'Pottery', 'Music', 'Theater'],
-    },
-    {
-        id: '3',
-        name: 'Science Explorers Gamma',
-        description: 'Dive into the world of science with hands-on experiments, robotics challenges, and nature exploration. For curious minds aged 11-14.',
-        dates: 'July 22 - August 1, 2024',
-        location: 'Coastal Institute, ME',
-        imageUrl: 'https://picsum.photos/seed/camp3/800/500',
-        price: 1100,
-        organizerName: 'Young Scientists Foundation',
-        contactEmail: 'programs@ysfoundation.net',
-        activities: ['Robotics', 'Chemistry Experiments', 'Marine Biology', 'Astronomy'],
-    },
-    {
-        id: '4',
-        name: 'Wilderness Survival Delta',
-        description: 'Learn essential survival skills like shelter building, fire starting, navigation, and foraging in a challenging and rewarding environment. Ages 14+.',
-        dates: 'September 1 - September 10, 2024',
-        location: 'Appalachian Trail, NC',
-        imageUrl: 'https://picsum.photos/seed/camp4/800/500',
-        price: 1350,
-        organizerName: 'Survival Training Experts',
-        contactEmail: 'admin@survivalexperts.co',
-        activities: ['Shelter Building', 'Fire Starting', 'Navigation', 'Foraging'],
+    if (campDocSnap.exists()) {
+      const data = campDocSnap.data();
+      // Construct the Camp object, mapping Firestore fields to the interface
+      const camp: Camp = {
+        id: campDocSnap.id,
+        name: data.name || 'Unnamed Camp',
+        description: data.description || '',
+        dates: data.dates || 'Dates not specified',
+        location: data.location || 'Location not specified',
+        imageUrl: data.imageUrl || 'https://picsum.photos/seed/placeholder/800/500', // Fallback image
+        price: data.price || 0,
+        organizerName: data.organizerName || 'Campanion Partner', // Example: if you store this
+        organizerEmail: data.organizerEmail || '',
+        contactEmail: data.contactEmail || data.organizerEmail || 'Not specified', // Use organizer email as fallback
+        activities: data.activities || [], // Assuming activities is an array of strings
+      };
+      return camp;
+    } else {
+      console.log("No such camp document!");
+      return null;
     }
-  ];
-  return sampleCamps.find(camp => camp.id === id) || null;
+  } catch (error) {
+    console.error("Error fetching camp details from Firestore:", error);
+    throw error; // Re-throw the error to be caught in the component
+  }
 }
+
 
 export default function CampDetailsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -94,6 +72,7 @@ export default function CampDetailsPage() {
 
   const [camp, setCamp] = useState<Camp | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Redirect if auth is done loading and user is not logged in
@@ -105,21 +84,26 @@ export default function CampDetailsPage() {
   useEffect(() => {
     if (campId && user) { // Fetch only if ID is present and user is logged in
       setLoading(true);
-      fetchCampDetails(campId)
+      setError(null); // Reset error state
+      fetchCampDetailsFromFirestore(campId)
         .then(data => {
-          setCamp(data);
+          if (data) {
+            setCamp(data);
+          } else {
+             setError("Camp not found."); // Set error if data is null
+          }
         })
         .catch(error => {
           console.error("Failed to fetch camp details:", error);
-          // Handle error state, maybe show a toast
+          setError("Failed to load camp details. Please try again."); // Set error on fetch failure
         })
         .finally(() => {
           setLoading(false);
         });
     } else if (!campId) {
         setLoading(false); // Stop loading if no ID
+        setError("Camp ID is missing.");
         console.error("Camp ID is missing");
-        // Maybe redirect or show an error message
     }
   }, [campId, user]); // Depend on campId and user
 
@@ -146,17 +130,20 @@ export default function CampDetailsPage() {
     );
   }
 
-  if (!camp) {
+  if (error || !camp) {
     return (
       <div className="container mx-auto px-4 py-12 text-center">
          <Link href="/dashboard" className="inline-flex items-center text-primary hover:underline mb-4" prefetch={false}>
             <ArrowLeft className="mr-2 h-4 w-4" />
              Back to Dashboard
          </Link>
-        <p className="text-xl text-destructive">Camp not found.</p>
+        <p className="text-xl text-destructive">{error || "Camp not found."}</p>
       </div>
     );
   }
+
+  // Camp data is available
+  const displayContactEmail = camp.contactEmail || camp.organizerEmail || 'Not specified';
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
@@ -181,7 +168,10 @@ export default function CampDetailsPage() {
                <div className="md:col-span-2 p-6 md:p-8">
                    <CardHeader className="px-0 pt-0 pb-4">
                        <CardTitle className="text-3xl md:text-4xl font-bold mb-2">{camp.name}</CardTitle>
-                       <CardDescription className="text-lg text-muted-foreground">Organized by {camp.organizerName || 'Campanion Partner'}</CardDescription>
+                       {/* Display organizer name if available, otherwise fallback */}
+                       <CardDescription className="text-lg text-muted-foreground">
+                           Organized by {camp.organizerName || (camp.organizerEmail ? `Partner (${camp.organizerEmail})` : 'Campanion Partner')}
+                       </CardDescription>
                    </CardHeader>
                    <CardContent className="px-0">
                        <p className="mb-6">{camp.description}</p>
@@ -198,7 +188,7 @@ export default function CampDetailsPage() {
                        )}
 
                         <div className="text-sm text-muted-foreground">
-                            Contact: {camp.contactEmail || 'Not specified'}
+                            Contact: {displayContactEmail}
                         </div>
                    </CardContent>
                </div>
