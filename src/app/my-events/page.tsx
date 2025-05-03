@@ -290,7 +290,9 @@ export default function MyEventsPage() {
            <div>
                <h2 className="text-2xl md:text-3xl font-bold mb-6">Camps I'm Attending</h2>
                {/* Replace with actual booked camps data and rendering */}
-               {bookedCamps.length > 0 ? (
+               {loading ? (
+                 <SkeletonCard count={1} />
+               ) : bookedCamps.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                        {/* Map over bookedCamps and render CampCard or a specific 'booked' card */}
                        {/* Example: bookedCamps.map((camp) => <CampCard key={camp.id} camp={camp} />) */}

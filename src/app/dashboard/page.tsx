@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -7,9 +6,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Image from 'next/image';
-import { collection, getDocs, deleteDoc, doc, Timestamp } from 'firebase/firestore'; // Removed query, where
+import { collection, getDocs, deleteDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
-import { Trash2, Pencil } from 'lucide-react'; // Added Pencil icon
+import { Trash2, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
@@ -25,7 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
-import Header from '@/components/layout/Header'; // Import the Header component
+import Header from '@/components/layout/Header';
 
 // Camp Data Interface - reflects Firestore structure
 interface Camp {
@@ -137,9 +136,9 @@ export default function DashboardPage() {
   };
 
   // Helper component for rendering camp cards
-  const CampCard = ({ camp, isFirestoreCamp = false }: { camp: Camp; isFirestoreCamp?: boolean }) => {
+  const CampCard = ({ camp }: { camp: Camp }) => {
     // Check if the current logged-in user is the organizer of this specific camp
-    const isOwner = isFirestoreCamp && camp.organizerId === user?.uid;
+    const isOwner = camp.organizerId === user?.uid;
 
     return (
       <Card key={camp.id} className="overflow-hidden flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300 bg-card">
@@ -263,63 +262,23 @@ export default function DashboardPage() {
     );
   }
 
-  // Filter Firestore camps to show only those created by the current user
-  const myFirestoreCamps = user?.uid
-    ? firestoreCamps.filter(camp => camp.organizerId === user.uid)
-    : [];
-
-   // Filter out the user's own camps to show in the 'Discover' section
-  const otherCamps = firestoreCamps.filter(camp => camp.organizerId !== user?.uid);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header /> {/* Use the reusable Header component */}
 
       <main className="flex-1 p-4 md:p-8 lg:p-12 space-y-12">
-        {/* Section for User's Firestore Camps (My Camps) */}
+
+        {/* Section for All Available Firestore Camps */}
         <div>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-foreground">My Camps</h2>
-             <Button asChild>
-                 <Link href="/camps/new" prefetch={false}>Create Camp</Link>
-             </Button>
-          </div>
+          <h2 className="text-2xl font-bold mb-6 text-foreground">Available Camps</h2>
           {firestoreLoading ? (
-            <SkeletonCard count={myFirestoreCamps.length > 0 ? myFirestoreCamps.length : 1} />
-          ) : myFirestoreCamps.length > 0 ? (
+            <SkeletonCard count={firestoreCamps.length > 0 ? firestoreCamps.length : 3} /> // Show reasonable number during load
+          ) : firestoreCamps.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {myFirestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
-            </div>
+             {firestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} />)}
+           </div>
           ) : (
-             <Card className="text-center py-12">
-                <CardContent>
-                    <p className="text-muted-foreground mb-4">You haven't created any camps yet.</p>
-                    <Button asChild>
-                        <Link href="/camps/new">Create Your First Camp</Link>
-                    </Button>
-                </CardContent>
-             </Card>
-          )}
-        </div>
-
-        {/* Separator shown if user has camps and there are other camps to discover */}
-        {myFirestoreCamps.length > 0 && otherCamps.length > 0 && <Separator />}
-
-        {/* Section for All Other Firestore Camps */}
-        {otherCamps.length > 0 && (
-            <div>
-              <h2 className="text-2xl font-bold mb-6 text-foreground">Discover Other Camps</h2>
-              {firestoreLoading ? (
-                <SkeletonCard count={3} />
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {otherCamps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
-               </div>
-              )}
-            </div>
-        )}
-         {/* Message if there are no camps at all */}
-        {!firestoreLoading && firestoreCamps.length === 0 && (
              <Card className="text-center py-12">
                 <CardContent>
                     <p className="text-muted-foreground mb-4">No camps found in the database yet.</p>
@@ -328,8 +287,8 @@ export default function DashboardPage() {
                     </Button>
                 </CardContent>
              </Card>
-        )}
-
+          )}
+        </div>
 
       </main>
 
