@@ -333,7 +333,7 @@ export default function DashboardPage() {
             </Button>
           </SheetTrigger>
           {/* Updated width classes here - reduced width */}
-          <SheetContent side="left" className="w-[250px] sm:w-[300px] bg-background/80 backdrop-blur-sm">
+          <SheetContent side="left" className="w-[250px] sm:w-[300px]">
             <SheetHeader>
               <SheetTitle>
                 <Link href="/dashboard" className="flex items-center justify-center sm:justify-start" prefetch={false}>
@@ -453,4 +453,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
