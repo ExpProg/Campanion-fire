@@ -44,53 +44,15 @@ interface Camp {
   activities?: string[];
 }
 
-// Sample Camp Data (Remains for demonstration)
-const sampleCamps: Camp[] = [
-  {
-    id: 'sample-1',
-    name: 'Adventure Camp Alpha',
-    description: 'Experience the thrill of the outdoors with hiking, climbing, and more.',
-    dates: 'July 10 - July 20, 2024',
-    location: 'Rocky Mountains, CO',
-    imageUrl: 'https://picsum.photos/seed/camp1/600/400',
-    price: 1200,
-  },
-  {
-    id: 'sample-2',
-    name: 'Creative Arts Camp Beta',
-    description: 'Unleash your creativity with painting, pottery, and music workshops.',
-    dates: 'August 5 - August 15, 2024',
-    location: 'Forest Retreat, CA',
-    imageUrl: 'https://picsum.photos/seed/camp2/600/400',
-    price: 950,
-  },
-  {
-    id: 'sample-3',
-    name: 'Science Explorers Gamma',
-    description: 'Dive into the world of science with hands-on experiments and discovery.',
-    dates: 'July 22 - August 1, 2024',
-    location: 'Coastal Institute, ME',
-    imageUrl: 'https://picsum.photos/seed/camp3/600/400',
-    price: 1100,
-  },
-  {
-    id: 'sample-4',
-    name: 'Wilderness Survival Delta',
-    description: 'Learn essential survival skills in a challenging and rewarding environment.',
-    dates: 'September 1 - September 10, 2024',
-    location: 'Appalachian Trail, NC',
-    imageUrl: 'https://picsum.photos/seed/camp4/600/400',
-    price: 1350,
-  },
-];
+// Sample Camp Data REMOVED
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth(); // Removed profile
   const router = useRouter();
   const { toast } = useToast();
-  const [camps, setCamps] = useState<Camp[]>([]); // State for sample camps
+  // const [camps, setCamps] = useState<Camp[]>([]); // State for sample camps REMOVED
   const [firestoreCamps, setFirestoreCamps] = useState<Camp[]>([]); // State for Firestore camps
-  const [sampleLoading, setSampleLoading] = useState(true); // Loading state for sample data
+  // const [sampleLoading, setSampleLoading] = useState(true); // Loading state for sample data REMOVED
   const [firestoreLoading, setFirestoreLoading] = useState(true); // Loading state for Firestore data
   const [deletingCampId, setDeletingCampId] = useState<string | null>(null); // State for deletion
 
@@ -102,25 +64,13 @@ export default function DashboardPage() {
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    // Simulate fetching sample camp data & fetch Firestore data
-    if (user) { // Only fetch if user is logged in
-      setSampleLoading(true);
+    // Fetch Firestore data if user is logged in
+    if (user) {
       setFirestoreLoading(true);
-
-      // Simulate fetching sample data (as before)
-      setTimeout(() => {
-        setCamps(sampleCamps);
-        setSampleLoading(false);
-      }, 500); // Reduced delay for samples
-
-      // Fetch data from Firestore
       fetchFirestoreCamps(); // Call fetch function
-
     } else {
       // Reset states if user logs out
-      setSampleLoading(false);
       setFirestoreLoading(false);
-      setCamps([]);
       setFirestoreCamps([]);
     }
   }, [user]); // Depend on user to refetch if user changes
@@ -200,7 +150,7 @@ export default function DashboardPage() {
             style={{ objectFit: 'cover' }}
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             data-ai-hint="camp nature adventure"
-            priority={camp.id.startsWith('sample-') && parseInt(camp.id.split('-')[1]) <= 2}
+            // priority={camp.id.startsWith('sample-') && parseInt(camp.id.split('-')[1]) <= 2} // Removed priority logic tied to sample camps
           />
         </div>
         <CardHeader>
@@ -294,7 +244,7 @@ export default function DashboardPage() {
            </header>
            <main className="flex-1 p-4 md:p-8 lg:p-12">
                <Skeleton className="h-8 w-1/3 mb-8" />
-               <SkeletonCard count={6} />
+               <SkeletonCard count={6} /> {/* Show more skeletons initially */}
            </main>
            <footer className="py-6 px-4 md:px-6 border-t">
                <Skeleton className="h-4 w-1/4" />
@@ -307,6 +257,9 @@ export default function DashboardPage() {
   const myFirestoreCamps = user?.uid
     ? firestoreCamps.filter(camp => camp.organizerId === user.uid)
     : [];
+
+   // Filter out the user's own camps to show in the 'Discover' section
+  const otherCamps = firestoreCamps.filter(camp => camp.organizerId !== user?.uid);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -328,18 +281,16 @@ export default function DashboardPage() {
             </p>
           )}
         </div>
-        {/* Separator shown if user has camps and there are other camps */}
-        {myFirestoreCamps.length > 0 && firestoreCamps.some(camp => camp.organizerId !== user?.uid) && <Separator />}
+        {/* Separator shown if user has camps and there are other camps to discover */}
+        {myFirestoreCamps.length > 0 && otherCamps.length > 0 && <Separator />}
 
         {/* Section for All Other Firestore Camps */}
         <div>
-          <h2 className="text-2xl font-bold mb-6 text-foreground">Discover Camps (Database)</h2>
+          <h2 className="text-2xl font-bold mb-6 text-foreground">Discover Camps</h2>
           {firestoreLoading ? (
             <SkeletonCard count={3} />
           ) : (
             (() => {
-               // Filter out the user's own camps
-              const otherCamps = firestoreCamps.filter(camp => camp.organizerId !== user?.uid);
               if (otherCamps.length > 0) {
                 return (
                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -354,10 +305,10 @@ export default function DashboardPage() {
                    </p>
                 );
               } else {
-                 // Only user's own camps exist
+                 // Only user's own camps exist, and no others
                  return (
                     <p className="text-center text-muted-foreground">
-                      No other camps found in the database yet.
+                      No other camps to discover yet.
                     </p>
                  )
               }
@@ -365,22 +316,8 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Only show separator if there are database camps AND sample camps */}
-        {firestoreCamps.length > 0 && camps.length > 0 && <Separator />}
+        {/* Sample Camps Section REMOVED */}
 
-        {/* Section for Sample Camps */}
-        <div>
-          <h2 className="text-2xl font-bold mb-6 text-foreground">Featured Camps (Samples)</h2>
-          {sampleLoading ? (
-            <SkeletonCard count={3} />
-          ) : camps.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {camps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={false} />)}
-            </div>
-          ) : (
-            <p className="text-center text-muted-foreground">No sample camps available.</p>
-          )}
-        </div>
       </main>
 
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t mt-auto">

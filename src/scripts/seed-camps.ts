@@ -19,7 +19,7 @@ interface CampFirestoreData {
   imageUrl: string;
   price: number;
   organizerEmail: string; // Keep email for potential display or fallback
-  organizerId?: string; // Optional: Added to link to the user's UID - keep for backward compat or future use
+  organizerId: string; // Link to the user's UID
   createdAt: Timestamp; // Use Firestore Timestamp for consistency
   activities?: string[]; // Added based on create camp form
 }
@@ -89,8 +89,6 @@ const sampleCampsDataRaw = [
     imageUrl: 'https://picsum.photos/seed/camp1/600/400',
     price: 1200,
     activities: ['Hiking', 'Climbing', 'Camping'],
-    // Assign a placeholder organizer ID or leave it out
-    organizerId: 'PLACEHOLDER_ORGANIZER_ID_1', // Replace or remove if not needed
   },
   {
     name: 'Creative Arts Camp Beta',
@@ -100,7 +98,6 @@ const sampleCampsDataRaw = [
     imageUrl: 'https://picsum.photos/seed/camp2/600/400',
     price: 950,
     activities: ['Painting', 'Pottery', 'Music'],
-    organizerId: 'PLACEHOLDER_ORGANIZER_ID_2', // Replace or remove if not needed
   },
     {
     name: 'Science Explorers Gamma',
@@ -110,7 +107,6 @@ const sampleCampsDataRaw = [
     imageUrl: 'https://picsum.photos/seed/camp3/600/400',
     price: 1100,
     activities: ['Experiments', 'Biology', 'Chemistry'],
-    organizerId: 'PLACEHOLDER_ORGANIZER_ID_3', // Replace or remove if not needed
   },
    {
     name: 'Wilderness Survival Delta',
@@ -120,7 +116,6 @@ const sampleCampsDataRaw = [
     imageUrl: 'https://picsum.photos/seed/camp4/600/400',
     price: 1350,
     activities: ['Survival Skills', 'Navigation', 'Shelter Building'],
-    organizerId: 'PLACEHOLDER_ORGANIZER_ID_4', // Replace or remove if not needed
   },
 ];
 
@@ -130,6 +125,7 @@ const sampleCampsDataRaw = [
 const seedCamps = async () => {
   const campsCollectionRef = collection(db, 'camps');
   const defaultOrganizerEmail = 'seed@example.com'; // Use a generic email or specific one if needed
+  const defaultOrganizerId = 'SEED_USER_ID'; // Generic ID for seeded camps
   let successCount = 0;
   let errorCount = 0;
 
@@ -157,9 +153,8 @@ const seedCamps = async () => {
         imageUrl: campDataRaw.imageUrl,
         price: campDataRaw.price,
         organizerEmail: defaultOrganizerEmail, // Use default or specific email
+        organizerId: defaultOrganizerId, // Use the default seed ID
         createdAt: Timestamp.fromDate(new Date()), // Use Firestore Timestamp
-        // Include organizerId if it exists in the raw data (optional)
-        ...(campDataRaw.organizerId && { organizerId: campDataRaw.organizerId }),
         activities: campDataRaw.activities || [], // Ensure activities array exists
       };
       const docRef = await addDoc(campsCollectionRef, campToAdd);
