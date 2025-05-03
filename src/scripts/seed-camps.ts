@@ -4,7 +4,7 @@
 // Then execute: npx ts-node src/scripts/seed-camps.ts
 // Ensure your FIREBASE_CONFIG environment variables or other auth method is set up.
 
-import { collection, addDoc, Timestamp, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, Timestamp } from 'firebase/firestore'; // Removed query, where, getDocs
 import { db } from '@/config/firebase'; // Adjust path as necessary
 import { format, parse, addDays } from 'date-fns'; // Import date-fns functions
 
@@ -19,7 +19,7 @@ interface CampFirestoreData {
   imageUrl: string;
   price: number;
   organizerEmail: string; // Keep email for potential display or fallback
-  organizerId?: string; // Optional: Added to link to the user's UID
+  organizerId?: string; // Optional: Added to link to the user's UID - keep for backward compat or future use
   createdAt: Timestamp; // Use Firestore Timestamp for consistency
   activities?: string[]; // Added based on create camp form
 }
@@ -89,6 +89,8 @@ const sampleCampsDataRaw = [
     imageUrl: 'https://picsum.photos/seed/camp1/600/400',
     price: 1200,
     activities: ['Hiking', 'Climbing', 'Camping'],
+    // Assign a placeholder organizer ID or leave it out
+    organizerId: 'PLACEHOLDER_ORGANIZER_ID_1', // Replace or remove if not needed
   },
   {
     name: 'Creative Arts Camp Beta',
@@ -98,6 +100,7 @@ const sampleCampsDataRaw = [
     imageUrl: 'https://picsum.photos/seed/camp2/600/400',
     price: 950,
     activities: ['Painting', 'Pottery', 'Music'],
+    organizerId: 'PLACEHOLDER_ORGANIZER_ID_2', // Replace or remove if not needed
   },
     {
     name: 'Science Explorers Gamma',
@@ -107,6 +110,7 @@ const sampleCampsDataRaw = [
     imageUrl: 'https://picsum.photos/seed/camp3/600/400',
     price: 1100,
     activities: ['Experiments', 'Biology', 'Chemistry'],
+    organizerId: 'PLACEHOLDER_ORGANIZER_ID_3', // Replace or remove if not needed
   },
    {
     name: 'Wilderness Survival Delta',
@@ -116,46 +120,21 @@ const sampleCampsDataRaw = [
     imageUrl: 'https://picsum.photos/seed/camp4/600/400',
     price: 1350,
     activities: ['Survival Skills', 'Navigation', 'Shelter Building'],
+    organizerId: 'PLACEHOLDER_ORGANIZER_ID_4', // Replace or remove if not needed
   },
 ];
 
-// Function to get user ID by email
-const getUserIdByEmail = async (email: string): Promise<string | null> => {
-    try {
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('email', '==', email));
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-            // Assuming email is unique, return the first match's ID
-            return querySnapshot.docs[0].id;
-        } else {
-            console.warn(`No user found with email: ${email}. Cannot link organizerId for seeded camps.`);
-            return null;
-        }
-    } catch (error) {
-        console.error(`Error fetching user ID for email ${email}:`, error);
-        return null;
-    }
-};
+// Removed getUserIdByEmail function as it's no longer needed for seeding logic
 
 
 const seedCamps = async () => {
   const campsCollectionRef = collection(db, 'camps');
-  const organizerEmail = 'admin@admin.com'; // As requested by the user
+  const defaultOrganizerEmail = 'seed@example.com'; // Use a generic email or specific one if needed
   let successCount = 0;
   let errorCount = 0;
 
-  console.log(`Starting to seed ${sampleCampsDataRaw.length} camps for organizer: ${organizerEmail}...`);
-  console.log("Attempting to find organizer's UID...");
-
-  // Get the organizer's UID based on their email
-  const organizerId = await getUserIdByEmail(organizerEmail);
-  if (organizerId) {
-      console.log(`Found organizer UID: ${organizerId}. Proceeding with seeding.`);
-  } else {
-      console.warn("Could not find organizer UID. Camps will be seeded without organizerId link.");
-  }
+  console.log(`Starting to seed ${sampleCampsDataRaw.length} camps...`);
+  // Removed organizer UID lookup
 
   console.log("Ensure Firebase security rules allow writes to the 'camps' collection.");
 
@@ -177,9 +156,10 @@ const seedCamps = async () => {
         location: campDataRaw.location,
         imageUrl: campDataRaw.imageUrl,
         price: campDataRaw.price,
-        organizerEmail: organizerEmail,
+        organizerEmail: defaultOrganizerEmail, // Use default or specific email
         createdAt: Timestamp.fromDate(new Date()), // Use Firestore Timestamp
-        ...(organizerId && { organizerId: organizerId }), // Add organizerId only if found
+        // Include organizerId if it exists in the raw data (optional)
+        ...(campDataRaw.organizerId && { organizerId: campDataRaw.organizerId }),
         activities: campDataRaw.activities || [], // Ensure activities array exists
       };
       const docRef = await addDoc(campsCollectionRef, campToAdd);

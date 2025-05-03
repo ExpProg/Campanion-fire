@@ -293,26 +293,18 @@ function CreateCampForm() {
 
 
 export default function CreateCampPage() {
-  const { user, profile, loading } = useAuth();
+  const { user, loading } = useAuth(); // Removed profile check
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect logic:
-    if (!loading) {
-        if (!user) {
-            router.push('/login'); // Not logged in
-        } else if (user && !profile?.isOrganizer) {
-            // Logged in but profile loaded and NOT organizer
-            router.push('/dashboard');
-        }
-        // If profile is still loading but user is known, wait for profile.
-        // If profile is loaded and IS organizer, stay on page.
+    // Redirect logic: Only check if user is logged in
+    if (!loading && !user) {
+        router.push('/login'); // Not logged in
     }
-  }, [user, profile, loading, router]);
+  }, [user, loading, router]); // Removed profile dependency
 
 
-  if (loading || !user || (user && !profile?.isOrganizer && profile !== null)) { // Updated condition
-     // Show loading skeleton while auth/profile is loading or if user is not an organizer (and profile is loaded)
+  if (loading || !user) { // Updated condition: Show loading skeleton if auth is loading or user is not logged in
      return (
          <div className="flex flex-col min-h-screen">
              {/* Header Skeleton */}
@@ -358,7 +350,7 @@ export default function CreateCampPage() {
   }
 
 
-  // User is logged in and is an organizer
+  // User is logged in
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header /> {/* Use the reusable Header component */}

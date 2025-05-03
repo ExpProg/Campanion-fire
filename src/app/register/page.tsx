@@ -13,9 +13,9 @@ import { auth, db } from '@/config/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
+// Removed Checkbox import
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'; // Removed FormDescription
 import { useToast } from '@/hooks/use-toast';
 import { Tent } from 'lucide-react';
 
@@ -23,7 +23,7 @@ import { Tent } from 'lucide-react';
 const registerSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-  isOrganizer: z.boolean().default(false),
+  // isOrganizer: z.boolean().default(false), // Removed organizer field
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -38,7 +38,7 @@ export default function RegisterPage() {
     defaultValues: {
       email: '',
       password: '',
-      isOrganizer: false,
+      // isOrganizer: false, // Removed default value
     },
   });
 
@@ -48,10 +48,10 @@ export default function RegisterPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
 
-      // Store additional user info (like isOrganizer) in Firestore
+      // Store basic user info in Firestore (without isOrganizer)
       await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
-        isOrganizer: values.isOrganizer,
+        // isOrganizer: values.isOrganizer, // Removed isOrganizer field
         createdAt: new Date(),
       });
 
@@ -118,29 +118,7 @@ export default function RegisterPage() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="isOrganizer"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow">
-                     <FormControl>
-                       <Checkbox
-                         checked={field.value}
-                         onCheckedChange={field.onChange}
-                         disabled={isLoading}
-                       />
-                     </FormControl>
-                     <div className="space-y-1 leading-none">
-                       <FormLabel>
-                         I am a camp organizer
-                       </FormLabel>
-                       <FormDescription>
-                         Check this box if you plan to list camps on Campanion.
-                       </FormDescription>
-                     </div>
-                  </FormItem>
-                )}
-              />
+              {/* Removed Organizer Checkbox Field */}
 
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? 'Registering...' : 'Register'}

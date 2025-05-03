@@ -7,9 +7,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Image from 'next/image';
-import { collection, getDocs, deleteDoc, doc, query, where, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc, doc, Timestamp } from 'firebase/firestore'; // Removed query, where
 import { db } from '@/config/firebase';
-import { Tent, PlusCircle, Trash2 } from 'lucide-react'; // Removed unused icons: LogOut, Home, Menu, User
+import { Trash2 } from 'lucide-react'; // Removed Tent, PlusCircle
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
@@ -24,7 +24,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-// Removed Sheet imports as they are now in Header
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/layout/Header'; // Import the Header component
 
@@ -86,7 +85,7 @@ const sampleCamps: Camp[] = [
 ];
 
 export default function DashboardPage() {
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth(); // Removed profile
   const router = useRouter();
   const { toast } = useToast();
   const [camps, setCamps] = useState<Camp[]>([]); // State for sample camps
@@ -151,6 +150,17 @@ export default function DashboardPage() {
   // Function to handle camp deletion
   const handleDeleteCamp = async (campId: string) => {
     if (!campId) return;
+    // Ensure only the owner can delete
+    const campToDelete = firestoreCamps.find(camp => camp.id === campId);
+    if (campToDelete?.organizerId !== user?.uid) {
+       toast({
+         title: 'Permission Denied',
+         description: 'You can only delete camps you created.',
+         variant: 'destructive',
+       });
+       return;
+    }
+
     setDeletingCampId(campId);
 
     try {
@@ -177,7 +187,8 @@ export default function DashboardPage() {
 
   // Helper component for rendering camp cards
   const CampCard = ({ camp, isFirestoreCamp = false }: { camp: Camp; isFirestoreCamp?: boolean }) => {
-    const isOrganizerOfThisCamp = profile?.isOrganizer && isFirestoreCamp && camp.organizerId === user?.uid;
+    // Check if the current logged-in user is the organizer of this specific camp
+    const isOwner = isFirestoreCamp && camp.organizerId === user?.uid;
 
     return (
       <Card key={camp.id} className="overflow-hidden flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300 bg-card">
@@ -207,7 +218,8 @@ export default function DashboardPage() {
                 View Details
               </Link>
             </Button>
-            {isOrganizerOfThisCamp && (
+            {/* Show delete button only if the user owns this Firestore camp */}
+            {isOwner && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
@@ -291,54 +303,65 @@ export default function DashboardPage() {
     );
   }
 
-  // Filter Firestore camps to show only those created by the current user if they are an organizer
-  const userIsOrganizer = profile?.isOrganizer;
-  const myFirestoreCamps = userIsOrganizer && user?.uid
+  // Filter Firestore camps to show only those created by the current user
+  const myFirestoreCamps = user?.uid
     ? firestoreCamps.filter(camp => camp.organizerId === user.uid)
-    : []; // Non-organizers see no "My Camps"
+    : [];
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header /> {/* Use the reusable Header component */}
 
       <main className="flex-1 p-4 md:p-8 lg:p-12 space-y-12">
-        {/* Section for User's Firestore Camps (if organizer) */}
-        {userIsOrganizer && (
-          <div>
-            <h2 className="text-2xl font-bold mb-6 text-foreground">My Camps</h2>
-            {firestoreLoading ? (
-              <SkeletonCard count={myFirestoreCamps.length > 0 ? myFirestoreCamps.length : 1} />
-            ) : myFirestoreCamps.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {myFirestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
-              </div>
-            ) : (
-              <p className="text-center text-muted-foreground">
-                You haven't created any camps yet. <Link href="/camps/new" className="text-primary hover:underline">Create one!</Link>
-              </p>
-            )}
-          </div>
-        )}
-        {/* Reordered: Moved this separator check after My Camps section */}
-        {userIsOrganizer && myFirestoreCamps.length > 0 && firestoreCamps.length > 0 && <Separator />}
+        {/* Section for User's Firestore Camps (My Camps) */}
+        <div>
+          <h2 className="text-2xl font-bold mb-6 text-foreground">My Camps</h2>
+          {firestoreLoading ? (
+            <SkeletonCard count={myFirestoreCamps.length > 0 ? myFirestoreCamps.length : 1} />
+          ) : myFirestoreCamps.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {myFirestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground">
+              You haven't created any camps yet. <Link href="/camps/new" className="text-primary hover:underline">Create one!</Link>
+            </p>
+          )}
+        </div>
+        {/* Separator shown if user has camps and there are other camps */}
+        {myFirestoreCamps.length > 0 && firestoreCamps.some(camp => camp.organizerId !== user?.uid) && <Separator />}
 
-        {/* Section for All Firestore Camps */}
+        {/* Section for All Other Firestore Camps */}
         <div>
           <h2 className="text-2xl font-bold mb-6 text-foreground">Discover Camps (Database)</h2>
           {firestoreLoading ? (
             <SkeletonCard count={3} />
-          ) : firestoreCamps.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Filter out camps that are already shown in "My Camps" */}
-              {firestoreCamps
-                .filter(camp => !(userIsOrganizer && user?.uid && camp.organizerId === user.uid))
-                .map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
-            </div>
           ) : (
-            <p className="text-center text-muted-foreground">
-              No camps found in the database yet.
-              {userIsOrganizer && <> Be the first to <Link href="/camps/new" className="text-primary hover:underline">create one!</Link></>}
-            </p>
+            (() => {
+               // Filter out the user's own camps
+              const otherCamps = firestoreCamps.filter(camp => camp.organizerId !== user?.uid);
+              if (otherCamps.length > 0) {
+                return (
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                     {otherCamps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
+                   </div>
+                );
+              } else if (firestoreCamps.length === 0) {
+                // No camps in DB at all
+                return (
+                   <p className="text-center text-muted-foreground">
+                     No camps found in the database yet. Be the first to <Link href="/camps/new" className="text-primary hover:underline">create one!</Link>
+                   </p>
+                );
+              } else {
+                 // Only user's own camps exist
+                 return (
+                    <p className="text-center text-muted-foreground">
+                      No other camps found in the database yet.
+                    </p>
+                 )
+              }
+            })() // Immediately invoke the function
           )}
         </div>
 

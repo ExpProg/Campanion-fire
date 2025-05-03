@@ -24,7 +24,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tent, LogOut, PlusCircle, Home, Menu, User } from 'lucide-react';
 
 export default function Header() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth(); // Removed profile
   const router = useRouter();
   const { toast } = useToast();
 
@@ -43,7 +43,7 @@ export default function Header() {
     }
   };
 
-  const userIsOrganizer = profile?.isOrganizer;
+  // Removed userIsOrganizer variable
 
   // Don't render header if user data is not yet available (or during initial load)
   // This prevents flashing of incorrect states
@@ -89,14 +89,13 @@ export default function Header() {
                              <span className="text-base font-medium">Profile</span>
                          </Link>
                      </SheetClose>
-                     {userIsOrganizer && (
-                         <SheetClose asChild>
-                             <Link href="/camps/new" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground" prefetch={false}>
-                                 <PlusCircle className="h-5 w-5" />
-                                 <span className="text-base font-medium">Create Camp</span>
-                             </Link>
-                         </SheetClose>
-                     )}
+                     {/* Always show Create Camp if user is logged in */}
+                     <SheetClose asChild>
+                         <Link href="/camps/new" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground" prefetch={false}>
+                             <PlusCircle className="h-5 w-5" />
+                             <span className="text-base font-medium">Create Camp</span>
+                         </Link>
+                     </SheetClose>
                      {/* Add more links here as needed */}
                  </div>
                  {/* Footer pushed to bottom */}
@@ -116,13 +115,12 @@ export default function Header() {
       <div className="ml-auto flex items-center gap-4">
         {user ? (
           <>
-            {userIsOrganizer && (
-              <Button asChild size="sm" className="hidden sm:inline-flex">
-                <Link href="/camps/new" prefetch={false}>
-                  <PlusCircle className="mr-2 h-4 w-4" /> Create Camp
-                </Link>
-              </Button>
-            )}
+            {/* Always show Create Camp button if user is logged in */}
+            <Button asChild size="sm" className="hidden sm:inline-flex">
+              <Link href="/camps/new" prefetch={false}>
+                <PlusCircle className="mr-2 h-4 w-4" /> Create Camp
+              </Link>
+            </Button>
             <span className="text-sm text-muted-foreground hidden md:inline">
               Welcome, {user.email}
             </span>
