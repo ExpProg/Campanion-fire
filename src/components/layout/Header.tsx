@@ -1,4 +1,3 @@
-
 // src/components/layout/Header.tsx
 'use client';
 
@@ -21,7 +20,22 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tent, LogOut, PlusCircle, Home, Menu, User } from 'lucide-react';
+
+// Helper to generate initials for fallback avatar
+const getInitials = (email: string | null | undefined) => {
+    if (!email) return '??';
+    return email.charAt(0).toUpperCase();
+};
 
 export default function Header() {
   const { user } = useAuth(); // Removed profile
@@ -120,7 +134,7 @@ export default function Header() {
         <Tent className="h-6 w-6 text-primary" />
         <span className="ml-2 text-xl font-semibold">Campanion</span>
       </Link>
-      <div className="ml-auto flex items-center gap-2"> {/* Reduced gap */}
+      <div className="ml-auto flex items-center gap-4"> {/* Adjusted gap */}
         {user ? (
           <>
             {/* Always show Create Camp button if user is logged in */}
@@ -129,12 +143,43 @@ export default function Header() {
                 <PlusCircle className="mr-2 h-4 w-4" /> Create Camp
               </Link>
             </Button>
-             {/* Removed the welcome span */}
-            {/* Changed size to "icon", removed text, added sr-only */}
-            <Button variant="ghost" onClick={handleLogout} size="icon" className="hidden sm:inline-flex text-foreground hover:bg-accent hover:text-accent-foreground">
-              <LogOut className="h-4 w-4" />
-              <span className="sr-only">Logout</span>
-            </Button>
+
+             {/* Avatar Dropdown Menu */}
+             <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                       <Avatar className="h-8 w-8">
+                         {/* Add AvatarImage if user.photoURL is available */}
+                         {/* <AvatarImage src={user.photoURL || undefined} alt={user.email || 'User'} /> */}
+                         <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
+                       </Avatar>
+                   </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {user.displayName || user.email?.split('@')[0]} {/* Show display name or part of email */}
+                      </p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user.email}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                     <Link href="/profile" className="flex items-center cursor-pointer">
+                       <User className="mr-2 h-4 w-4" />
+                       <span>Profile</span>
+                     </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+             </DropdownMenu>
           </>
         ) : (
           <>
