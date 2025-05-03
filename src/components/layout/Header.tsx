@@ -61,47 +61,54 @@ export default function Header() {
                      <span className="sr-only">Open Menu</span>
                  </Button>
              </SheetTrigger>
-             <SheetContent side="left" className="w-[250px] sm:w-[300px] bg-background p-6 flex flex-col"> {/* Added flex flex-col */}
-                 <SheetHeader className="mb-6">
+             <SheetContent side="left" className="w-[250px] sm:w-[300px] bg-background p-0 flex flex-col"> {/* Removed p-6, use sections for padding */}
+                 <SheetHeader className="p-6 border-b"> {/* Added padding here */}
                      <SheetTitle>
-                         <Link href="/dashboard" className="flex items-center justify-center sm:justify-start text-foreground" prefetch={false}>
-                             <Tent className="h-6 w-6 text-primary" />
-                             <span className="ml-2 text-xl font-semibold">Campanion</span>
-                         </Link>
+                         <SheetClose asChild>
+                           <Link href="/dashboard" className="flex items-center justify-center sm:justify-start text-foreground" prefetch={false}>
+                               <Tent className="h-6 w-6 text-primary" />
+                               <span className="ml-2 text-xl font-semibold">Campanion</span>
+                           </Link>
+                         </SheetClose>
                      </SheetTitle>
                      {user?.email && (
-                       <SheetDescription className="text-muted-foreground">
-                           {/* Removed welcome message from here */}
-                           {/* Welcome, {user.email} */}
+                       <SheetDescription className="text-muted-foreground pt-2 text-center sm:text-left">
+                           Logged in as {user.email}
                        </SheetDescription>
                      )}
                  </SheetHeader>
-                 <Separator className="mb-6" />
-                 <div className="flex flex-col space-y-3 flex-grow"> {/* Added flex-grow */}
+                 {/* Separator removed, handled by border-b on Header */}
+                 <div className="flex flex-col space-y-1 p-4 flex-grow"> {/* Use p-4 for link area, adjust spacing */}
                      <SheetClose asChild>
-                         <Link href="/dashboard" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground" prefetch={false}>
-                             <Home className="h-5 w-5" />
-                             <span className="text-base font-medium">Dashboard</span>
-                         </Link>
+                         <Button variant="ghost" asChild className="justify-start">
+                           <Link href="/dashboard" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground" prefetch={false}>
+                               <Home className="h-5 w-5" />
+                               <span className="text-base font-medium">Dashboard</span>
+                           </Link>
+                         </Button>
                      </SheetClose>
                      <SheetClose asChild>
-                         <Link href="/profile" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground" prefetch={false}>
-                             <User className="h-5 w-5" />
-                             <span className="text-base font-medium">Profile</span>
-                         </Link>
+                         <Button variant="ghost" asChild className="justify-start">
+                           <Link href="/profile" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground" prefetch={false}>
+                               <User className="h-5 w-5" />
+                               <span className="text-base font-medium">Profile</span>
+                           </Link>
+                         </Button>
                      </SheetClose>
                      {/* Always show Create Camp if user is logged in */}
                      <SheetClose asChild>
-                         <Link href="/camps/new" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground" prefetch={false}>
-                             <PlusCircle className="h-5 w-5" />
-                             <span className="text-base font-medium">Create Camp</span>
-                         </Link>
+                         <Button variant="ghost" asChild className="justify-start">
+                           <Link href="/camps/new" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground" prefetch={false}>
+                               <PlusCircle className="h-5 w-5" />
+                               <span className="text-base font-medium">Create Camp</span>
+                           </Link>
+                          </Button>
                      </SheetClose>
                      {/* Add more links here as needed */}
                  </div>
                  {/* Footer pushed to bottom */}
-                 <SheetFooter className="mt-auto pt-6"> {/* Added mt-auto and pt-6 */}
-                     <Separator className="mb-4" />
+                 <SheetFooter className="p-6 border-t mt-auto"> {/* Added padding here */}
+                     {/* Separator removed, handled by border-t */}
                      <Button variant="ghost" onClick={handleLogout} className="w-full justify-start text-foreground hover:bg-accent hover:text-accent-foreground">
                          <LogOut className="mr-3 h-5 w-5" /> Logout
                      </Button>
@@ -113,7 +120,7 @@ export default function Header() {
         <Tent className="h-6 w-6 text-primary" />
         <span className="ml-2 text-xl font-semibold">Campanion</span>
       </Link>
-      <div className="ml-auto flex items-center gap-4">
+      <div className="ml-auto flex items-center gap-2"> {/* Reduced gap */}
         {user ? (
           <>
             {/* Always show Create Camp button if user is logged in */}
@@ -123,19 +130,21 @@ export default function Header() {
               </Link>
             </Button>
              {/* Removed the welcome span */}
-            <Button variant="ghost" onClick={handleLogout} size="sm" className="hidden sm:inline-flex text-foreground hover:bg-accent hover:text-accent-foreground">
-              <LogOut className="mr-2 h-4 w-4" /> Logout
+            {/* Changed size to "icon", removed text, added sr-only */}
+            <Button variant="ghost" onClick={handleLogout} size="icon" className="hidden sm:inline-flex text-foreground hover:bg-accent hover:text-accent-foreground">
+              <LogOut className="h-4 w-4" />
+              <span className="sr-only">Logout</span>
             </Button>
           </>
         ) : (
           <>
              {/* Show Login/Register buttons if user is not logged in - Adjust if needed on specific pages */}
-              <Button variant="ghost" asChild>
+              <Button variant="ghost" asChild size="sm"> {/* Added size=sm */}
                   <Link href="/login" prefetch={false}>
                       Login
                   </Link>
               </Button>
-              <Button asChild>
+              <Button asChild size="sm"> {/* Added size=sm */}
                   <Link href="/register" prefetch={false}>
                       Register
                   </Link>
@@ -146,4 +155,3 @@ export default function Header() {
     </header>
   );
 }
-
