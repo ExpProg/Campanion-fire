@@ -71,7 +71,8 @@ export default function Header() {
                      </SheetTitle>
                      {user?.email && (
                        <SheetDescription className="text-muted-foreground">
-                           Welcome, {user.email}
+                           {/* Removed welcome message from here */}
+                           {/* Welcome, {user.email} */}
                        </SheetDescription>
                      )}
                  </SheetHeader>
@@ -121,9 +122,7 @@ export default function Header() {
                 <PlusCircle className="mr-2 h-4 w-4" /> Create Camp
               </Link>
             </Button>
-            <span className="text-sm text-muted-foreground hidden md:inline">
-              Welcome, {user.email}
-            </span>
+             {/* Removed the welcome span */}
             <Button variant="ghost" onClick={handleLogout} size="sm" className="hidden sm:inline-flex text-foreground hover:bg-accent hover:text-accent-foreground">
               <LogOut className="mr-2 h-4 w-4" /> Logout
             </Button>
@@ -147,3 +146,4 @@ export default function Header() {
     </header>
   );
 }
+
