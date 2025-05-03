@@ -8,12 +8,24 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Image from 'next/image';
 import { signOut } from 'firebase/auth';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { auth, db } from '@/config/firebase';
-import { Tent, LogOut, UserCircle, PlusCircle } from 'lucide-react';
+import { Tent, LogOut, PlusCircle, Trash2, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
 
 
 // Camp Data Interface
@@ -25,12 +37,11 @@ interface Camp {
   location: string;
   imageUrl: string;
   price: number;
-  // Add other fields that might exist in Firestore
-  organizerId?: string;
+  organizerId?: string; // Crucial for checking ownership
   createdAt?: any; // Use appropriate type if needed, e.g., Timestamp
 }
 
-// Sample Camp Data (Remains for demonstration as requested)
+// Sample Camp Data (Remains for demonstration)
 const sampleCamps: Camp[] = [
   {
     id: 'sample-1', // Prefix IDs to avoid potential key conflicts
@@ -74,10 +85,12 @@ const sampleCamps: Camp[] = [
 export default function DashboardPage() {
   const { user, profile, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [camps, setCamps] = useState<Camp[]>([]); // State for sample camps
   const [firestoreCamps, setFirestoreCamps] = useState<Camp[]>([]); // State for Firestore camps
   const [sampleLoading, setSampleLoading] = useState(true); // Loading state for sample data
   const [firestoreLoading, setFirestoreLoading] = useState(true); // Loading state for Firestore data
+  const [deletingCampId, setDeletingCampId] = useState<string | null>(null); // State for deletion
 
 
   useEffect(() => {
@@ -100,24 +113,7 @@ export default function DashboardPage() {
         }, 500); // Reduced delay for samples
 
         // Fetch data from Firestore
-        const fetchFirestoreCamps = async () => {
-            try {
-                const campsCollectionRef = collection(db, 'camps');
-                const querySnapshot = await getDocs(campsCollectionRef);
-                const fetchedCamps = querySnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data() as Omit<Camp, 'id'> // Assert data type, excluding id
-                }));
-                setFirestoreCamps(fetchedCamps);
-            } catch (error) {
-                console.error("Error fetching camps from Firestore:", error);
-                // Optionally show an error toast
-            } finally {
-                setFirestoreLoading(false);
-            }
-        };
-
-        fetchFirestoreCamps();
+        fetchFirestoreCamps(); // Call fetch function
 
     } else {
         // Reset states if user logs out
@@ -128,47 +124,142 @@ export default function DashboardPage() {
     }
    }, [user]); // Depend on user to refetch if user changes
 
+   // Function to fetch Firestore camps
+   const fetchFirestoreCamps = async () => {
+       try {
+           const campsCollectionRef = collection(db, 'camps');
+           const querySnapshot = await getDocs(campsCollectionRef);
+           const fetchedCamps = querySnapshot.docs.map(doc => ({
+               id: doc.id,
+               ...doc.data() as Omit<Camp, 'id'> // Assert data type, excluding id
+           }));
+           setFirestoreCamps(fetchedCamps);
+       } catch (error) {
+           console.error("Error fetching camps from Firestore:", error);
+           toast({
+               title: 'Error',
+               description: 'Could not load camps from the database.',
+               variant: 'destructive',
+           });
+       } finally {
+           setFirestoreLoading(false);
+       }
+   };
+
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
       router.push('/'); // Redirect to landing page after logout
     } catch (error) {
       console.error('Logout Error:', error);
-      // Optionally show a toast notification for logout failure
+      toast({
+        title: 'Logout Failed',
+        description: 'An error occurred during logout.',
+        variant: 'destructive',
+      });
     }
   };
 
-  // Helper component for rendering camp cards
-  const CampCard = ({ camp }: { camp: Camp }) => (
-     <Card key={camp.id} className="overflow-hidden flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300">
-       <div className="relative w-full h-48">
-         <Image
-           src={camp.imageUrl || 'https://picsum.photos/seed/placeholder/600/400'} // Fallback image
-           alt={camp.name}
-           fill
-           style={{ objectFit: 'cover' }}
-           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-           data-ai-hint="camp nature adventure"
-           priority={camp.id.startsWith('sample-') && parseInt(camp.id.split('-')[1]) <= 2} // Prioritize only first few sample images
-         />
-       </div>
-       <CardHeader>
-         <CardTitle>{camp.name}</CardTitle>
-         <CardDescription>{camp.location} | {camp.dates}</CardDescription>
-       </CardHeader>
-       <CardContent className="flex-grow">
-         <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{camp.description}</p>
-       </CardContent>
-       <div className="p-6 pt-0 flex justify-between items-center">
-         <span className="text-lg font-semibold text-primary">${camp.price}</span>
-         <Button size="sm" asChild>
-           <Link href={`/camps/${camp.id}`} prefetch={false}>
-             View Details
-           </Link>
-         </Button>
-       </div>
-     </Card>
-  );
+  // Function to handle camp deletion
+  const handleDeleteCamp = async (campId: string) => {
+    if (!campId) return;
+    setDeletingCampId(campId); // Show loading/disabled state on the specific button maybe?
+
+    try {
+        const campDocRef = doc(db, 'camps', campId);
+        await deleteDoc(campDocRef);
+
+        // Update UI state immediately
+        setFirestoreCamps(prevCamps => prevCamps.filter(camp => camp.id !== campId));
+
+        toast({
+            title: 'Camp Deleted',
+            description: 'The camp has been successfully removed.',
+        });
+    } catch (error) {
+        console.error("Error deleting camp:", error);
+        toast({
+            title: 'Deletion Failed',
+            description: 'Could not delete the camp. Please try again.',
+            variant: 'destructive',
+        });
+    } finally {
+       setDeletingCampId(null); // Reset deleting state
+    }
+  };
+
+
+  // Helper component for rendering camp cards (modified to include delete)
+  const CampCard = ({ camp, isFirestoreCamp = false }: { camp: Camp; isFirestoreCamp?: boolean }) => {
+    const isOrganizer = profile?.isOrganizer && camp.organizerId === user?.uid;
+
+    return (
+        <Card key={camp.id} className="overflow-hidden flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300">
+        <div className="relative w-full h-48">
+            <Image
+            src={camp.imageUrl || 'https://picsum.photos/seed/placeholder/600/400'} // Fallback image
+            alt={camp.name}
+            fill
+            style={{ objectFit: 'cover' }}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            data-ai-hint="camp nature adventure"
+            priority={camp.id.startsWith('sample-') && parseInt(camp.id.split('-')[1]) <= 2} // Prioritize only first few sample images
+            />
+        </div>
+        <CardHeader>
+            <CardTitle>{camp.name}</CardTitle>
+            <CardDescription>{camp.location} | {camp.dates}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex-grow">
+            <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{camp.description}</p>
+        </CardContent>
+        <div className="p-6 pt-0 flex justify-between items-center gap-2">
+            <span className="text-lg font-semibold text-primary">${camp.price}</span>
+            <div className="flex gap-2">
+                <Button size="sm" asChild>
+                    <Link href={`/camps/${camp.id}`} prefetch={false}>
+                        View Details
+                    </Link>
+                </Button>
+                {isFirestoreCamp && isOrganizer && (
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                           <Button
+                              variant="destructive"
+                              size="sm"
+                              disabled={deletingCampId === camp.id}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span className="sr-only">Delete</span>
+                           </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete the camp
+                                    <span className="font-medium"> "{camp.name}"</span> from the database.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={() => handleDeleteCamp(camp.id)}
+                                    className="bg-destructive hover:bg-destructive/90" // Style action button as destructive
+                                >
+                                    Delete Camp
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )}
+            </div>
+        </div>
+        </Card>
+    );
+  };
+
 
   // Helper component for rendering skeleton cards
   const SkeletonCard = ({ count = 3 }: { count?: number }) => (
@@ -184,8 +275,11 @@ export default function DashboardPage() {
                       <Skeleton className="h-4 w-full" />
                       <Skeleton className="h-4 w-full" />
                       <Skeleton className="h-4 w-2/3" />
-                      <Skeleton className="h-8 w-1/3 mt-4" />
                   </CardContent>
+                   <div className="p-6 pt-0 flex justify-between items-center">
+                       <Skeleton className="h-6 w-1/4" />
+                       <Skeleton className="h-8 w-1/3" />
+                   </div>
               </Card>
            ))}
       </div>
@@ -201,8 +295,9 @@ export default function DashboardPage() {
                <Skeleton className="h-6 w-32" />
                <div className="ml-auto flex gap-4 sm:gap-6 items-center">
                    <Skeleton className="h-8 w-24 hidden sm:block" />
-                   <Skeleton className="h-8 w-8 rounded-full" />
-                   <Skeleton className="h-8 w-8" />
+                   {/* Removed UserCircle skeleton as it wasn't present in the original */}
+                   <Skeleton className="h-8 w-8 rounded-full" /> {/* Email/Avatar placeholder */}
+                   <Skeleton className="h-8 w-8" /> {/* Logout button placeholder */}
                </div>
            </header>
            <main className="flex-1 p-4 md:p-8 lg:p-12">
@@ -246,7 +341,7 @@ export default function DashboardPage() {
                   <SkeletonCard count={3} />
               ) : camps.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {camps.map((camp) => <CampCard key={camp.id} camp={camp} />)}
+                  {camps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={false} />)}
                 </div>
               ) : (
                 <p className="text-center text-muted-foreground">No sample camps available.</p>
@@ -257,12 +352,12 @@ export default function DashboardPage() {
 
           {/* Section for Firestore Camps */}
           <div>
-              <h2 className="text-2xl font-bold mb-6">Camps from Database</h2>
+              <h2 className="text-2xl font-bold mb-6">My Camps (Database)</h2>
               {firestoreLoading ? (
                   <SkeletonCard count={3} />
               ) : firestoreCamps.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {firestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} />)}
+                  {firestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
                 </div>
               ) : (
                 <p className="text-center text-muted-foreground">No camps found in the database. {profile?.isOrganizer ? (<Link href="/camps/new" className="text-primary hover:underline">Create one!</Link>) : 'Check back soon!'}</p>
