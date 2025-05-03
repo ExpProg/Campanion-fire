@@ -10,7 +10,7 @@ import Image from 'next/image';
 import { signOut } from 'firebase/auth';
 import { collection, getDocs, deleteDoc, doc, query, where, Timestamp } from 'firebase/firestore';
 import { auth, db } from '@/config/firebase';
-import { Tent, LogOut, PlusCircle, Trash2, Home, Menu } from 'lucide-react'; // Added Menu
+import { Tent, LogOut, PlusCircle, Trash2, Home, Menu, User } from 'lucide-react'; // Added User icon
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
@@ -34,7 +34,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet"; // Added Sheet imports
+} from "@/components/ui/sheet";
 import { useToast } from '@/hooks/use-toast';
 
 // Camp Data Interface - reflects Firestore structure
@@ -203,7 +203,7 @@ export default function DashboardPage() {
     const isOrganizerOfThisCamp = profile?.isOrganizer && isFirestoreCamp && camp.organizerId === user?.uid;
 
     return (
-      <Card key={camp.id} className="overflow-hidden flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300">
+      <Card key={camp.id} className="overflow-hidden flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300 bg-card">
         <div className="relative w-full h-48">
           <Image
             src={camp.imageUrl || 'https://picsum.photos/seed/placeholder/600/400'}
@@ -272,7 +272,7 @@ export default function DashboardPage() {
   const SkeletonCard = ({ count = 3 }: { count?: number }) => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {[...Array(count)].map((_, index) => (
-        <Card key={index} className="overflow-hidden">
+        <Card key={index} className="overflow-hidden bg-card">
           <Skeleton className="h-48 w-full" />
           <CardHeader>
             <Skeleton className="h-6 w-3/4 mb-2" />
@@ -323,8 +323,8 @@ export default function DashboardPage() {
     : []; // Non-organizers see no "My Camps"
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background z-10">
+    <div className="flex flex-col min-h-screen bg-background">
+      <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background z-50"> {/* Increased z-index */}
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="mr-2">
@@ -332,42 +332,51 @@ export default function DashboardPage() {
                <span className="sr-only">Open Menu</span>
             </Button>
           </SheetTrigger>
-          {/* Updated width classes here - reduced width */}
-          <SheetContent side="left" className="w-[250px] sm:w-[300px]">
-            <SheetHeader>
+          <SheetContent side="left" className="w-[250px] sm:w-[300px] bg-background p-6"> {/* Set background to white */}
+            <SheetHeader className="mb-6">
               <SheetTitle>
-                <Link href="/dashboard" className="flex items-center justify-center sm:justify-start" prefetch={false}>
+                <Link href="/dashboard" className="flex items-center justify-center sm:justify-start text-foreground" prefetch={false}>
                   <Tent className="h-6 w-6 text-primary" />
                   <span className="ml-2 text-xl font-semibold">Campanion</span>
                 </Link>
               </SheetTitle>
-              <SheetDescription>
+              <SheetDescription className="text-muted-foreground">
                  Welcome, {user.email}
               </SheetDescription>
             </SheetHeader>
-            <div className="flex flex-col space-y-4 py-6">
+            <Separator className="mb-6" />
+            <div className="flex flex-col space-y-3">
                <SheetClose asChild>
-                   <Link href="/dashboard" className="text-lg font-medium hover:text-primary" prefetch={false}>
-                     Dashboard
+                   <Link href="/dashboard" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground" prefetch={false}>
+                     <Home className="h-5 w-5" />
+                     <span className="text-base font-medium">Dashboard</span>
+                   </Link>
+                </SheetClose>
+                <SheetClose asChild>
+                   <Link href="/profile" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground" prefetch={false}>
+                     <User className="h-5 w-5" />
+                     <span className="text-base font-medium">Profile</span>
                    </Link>
                 </SheetClose>
                {userIsOrganizer && (
                  <SheetClose asChild>
-                     <Link href="/camps/new" className="text-lg font-medium hover:text-primary" prefetch={false}>
-                       Create Camp
+                     <Link href="/camps/new" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground" prefetch={false}>
+                       <PlusCircle className="h-5 w-5" />
+                       <span className="text-base font-medium">Create Camp</span>
                      </Link>
                  </SheetClose>
                )}
                {/* Add more links here as needed */}
             </div>
             <SheetFooter className="absolute bottom-6 left-0 right-0 px-6">
-              <Button variant="ghost" onClick={handleLogout} className="w-full justify-start">
-                <LogOut className="mr-2 h-4 w-4" /> Logout
+              <Separator className="mb-4" />
+              <Button variant="ghost" onClick={handleLogout} className="w-full justify-start text-foreground hover:bg-accent hover:text-accent-foreground">
+                <LogOut className="mr-3 h-5 w-5" /> Logout
               </Button>
             </SheetFooter>
           </SheetContent>
         </Sheet>
-        <Link href="/dashboard" className="flex items-center justify-center" prefetch={false}>
+        <Link href="/dashboard" className="flex items-center justify-center text-foreground" prefetch={false}>
           <Tent className="h-6 w-6 text-primary" />
           <span className="ml-2 text-xl font-semibold">Campanion</span>
         </Link>
@@ -382,7 +391,7 @@ export default function DashboardPage() {
           <span className="text-sm text-muted-foreground hidden md:inline"> {/* Hide on small/medium screens */}
               Welcome, {user.email}
           </span>
-          <Button variant="ghost" onClick={handleLogout} size="sm" className="hidden sm:inline-flex"> {/* Hide on small screens */}
+          <Button variant="ghost" onClick={handleLogout} size="sm" className="hidden sm:inline-flex text-foreground hover:bg-accent hover:text-accent-foreground"> {/* Hide on small screens */}
             <LogOut className="mr-2 h-4 w-4" /> Logout
           </Button>
         </div>
@@ -392,7 +401,7 @@ export default function DashboardPage() {
         {/* Section for User's Firestore Camps (if organizer) */}
         {userIsOrganizer && (
           <div>
-            <h2 className="text-2xl font-bold mb-6">My Camps</h2>
+            <h2 className="text-2xl font-bold mb-6 text-foreground">My Camps</h2>
             {firestoreLoading ? (
               <SkeletonCard count={myFirestoreCamps.length > 0 ? myFirestoreCamps.length : 1} />
             ) : myFirestoreCamps.length > 0 ? (
@@ -411,7 +420,7 @@ export default function DashboardPage() {
 
         {/* Section for All Firestore Camps */}
         <div>
-          <h2 className="text-2xl font-bold mb-6">Discover Camps (Database)</h2>
+          <h2 className="text-2xl font-bold mb-6 text-foreground">Discover Camps (Database)</h2>
           {firestoreLoading ? (
             <SkeletonCard count={3} />
           ) : firestoreCamps.length > 0 ? (
@@ -434,7 +443,7 @@ export default function DashboardPage() {
 
         {/* Section for Sample Camps */}
         <div>
-          <h2 className="text-2xl font-bold mb-6">Featured Camps (Samples)</h2>
+          <h2 className="text-2xl font-bold mb-6 text-foreground">Featured Camps (Samples)</h2>
           {sampleLoading ? (
             <SkeletonCard count={3} />
           ) : camps.length > 0 ? (
