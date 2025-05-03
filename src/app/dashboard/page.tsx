@@ -9,7 +9,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import Image from 'next/image';
 import { collection, getDocs, deleteDoc, doc, Timestamp } from 'firebase/firestore'; // Removed query, where
 import { db } from '@/config/firebase';
-import { Trash2 } from 'lucide-react'; // Removed Tent, PlusCircle
+import { Trash2, Pencil } from 'lucide-react'; // Added Pencil icon
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
@@ -44,17 +44,13 @@ interface Camp {
   activities?: string[];
 }
 
-// Sample Camp Data REMOVED
-
 export default function DashboardPage() {
-  const { user, loading: authLoading } = useAuth(); // Removed profile
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  // const [camps, setCamps] = useState<Camp[]>([]); // State for sample camps REMOVED
-  const [firestoreCamps, setFirestoreCamps] = useState<Camp[]>([]); // State for Firestore camps
-  // const [sampleLoading, setSampleLoading] = useState(true); // Loading state for sample data REMOVED
-  const [firestoreLoading, setFirestoreLoading] = useState(true); // Loading state for Firestore data
-  const [deletingCampId, setDeletingCampId] = useState<string | null>(null); // State for deletion
+  const [firestoreCamps, setFirestoreCamps] = useState<Camp[]>([]);
+  const [firestoreLoading, setFirestoreLoading] = useState(true);
+  const [deletingCampId, setDeletingCampId] = useState<string | null>(null);
 
   useEffect(() => {
     // Redirect to login if not authenticated and loading is finished
@@ -83,7 +79,12 @@ export default function DashboardPage() {
       const fetchedCamps = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data() as Omit<Camp, 'id'> // Assert data type, excluding id
-      }));
+      })).sort((a, b) => {
+          // Sort by creation date, newest first, if createdAt exists
+          const dateA = a.createdAt?.toDate() ?? new Date(0);
+          const dateB = b.createdAt?.toDate() ?? new Date(0);
+          return dateB.getTime() - dateA.getTime();
+      }); // Sort camps by creation date
       setFirestoreCamps(fetchedCamps);
     } catch (error) {
       console.error("Error fetching camps from Firestore:", error);
@@ -150,7 +151,6 @@ export default function DashboardPage() {
             style={{ objectFit: 'cover' }}
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             data-ai-hint="camp nature adventure"
-            // priority={camp.id.startsWith('sample-') && parseInt(camp.id.split('-')[1]) <= 2} // Removed priority logic tied to sample camps
           />
         </div>
         <CardHeader>
@@ -162,44 +162,54 @@ export default function DashboardPage() {
         </CardContent>
         <div className="p-6 pt-0 flex justify-between items-center gap-2">
           <span className="text-lg font-semibold text-primary">{camp.price} ₽</span> {/* Changed $ to ₽ */}
-          <div className="flex gap-2">
-            <Button size="sm" asChild>
+          <div className="flex gap-2 items-center"> {/* Ensure items are vertically centered */}
+            <Button size="sm" asChild variant="outline">
               <Link href={`/camps/${camp.id}`} prefetch={false}>
-                View Details
+                View
               </Link>
             </Button>
-            {/* Show delete button only if the user owns this Firestore camp */}
+            {/* Show Edit and Delete buttons only if the user owns this Firestore camp */}
             {isOwner && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    disabled={deletingCampId === camp.id}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span className="sr-only">Delete</span>
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete the camp
-                      <span className="font-medium"> "{camp.name}"</span> from the database.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => handleDeleteCamp(camp.id)}
-                      className="bg-destructive hover:bg-destructive/90"
+              <>
+                <Button size="sm" asChild variant="ghost">
+                    <Link href={`/camps/${camp.id}/edit`} prefetch={false} aria-label={`Edit ${camp.name}`}>
+                        <Pencil className="h-4 w-4" />
+                        <span className="sr-only">Edit</span>
+                    </Link>
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon" // Make it icon only
+                      className="text-destructive hover:bg-destructive/10" // Style ghost button for destructive action
+                      disabled={deletingCampId === camp.id}
+                      aria-label={`Delete ${camp.name}`}
                     >
-                      Delete Camp
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Delete</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete the camp
+                        <span className="font-medium"> "{camp.name}"</span> from the database.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDeleteCamp(camp.id)}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        Delete Camp
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
             )}
           </div>
         </div>
@@ -268,7 +278,12 @@ export default function DashboardPage() {
       <main className="flex-1 p-4 md:p-8 lg:p-12 space-y-12">
         {/* Section for User's Firestore Camps (My Camps) */}
         <div>
-          <h2 className="text-2xl font-bold mb-6 text-foreground">My Camps</h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-foreground">My Camps</h2>
+             <Button asChild>
+                 <Link href="/camps/new" prefetch={false}>Create Camp</Link>
+             </Button>
+          </div>
           {firestoreLoading ? (
             <SkeletonCard count={myFirestoreCamps.length > 0 ? myFirestoreCamps.length : 1} />
           ) : myFirestoreCamps.length > 0 ? (
@@ -276,47 +291,45 @@ export default function DashboardPage() {
               {myFirestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
             </div>
           ) : (
-            <p className="text-center text-muted-foreground">
-              You haven't created any camps yet. <Link href="/camps/new" className="text-primary hover:underline">Create one!</Link>
-            </p>
+             <Card className="text-center py-12">
+                <CardContent>
+                    <p className="text-muted-foreground mb-4">You haven't created any camps yet.</p>
+                    <Button asChild>
+                        <Link href="/camps/new">Create Your First Camp</Link>
+                    </Button>
+                </CardContent>
+             </Card>
           )}
         </div>
+
         {/* Separator shown if user has camps and there are other camps to discover */}
         {myFirestoreCamps.length > 0 && otherCamps.length > 0 && <Separator />}
 
         {/* Section for All Other Firestore Camps */}
-        <div>
-          <h2 className="text-2xl font-bold mb-6 text-foreground">Discover Camps</h2>
-          {firestoreLoading ? (
-            <SkeletonCard count={3} />
-          ) : (
-            (() => {
-              if (otherCamps.length > 0) {
-                return (
-                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                     {otherCamps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
-                   </div>
-                );
-              } else if (firestoreCamps.length === 0) {
-                // No camps in DB at all
-                return (
-                   <p className="text-center text-muted-foreground">
-                     No camps found in the database yet. Be the first to <Link href="/camps/new" className="text-primary hover:underline">create one!</Link>
-                   </p>
-                );
-              } else {
-                 // Only user's own camps exist, and no others
-                 return (
-                    <p className="text-center text-muted-foreground">
-                      No other camps to discover yet.
-                    </p>
-                 )
-              }
-            })() // Immediately invoke the function
-          )}
-        </div>
+        {otherCamps.length > 0 && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6 text-foreground">Discover Other Camps</h2>
+              {firestoreLoading ? (
+                <SkeletonCard count={3} />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                 {otherCamps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
+               </div>
+              )}
+            </div>
+        )}
+         {/* Message if there are no camps at all */}
+        {!firestoreLoading && firestoreCamps.length === 0 && (
+             <Card className="text-center py-12">
+                <CardContent>
+                    <p className="text-muted-foreground mb-4">No camps found in the database yet.</p>
+                    <Button asChild>
+                        <Link href="/camps/new">Be the first to create one!</Link>
+                    </Button>
+                </CardContent>
+             </Card>
+        )}
 
-        {/* Sample Camps Section REMOVED */}
 
       </main>
 
