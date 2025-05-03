@@ -7,8 +7,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Image from 'next/image';
-import { signOut } from 'firebase/auth';
-import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { signOut, User as FirebaseUser } from 'firebase/auth';
+import { collection, getDocs, deleteDoc, doc, query, where, Timestamp } from 'firebase/firestore';
 import { auth, db } from '@/config/firebase';
 import { Tent, LogOut, PlusCircle, Trash2, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
@@ -28,20 +28,24 @@ import {
 import { useToast } from '@/hooks/use-toast';
 
 
-// Camp Data Interface
+// Camp Data Interface - reflects Firestore structure
 interface Camp {
   id: string;
   name: string;
   description: string;
-  dates: string;
+  dates: string; // Pre-formatted string like "Jul 10 - Jul 20, 2024"
+  startDate?: Timestamp; // Stored as Timestamp
+  endDate?: Timestamp;   // Stored as Timestamp
   location: string;
   imageUrl: string;
   price: number;
   organizerId?: string; // Crucial for checking ownership
-  createdAt?: any; // Use appropriate type if needed, e.g., Timestamp
+  organizerEmail?: string;
+  createdAt?: Timestamp;
+  activities?: string[];
 }
 
-// Sample Camp Data (Remains for demonstration)
+// Sample Camp Data (Remains for demonstration - might be outdated regarding date format)
 const sampleCamps: Camp[] = [
   {
     id: 'sample-1', // Prefix IDs to avoid potential key conflicts
@@ -128,6 +132,7 @@ export default function DashboardPage() {
    const fetchFirestoreCamps = async () => {
        try {
            const campsCollectionRef = collection(db, 'camps');
+           // Optional: Add query(campsCollectionRef, orderBy("createdAt", "desc")) if needed
            const querySnapshot = await getDocs(campsCollectionRef);
            const fetchedCamps = querySnapshot.docs.map(doc => ({
                id: doc.id,
@@ -192,7 +197,8 @@ export default function DashboardPage() {
 
   // Helper component for rendering camp cards (modified to include delete)
   const CampCard = ({ camp, isFirestoreCamp = false }: { camp: Camp; isFirestoreCamp?: boolean }) => {
-    const isOrganizer = profile?.isOrganizer && camp.organizerId === user?.uid;
+    // Check if the current user is the organizer of this specific camp (for Firestore camps)
+    const isOrganizerOfThisCamp = profile?.isOrganizer && isFirestoreCamp && camp.organizerId === user?.uid;
 
     return (
         <Card key={camp.id} className="overflow-hidden flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300">
@@ -209,6 +215,7 @@ export default function DashboardPage() {
         </div>
         <CardHeader>
             <CardTitle>{camp.name}</CardTitle>
+            {/* Use the pre-formatted 'dates' string */}
             <CardDescription>{camp.location} | {camp.dates}</CardDescription>
         </CardHeader>
         <CardContent className="flex-grow">
@@ -222,7 +229,7 @@ export default function DashboardPage() {
                         View Details
                     </Link>
                 </Button>
-                {isFirestoreCamp && isOrganizer && (
+                {isOrganizerOfThisCamp && ( // Only show delete for the organizer of this camp
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
                            <Button
@@ -311,6 +318,12 @@ export default function DashboardPage() {
     );
   }
 
+  // Filter Firestore camps to show only those created by the current user if they are an organizer
+  const userIsOrganizer = profile?.isOrganizer;
+  const myFirestoreCamps = userIsOrganizer
+    ? firestoreCamps.filter(camp => camp.organizerId === user.uid)
+    : []; // Non-organizers see no "My Camps"
+
   return (
     <div className="flex flex-col min-h-screen">
        <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background z-10">
@@ -319,7 +332,7 @@ export default function DashboardPage() {
           <span className="ml-2 text-xl font-semibold">Campanion</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
-           {profile?.isOrganizer && (
+           {userIsOrganizer && ( // Show "Create Camp" only if the user is an organizer
              <Button variant="outline" size="sm" asChild>
                <Link href="/camps/new" prefetch={false}>
                  <PlusCircle className="mr-2 h-4 w-4" /> Create Camp
@@ -335,25 +348,46 @@ export default function DashboardPage() {
 
        <main className="flex-1 p-4 md:p-8 lg:p-12 space-y-12">
 
-          {/* Section for Firestore Camps (Moved Up) */}
-          <div>
-              <h2 className="text-2xl font-bold mb-6">My Camps (Database)</h2>
+          {/* Section for User's Firestore Camps (if organizer) */}
+          {userIsOrganizer && (
+            <div>
+                <h2 className="text-2xl font-bold mb-6">My Camps</h2>
+                {firestoreLoading ? (
+                    <SkeletonCard count={3} />
+                ) : myFirestoreCamps.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {myFirestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground">
+                    You haven't created any camps yet. <Link href="/camps/new" className="text-primary hover:underline">Create one!</Link>
+                  </p>
+                )}
+            </div>
+          )}
+          {/* Separator only shown if both sections are potentially visible */}
+          {userIsOrganizer && <Separator />}
+
+
+          {/* Section for All Firestore Camps (Previously "My Camps (Database)") */}
+           <div>
+              <h2 className="text-2xl font-bold mb-6">Discover Camps (Database)</h2>
               {firestoreLoading ? (
                   <SkeletonCard count={3} />
               ) : firestoreCamps.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Show all camps, or maybe filter out the user's own camps? */}
+                  {/* Current: shows all including user's own */}
                   {firestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} isFirestoreCamp={true} />)}
                 </div>
               ) : (
                 <p className="text-center text-muted-foreground">
-                    {profile?.isOrganizer ? (
-                        <>You haven't created any camps yet. <Link href="/camps/new" className="text-primary hover:underline">Create one!</Link></>
-                    ) : (
-                        'No camps found in the database.'
-                    )}
+                    No camps found in the database yet.
+                    {userIsOrganizer && <> Be the first to <Link href="/camps/new" className="text-primary hover:underline">create one!</Link></>}
                 </p>
               )}
           </div>
+
 
           <Separator />
 
@@ -380,4 +414,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

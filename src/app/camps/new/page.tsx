@@ -17,22 +17,74 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CalendarIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 // Zod schema for camp creation form validation
 const createCampSchema = z.object({
   name: z.string().min(3, { message: 'Camp name must be at least 3 characters.' }),
   description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
-  dates: z.string().min(5, { message: 'Please provide dates (e.g., July 10-20).' }),
+  startDate: z.date({ required_error: 'Start date is required.' }),
+  endDate: z.date({ required_error: 'End date is required.' }),
   location: z.string().min(3, { message: 'Location is required.' }),
   price: z.coerce.number().min(0, { message: 'Price must be a positive number.' }), // coerce converts string input to number
   imageUrl: z.string().url({ message: 'Please enter a valid image URL.' }).optional().or(z.literal('')), // Optional image URL
   activities: z.string().optional(), // Optional comma-separated activities
+}).refine((data) => data.endDate >= data.startDate, {
+  message: "End date cannot be before start date.",
+  path: ["endDate"], // Set the error path to the endDate field
 });
 
+
 type CreateCampFormValues = z.infer<typeof createCampSchema>;
+
+// Date Picker Component (simplified version)
+function DatePickerField({ field, label, disabled }: { field: any, label: string, disabled: boolean }) {
+  return (
+    <FormItem className="flex flex-col">
+      <FormLabel>{label}</FormLabel>
+      <Popover>
+        <PopoverTrigger asChild>
+          <FormControl>
+            <Button
+              variant={"outline"}
+              className={cn(
+                "w-full pl-3 text-left font-normal",
+                !field.value && "text-muted-foreground"
+              )}
+              disabled={disabled}
+            >
+              {field.value ? (
+                format(field.value, "PPP")
+              ) : (
+                <span>Pick a date</span>
+              )}
+              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+            </Button>
+          </FormControl>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={field.value}
+            onSelect={field.onChange}
+            disabled={(date) =>
+              label === "Start Date" ? false : date < new Date("1900-01-01") // Basic disable logic, adjust if needed
+            }
+            initialFocus
+          />
+        </PopoverContent>
+      </Popover>
+      <FormMessage />
+    </FormItem>
+  );
+}
+
 
 // Actual form component
 function CreateCampForm() {
@@ -46,7 +98,8 @@ function CreateCampForm() {
         defaultValues: {
             name: '',
             description: '',
-            dates: '',
+            startDate: undefined, // Use undefined for date picker initial state
+            endDate: undefined,
             location: '',
             price: 0,
             imageUrl: '',
@@ -70,10 +123,17 @@ function CreateCampForm() {
                 ? values.activities.split(',').map(activity => activity.trim()).filter(Boolean)
                 : [];
 
+            // Format dates for display string
+            const formattedStartDate = format(values.startDate, "MMM d");
+            const formattedEndDate = format(values.endDate, "MMM d, yyyy");
+            const datesString = `${formattedStartDate} - ${formattedEndDate}`;
+
             const campData = {
                 name: values.name,
                 description: values.description,
-                dates: values.dates,
+                startDate: Timestamp.fromDate(values.startDate), // Store as Timestamp
+                endDate: Timestamp.fromDate(values.endDate),     // Store as Timestamp
+                dates: datesString, // Store formatted string for easy display
                 location: values.location,
                 price: values.price,
                 imageUrl: values.imageUrl || `https://picsum.photos/seed/${values.name.replace(/\s+/g, '-')}/600/400`, // Use name for seed or default
@@ -137,20 +197,26 @@ function CreateCampForm() {
                 />
 
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
+                     {/* Start Date Picker */}
+                     <FormField
                         control={form.control}
-                        name="dates"
+                        name="startDate"
                         render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Dates</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="e.g., July 10 - July 20, 2024" {...field} disabled={isLoading} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
+                            <DatePickerField field={field} label="Start Date" disabled={isLoading} />
                         )}
                     />
 
+                     {/* End Date Picker */}
+                    <FormField
+                        control={form.control}
+                        name="endDate"
+                        render={({ field }) => (
+                           <DatePickerField field={field} label="End Date" disabled={isLoading} />
+                        )}
+                     />
+                 </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                         control={form.control}
                         name="location"
@@ -164,10 +230,6 @@ function CreateCampForm() {
                             </FormItem>
                         )}
                     />
-                 </div>
-
-
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                         control={form.control}
                         name="price"
@@ -181,23 +243,22 @@ function CreateCampForm() {
                             </FormItem>
                         )}
                     />
+                 </div>
 
-                    <FormField
-                        control={form.control}
-                        name="imageUrl"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Image URL (Optional)</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="https://example.com/image.jpg" {...field} disabled={isLoading} />
-                                </FormControl>
-                                <FormDescription>If left blank, a placeholder image will be used.</FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-
+                 <FormField
+                    control={form.control}
+                    name="imageUrl"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Image URL (Optional)</FormLabel>
+                            <FormControl>
+                                <Input placeholder="https://example.com/image.jpg" {...field} disabled={isLoading} />
+                            </FormControl>
+                            <FormDescription>If left blank, a placeholder image will be used.</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
                 <FormField
                     control={form.control}
@@ -250,8 +311,16 @@ export default function CreateCampPage() {
                 </CardHeader>
                 <CardContent>
                      <Skeleton className="h-10 w-full mb-4" />
-                     <Skeleton className="h-10 w-full mb-4" />
                      <Skeleton className="h-20 w-full mb-4" />
+                     <div className="grid grid-cols-2 gap-4 mb-4">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                     </div>
+                     <div className="grid grid-cols-2 gap-4 mb-4">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                     </div>
+                     <Skeleton className="h-10 w-full mb-4" />
                      <Skeleton className="h-10 w-1/4 mt-6" />
                 </CardContent>
             </Card>
@@ -280,4 +349,3 @@ export default function CreateCampPage() {
     </div>
   );
 }
-

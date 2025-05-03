@@ -11,15 +11,18 @@ import Image from 'next/image';
 import { ArrowLeft, CalendarDays, MapPin, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, Timestamp } from 'firebase/firestore'; // Import Timestamp
 import { db } from '@/config/firebase';
+import { format } from 'date-fns'; // Import format for date display if needed
 
 // Camp Data Interface (ensure consistency with Firestore structure)
 interface Camp {
   id: string;
   name: string;
   description: string;
-  dates: string;
+  dates: string; // Pre-formatted string
+  startDate?: Timestamp; // Optional: Store start date as Timestamp
+  endDate?: Timestamp;   // Optional: Store end date as Timestamp
   location: string;
   imageUrl: string;
   price: number;
@@ -38,12 +41,33 @@ async function fetchCampDetailsFromFirestore(id: string): Promise<Camp | null> {
 
     if (campDocSnap.exists()) {
       const data = campDocSnap.data();
+
+      // --- Date Handling ---
+      let datesDisplay = data.dates || 'Dates not specified'; // Default to stored string
+
+      // Optional: If 'dates' string is missing, try to reconstruct from Timestamps
+      if (!datesDisplay && data.startDate && data.endDate && data.startDate.toDate && data.endDate.toDate) {
+        try {
+            const formattedStartDate = format(data.startDate.toDate(), "MMM d");
+            const formattedEndDate = format(data.endDate.toDate(), "MMM d, yyyy");
+            datesDisplay = `${formattedStartDate} - ${formattedEndDate}`;
+        } catch (formatError) {
+            console.error("Error formatting dates from Timestamps:", formatError);
+            // Fallback if formatting fails
+            datesDisplay = 'Date range available';
+        }
+      }
+      // --- End Date Handling ---
+
+
       // Construct the Camp object, mapping Firestore fields to the interface
       const camp: Camp = {
         id: campDocSnap.id,
         name: data.name || 'Unnamed Camp',
         description: data.description || '',
-        dates: data.dates || 'Dates not specified',
+        dates: datesDisplay, // Use the determined display string
+        startDate: data.startDate, // Keep timestamp if needed elsewhere
+        endDate: data.endDate,     // Keep timestamp if needed elsewhere
         location: data.location || 'Location not specified',
         imageUrl: data.imageUrl || 'https://picsum.photos/seed/placeholder/800/500', // Fallback image
         price: data.price || 0,
@@ -206,6 +230,7 @@ export default function CampDetailsPage() {
                            <CalendarDays className="h-5 w-5 mr-3 mt-1 text-primary flex-shrink-0" />
                            <div>
                                 <p className="font-medium">Dates</p>
+                                {/* Display the pre-formatted 'dates' string */}
                                 <p className="text-muted-foreground">{camp.dates}</p>
                             </div>
                         </div>

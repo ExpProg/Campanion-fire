@@ -6,12 +6,15 @@
 
 import { collection, addDoc, Timestamp, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/config/firebase'; // Adjust path as necessary
+import { format, parse, addDays } from 'date-fns'; // Import date-fns functions
 
-// Interface matching the desired Firestore structure (based on Camp in dashboard/page.tsx)
+// Interface matching the desired Firestore structure (based on create-camp/page.tsx)
 interface CampFirestoreData {
   name: string;
   description: string;
-  dates: string;
+  startDate: Timestamp; // Store as Timestamp
+  endDate: Timestamp;   // Store as Timestamp
+  dates: string;        // Store formatted string for display
   location: string;
   imageUrl: string;
   price: number;
@@ -21,8 +24,63 @@ interface CampFirestoreData {
   activities?: string[]; // Added based on create camp form
 }
 
+// Helper function to parse date strings and create Timestamps
+// Assumes simple "Month Day" format for start and "Month Day, Year" for end
+// Adjust parsing logic if your sample dates string format is different
+const parseDateRange = (datesString: string): { startDate: Timestamp; endDate: Timestamp; formattedString: string } | null => {
+    try {
+        const parts = datesString.split(' - ');
+        if (parts.length !== 2) throw new Error('Invalid date range format');
+
+        const startDateStr = parts[0]; // e.g., "July 10"
+        const endDateStr = parts[1];   // e.g., "July 20, 2024"
+
+        // Attempt to parse the end date first to get the year
+        const endDate = parse(endDateStr, 'MMMM d, yyyy', new Date());
+        if (isNaN(endDate.getTime())) throw new Error(`Invalid end date format: ${endDateStr}`);
+
+        const year = endDate.getFullYear();
+        const startDateWithYear = `${startDateStr}, ${year}`; // e.g., "July 10, 2024"
+
+        // Parse the start date with the inferred year
+        const startDate = parse(startDateWithYear, 'MMMM d, yyyy', new Date());
+         if (isNaN(startDate.getTime())) throw new Error(`Invalid start date format: ${startDateWithYear}`);
+
+        // Ensure start date is not after end date
+        if (startDate > endDate) {
+             console.warn(`Start date ${startDateWithYear} is after end date ${endDateStr}. Adjusting start year.`);
+             // Basic correction: assume start date is in the previous year if it's later in the same year
+             startDate.setFullYear(year -1);
+             // Re-validate or add more robust logic if needed
+             if (startDate > endDate) throw new Error("Corrected start date is still after end date.");
+        }
+
+        // Re-format the string consistently
+        const formattedStartDate = format(startDate, "MMM d");
+        const formattedEndDate = format(endDate, "MMM d, yyyy");
+        const formattedString = `${formattedStartDate} - ${formattedEndDate}`;
+
+
+        return {
+            startDate: Timestamp.fromDate(startDate),
+            endDate: Timestamp.fromDate(endDate),
+            formattedString: formattedString
+        };
+    } catch (error: any) {
+        console.error(`Error parsing date string "${datesString}": ${error.message}`);
+        // Fallback: Create a dummy range if parsing fails
+        const now = new Date();
+        return {
+             startDate: Timestamp.fromDate(now),
+             endDate: Timestamp.fromDate(addDays(now, 7)), // e.g., 1 week duration
+             formattedString: `Default Range - ${format(now, "MMM d, yyyy")}`
+        };
+    }
+};
+
+
 // Data copied from src/app/dashboard/page.tsx sampleCamps
-const sampleCampsData = [
+const sampleCampsDataRaw = [
   {
     name: 'Adventure Camp Alpha',
     description: 'Experience the thrill of the outdoors with hiking, climbing, and more.',
@@ -88,7 +146,7 @@ const seedCamps = async () => {
   let successCount = 0;
   let errorCount = 0;
 
-  console.log(`Starting to seed ${sampleCampsData.length} camps for organizer: ${organizerEmail}...`);
+  console.log(`Starting to seed ${sampleCampsDataRaw.length} camps for organizer: ${organizerEmail}...`);
   console.log("Attempting to find organizer's UID...");
 
   // Get the organizer's UID based on their email
@@ -101,20 +159,34 @@ const seedCamps = async () => {
 
   console.log("Ensure Firebase security rules allow writes to the 'camps' collection.");
 
-  const promises = sampleCampsData.map(async (campData) => {
+  const promises = sampleCampsDataRaw.map(async (campDataRaw) => {
+    const dateInfo = parseDateRange(campDataRaw.dates);
+    if (!dateInfo) {
+        console.error(`[Error] Skipping camp "${campDataRaw.name}" due to date parsing error.`);
+        errorCount++;
+        return; // Skip this camp
+    }
+
     try {
       const campToAdd: CampFirestoreData = {
-        ...campData,
+        name: campDataRaw.name,
+        description: campDataRaw.description,
+        startDate: dateInfo.startDate, // Use parsed Timestamp
+        endDate: dateInfo.endDate,     // Use parsed Timestamp
+        dates: dateInfo.formattedString, // Use consistent formatted string
+        location: campDataRaw.location,
+        imageUrl: campDataRaw.imageUrl,
+        price: campDataRaw.price,
         organizerEmail: organizerEmail,
         createdAt: Timestamp.fromDate(new Date()), // Use Firestore Timestamp
         ...(organizerId && { organizerId: organizerId }), // Add organizerId only if found
-        activities: campData.activities || [], // Ensure activities array exists
+        activities: campDataRaw.activities || [], // Ensure activities array exists
       };
       const docRef = await addDoc(campsCollectionRef, campToAdd);
-      console.log(`[Success] Document written with ID: ${docRef.id} for camp: ${campData.name}`);
+      console.log(`[Success] Document written with ID: ${docRef.id} for camp: ${campDataRaw.name}`);
       successCount++;
     } catch (error) {
-      console.error(`[Error] Adding document for camp: ${campData.name}`, error);
+      console.error(`[Error] Adding document for camp: ${campDataRaw.name}`, error);
       errorCount++;
     }
   });
