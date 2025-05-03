@@ -55,7 +55,7 @@ function CreateCampForm() {
     });
 
     const onSubmit = async (values: CreateCampFormValues) => {
-        if (!user?.email) {
+        if (!user?.uid || !user?.email) { // Check for both uid and email
             toast({
                 title: 'Error',
                 description: 'You must be logged in to create a camp.',
@@ -78,7 +78,8 @@ function CreateCampForm() {
                 price: values.price,
                 imageUrl: values.imageUrl || `https://picsum.photos/seed/${values.name.replace(/\s+/g, '-')}/600/400`, // Use name for seed or default
                 activities: activitiesArray,
-                organizerEmail: user.email, // Associate with the logged-in organizer
+                organizerEmail: user.email, // Keep email for display purposes if needed
+                organizerId: user.uid, // Associate with the logged-in organizer's UID
                 createdAt: Timestamp.fromDate(new Date()),
             };
 
