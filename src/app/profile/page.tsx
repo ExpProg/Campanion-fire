@@ -54,29 +54,49 @@ export default function ProfilePage() {
         return;
     }
 
-    setIsUpdating(true);
-    try {
-        const userDocRef = doc(db, 'users', user.uid);
-        await updateDoc(userDocRef, {
-            isOrganizer: checked,
-        });
+    // Prevent organizers from disabling the status
+    if (profile?.isOrganizer) {
         toast({
-            title: 'Profile Updated',
-            description: `You are now ${checked ? 'an organizer' : 'a regular user'}. Changes might take effect after refresh.`,
-        });
-        // Optional: Trigger context refresh if implemented
-        // if (refreshProfile) {
-        //     await refreshProfile();
-        // }
-    } catch (error) {
-        console.error('Error updating organizer status:', error);
-        toast({
-            title: 'Update Failed',
-            description: 'Could not update your organizer status. Please try again.',
+            title: 'Action Not Allowed',
+            description: 'Organizers cannot disable their organizer status.',
             variant: 'destructive',
         });
-    } finally {
-        setIsUpdating(false);
+        return; // Stop the function here
+    }
+
+    // Allow only enabling the organizer status
+    if (!profile?.isOrganizer && checked) {
+        setIsUpdating(true);
+        try {
+            const userDocRef = doc(db, 'users', user.uid);
+            await updateDoc(userDocRef, {
+                isOrganizer: true, // Only allow setting to true
+            });
+            toast({
+                title: 'Profile Updated',
+                description: `You are now an organizer. Please refresh the page or re-login if changes aren't reflected immediately.`,
+            });
+            // Optional: Trigger context refresh if implemented
+             if (refreshProfile) {
+                 await refreshProfile();
+             }
+        } catch (error) {
+            console.error('Error updating organizer status:', error);
+            toast({
+                title: 'Update Failed',
+                description: 'Could not update your organizer status. Please try again.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsUpdating(false);
+        }
+    } else if (!checked) {
+        // User tried to toggle off (which shouldn't happen if switch is disabled, but good fallback)
+         toast({
+            title: 'Action Not Allowed',
+            description: 'Organizer status cannot be disabled once enabled.',
+            variant: 'destructive',
+        });
     }
   };
 
@@ -155,14 +175,18 @@ export default function ProfilePage() {
                            <Label htmlFor="organizer-mode" className="flex flex-col space-y-1">
                              <span className="font-medium">Organizer Mode</span>
                              <span className="text-xs font-normal leading-snug text-muted-foreground">
-                               Enable this to create and manage camps.
+                               {profile?.isOrganizer
+                                   ? "Organizer status cannot be disabled."
+                                   : "Enable this to create and manage camps."
+                               }
                              </span>
                            </Label>
                            <Switch
                              id="organizer-mode"
                              checked={profile?.isOrganizer ?? false}
                              onCheckedChange={handleOrganizerStatusChange}
-                             disabled={isUpdating || loading} // Disable while updating or initial loading
+                             // Disable if already an organizer, updating, or loading profile
+                             disabled={profile?.isOrganizer || isUpdating || loading}
                              aria-label="Toggle organizer mode"
                            />
                          </div>
