@@ -161,7 +161,7 @@ export default function DashboardPage() {
           <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{camp.description}</p>
         </CardContent>
         <div className="p-6 pt-0 flex justify-between items-center gap-2">
-          <span className="text-lg font-semibold text-primary">${camp.price}</span>
+          <span className="text-lg font-semibold text-primary">{camp.price} ₽</span> {/* Changed $ to ₽ */}
           <div className="flex gap-2">
             <Button size="sm" asChild>
               <Link href={`/camps/${camp.id}`} prefetch={false}>

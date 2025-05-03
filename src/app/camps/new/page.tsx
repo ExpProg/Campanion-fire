@@ -243,7 +243,7 @@ function CreateCampForm() {
                         name="price"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Price ($)</FormLabel>
+                                <FormLabel>Price (₽)</FormLabel> {/* Changed $ to ₽ */}
                                 <FormControl>
                                     <Input type="number" placeholder="Enter price" {...field} disabled={isLoading} min="0" step="0.01" />
                                 </FormControl>

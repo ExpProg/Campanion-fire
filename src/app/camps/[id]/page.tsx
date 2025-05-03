@@ -268,7 +268,7 @@ export default function CampDetailsPage() {
                                   <DollarSign className="h-5 w-5 mr-3 mt-1 text-primary flex-shrink-0" />
                                   <div>
                                       <p className="font-medium">Price</p>
-                                      <p className="text-2xl font-bold text-primary">${camp.price}</p>
+                                      <p className="text-2xl font-bold text-primary">{camp.price} ₽</p> {/* Changed $ to ₽ */}
                                   </div>
                               </div>
                           </div>
