@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { doc, getDoc, Timestamp } from 'firebase/firestore'; // Import Timestamp
 import { db } from '@/config/firebase';
 import { format } from 'date-fns'; // Import format for date display if needed
+import Header from '@/components/layout/Header'; // Import Header component
 
 // Camp Data Interface (ensure consistency with Firestore structure)
 interface Camp {
@@ -131,38 +132,63 @@ export default function CampDetailsPage() {
     }
   }, [campId, user]); // Depend on campId and user
 
-  if (authLoading || loading) {
-    return (
-      <div className="container mx-auto px-4 py-8 md:py-12">
-          <Skeleton className="h-8 w-32 mb-8" /> {/* Back button placeholder */}
-          <Skeleton className="w-full h-64 md:h-96 mb-8" /> {/* Image placeholder */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="md:col-span-2 space-y-4">
-                 <Skeleton className="h-10 w-3/4" /> {/* Title placeholder */}
-                 <Skeleton className="h-6 w-1/2" /> {/* Subtitle placeholder */}
-                 <Skeleton className="h-4 w-full" />
-                 <Skeleton className="h-4 w-full" />
-                 <Skeleton className="h-4 w-5/6" />
-              </div>
-              <div className="space-y-4">
-                  <Skeleton className="h-8 w-full" />
-                  <Skeleton className="h-8 w-full" />
-                  <Skeleton className="h-10 w-full" /> {/* Button placeholder */}
-              </div>
-          </div>
-      </div>
-    );
+  if (authLoading || loading || (!user && !authLoading)) { // Added condition for redirecting user
+     return (
+         <div className="flex flex-col min-h-screen">
+             {/* Header Skeleton */}
+             <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background z-10">
+                 <Skeleton className="h-6 w-6 mr-2" /> {/* Icon Skeleton */}
+                 <Skeleton className="h-6 w-32" />     {/* Title Skeleton */}
+                 <div className="ml-auto flex gap-4 sm:gap-6 items-center">
+                     <Skeleton className="h-8 w-20" /> {/* Button Skeleton */}
+                 </div>
+             </header>
+             {/* Camp Details Content Skeleton */}
+             <main className="flex-1 p-4 md:p-8 lg:p-12">
+                 <div className="container mx-auto px-4 py-8 md:py-12">
+                     <Skeleton className="h-8 w-32 mb-8" /> {/* Back button placeholder */}
+                     <Skeleton className="w-full h-64 md:h-96 mb-8" /> {/* Image placeholder */}
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                         <div className="md:col-span-2 space-y-4">
+                             <Skeleton className="h-10 w-3/4" /> {/* Title placeholder */}
+                             <Skeleton className="h-6 w-1/2" /> {/* Subtitle placeholder */}
+                             <Skeleton className="h-4 w-full" />
+                             <Skeleton className="h-4 w-full" />
+                             <Skeleton className="h-4 w-5/6" />
+                         </div>
+                         <div className="space-y-4">
+                             <Skeleton className="h-8 w-full" />
+                             <Skeleton className="h-8 w-full" />
+                             <Skeleton className="h-10 w-full" /> {/* Button placeholder */}
+                         </div>
+                     </div>
+                 </div>
+             </main>
+             {/* Footer Skeleton */}
+             <footer className="py-6 px-4 md:px-6 border-t">
+                 <Skeleton className="h-4 w-1/4" />
+             </footer>
+         </div>
+     );
   }
 
   if (error || !camp) {
     return (
-      <div className="container mx-auto px-4 py-12 text-center">
-         <Link href="/dashboard" className="inline-flex items-center text-primary hover:underline mb-4" prefetch={false}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-             Back to Dashboard
-         </Link>
-        <p className="text-xl text-destructive">{error || "Camp not found."}</p>
-      </div>
+       <div className="flex flex-col min-h-screen">
+          <Header /> {/* Keep header for consistent navigation */}
+          <main className="flex-1 flex items-center justify-center p-4">
+             <div className="container mx-auto px-4 py-12 text-center">
+                 <Link href="/dashboard" className="inline-flex items-center text-primary hover:underline mb-4" prefetch={false}>
+                     <ArrowLeft className="mr-2 h-4 w-4" />
+                     Back to Dashboard
+                 </Link>
+                 <p className="text-xl text-destructive">{error || "Camp not found."}</p>
+             </div>
+          </main>
+          <footer className="py-6 px-4 md:px-6 border-t">
+              <p className="text-xs text-muted-foreground">&copy; 2024 Campanion. All rights reserved.</p>
+          </footer>
+       </div>
     );
   }
 
@@ -170,84 +196,94 @@ export default function CampDetailsPage() {
   const displayContactEmail = camp.contactEmail || camp.organizerEmail || 'Not specified';
 
   return (
-    <div className="container mx-auto px-4 py-8 md:py-12">
-       <Link href="/dashboard" className="inline-flex items-center text-primary hover:underline mb-6" prefetch={false}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-           Back to Dashboard
-       </Link>
+    <div className="flex flex-col min-h-screen bg-background">
+       <Header /> {/* Use the reusable Header component */}
 
-       <Card className="overflow-hidden shadow-lg">
-            <div className="relative w-full h-64 md:h-96">
-                 <Image
-                     src={camp.imageUrl}
-                     alt={camp.name}
-                     fill
-                     style={{ objectFit: 'cover' }}
-                     sizes="(max-width: 768px) 100vw, 100vw" // Full width on details page
-                     priority // Prioritize loading the main image
-                     data-ai-hint="camp nature activity"
-                  />
-            </div>
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
-               <div className="md:col-span-2 p-6 md:p-8">
-                   <CardHeader className="px-0 pt-0 pb-4">
-                       <CardTitle className="text-3xl md:text-4xl font-bold mb-2">{camp.name}</CardTitle>
-                       {/* Display organizer name if available, otherwise fallback */}
-                       <CardDescription className="text-lg text-muted-foreground">
-                           Organized by {camp.organizerName || (camp.organizerEmail ? `Partner (${camp.organizerEmail})` : 'Campanion Partner')}
-                       </CardDescription>
-                   </CardHeader>
-                   <CardContent className="px-0">
-                       <p className="mb-6">{camp.description}</p>
+       <main className="flex-1 p-4 md:p-8 lg:p-12">
+          <div className="container mx-auto px-4 py-8 md:py-12">
+              <Link href="/dashboard" className="inline-flex items-center text-primary hover:underline mb-6" prefetch={false}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Dashboard
+              </Link>
 
-                       {camp.activities && camp.activities.length > 0 && (
-                           <div className="mb-6">
-                              <h3 className="text-lg font-semibold mb-2">Activities</h3>
-                              <div className="flex flex-wrap gap-2">
-                                {camp.activities.map(activity => (
-                                    <span key={activity} className="inline-block bg-secondary text-secondary-foreground text-xs font-medium px-2.5 py-0.5 rounded-full">{activity}</span>
-                                ))}
+              <Card className="overflow-hidden shadow-lg">
+                  <div className="relative w-full h-64 md:h-96">
+                      <Image
+                          src={camp.imageUrl}
+                          alt={camp.name}
+                          fill
+                          style={{ objectFit: 'cover' }}
+                          sizes="(max-width: 768px) 100vw, 100vw" // Full width on details page
+                          priority // Prioritize loading the main image
+                          data-ai-hint="camp nature activity"
+                      />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
+                      <div className="md:col-span-2 p-6 md:p-8">
+                          <CardHeader className="px-0 pt-0 pb-4">
+                              <CardTitle className="text-3xl md:text-4xl font-bold mb-2">{camp.name}</CardTitle>
+                              {/* Display organizer name if available, otherwise fallback */}
+                              <CardDescription className="text-lg text-muted-foreground">
+                                  Organized by {camp.organizerName || (camp.organizerEmail ? `Partner (${camp.organizerEmail})` : 'Campanion Partner')}
+                              </CardDescription>
+                          </CardHeader>
+                          <CardContent className="px-0">
+                              <p className="mb-6">{camp.description}</p>
+
+                              {camp.activities && camp.activities.length > 0 && (
+                                  <div className="mb-6">
+                                      <h3 className="text-lg font-semibold mb-2">Activities</h3>
+                                      <div className="flex flex-wrap gap-2">
+                                          {camp.activities.map(activity => (
+                                              <span key={activity} className="inline-block bg-secondary text-secondary-foreground text-xs font-medium px-2.5 py-0.5 rounded-full">{activity}</span>
+                                          ))}
+                                      </div>
+                                  </div>
+                              )}
+
+                              <div className="text-sm text-muted-foreground">
+                                  Contact: {displayContactEmail}
                               </div>
-                           </div>
-                       )}
+                          </CardContent>
+                      </div>
+                      <div className="bg-muted/50 p-6 md:p-8 border-t md:border-t-0 md:border-l">
+                          <h3 className="text-xl font-semibold mb-4">Camp Information</h3>
+                          <div className="space-y-4">
+                              <div className="flex items-start">
+                                  <MapPin className="h-5 w-5 mr-3 mt-1 text-primary flex-shrink-0" />
+                                  <div>
+                                      <p className="font-medium">Location</p>
+                                      <p className="text-muted-foreground">{camp.location}</p>
+                                  </div>
+                              </div>
+                              <div className="flex items-start">
+                                  <CalendarDays className="h-5 w-5 mr-3 mt-1 text-primary flex-shrink-0" />
+                                  <div>
+                                      <p className="font-medium">Dates</p>
+                                      {/* Display the pre-formatted 'dates' string */}
+                                      <p className="text-muted-foreground">{camp.dates}</p>
+                                  </div>
+                              </div>
+                              <div className="flex items-start">
+                                  <DollarSign className="h-5 w-5 mr-3 mt-1 text-primary flex-shrink-0" />
+                                  <div>
+                                      <p className="font-medium">Price</p>
+                                      <p className="text-2xl font-bold text-primary">${camp.price}</p>
+                                  </div>
+                              </div>
+                          </div>
+                          <CardFooter className="px-0 pb-0 pt-8">
+                              <Button className="w-full" size="lg">Book Now</Button> {/* Add booking functionality later */}
+                          </CardFooter>
+                      </div>
+                  </div>
+              </Card>
+          </div>
+       </main>
 
-                        <div className="text-sm text-muted-foreground">
-                            Contact: {displayContactEmail}
-                        </div>
-                   </CardContent>
-               </div>
-               <div className="bg-muted/50 p-6 md:p-8 border-t md:border-t-0 md:border-l">
-                    <h3 className="text-xl font-semibold mb-4">Camp Information</h3>
-                    <div className="space-y-4">
-                        <div className="flex items-start">
-                           <MapPin className="h-5 w-5 mr-3 mt-1 text-primary flex-shrink-0" />
-                           <div>
-                                <p className="font-medium">Location</p>
-                                <p className="text-muted-foreground">{camp.location}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-start">
-                           <CalendarDays className="h-5 w-5 mr-3 mt-1 text-primary flex-shrink-0" />
-                           <div>
-                                <p className="font-medium">Dates</p>
-                                {/* Display the pre-formatted 'dates' string */}
-                                <p className="text-muted-foreground">{camp.dates}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-start">
-                           <DollarSign className="h-5 w-5 mr-3 mt-1 text-primary flex-shrink-0" />
-                           <div>
-                               <p className="font-medium">Price</p>
-                               <p className="text-2xl font-bold text-primary">${camp.price}</p>
-                           </div>
-                       </div>
-                   </div>
-                   <CardFooter className="px-0 pb-0 pt-8">
-                      <Button className="w-full" size="lg">Book Now</Button> {/* Add booking functionality later */}
-                   </CardFooter>
-               </div>
-           </div>
-       </Card>
+       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t mt-auto">
+           <p className="text-xs text-muted-foreground">&copy; 2024 Campanion. All rights reserved.</p>
+       </footer>
     </div>
   );
 }

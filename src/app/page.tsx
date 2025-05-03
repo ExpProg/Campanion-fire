@@ -4,9 +4,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { MountainSnow, Tent } from 'lucide-react';
+import { Tent } from 'lucide-react'; // Removed MountainSnow as it wasn't used
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import Header from '@/components/layout/Header'; // Import the Header component
 
 export default function LandingPage() {
   const { user, loading } = useAuth();
@@ -20,7 +21,35 @@ export default function LandingPage() {
 
   if (loading) {
     // Optionally show a loading spinner or skeleton screen
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+     return (
+         <div className="flex flex-col min-h-screen">
+             {/* Header Skeleton */}
+             <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background z-10">
+                 <Skeleton className="h-6 w-6 mr-2" />
+                 <Skeleton className="h-6 w-32" />
+                 <div className="ml-auto flex gap-4 sm:gap-6 items-center">
+                     <Skeleton className="h-8 w-20" />
+                     <Skeleton className="h-8 w-24" />
+                 </div>
+             </header>
+             {/* Landing Content Skeleton */}
+             <main className="flex-1 flex justify-center items-center p-4">
+                 <div className="container px-4 md:px-6 text-center space-y-6">
+                     <Skeleton className="h-12 w-3/4 mx-auto" />
+                     <Skeleton className="h-6 w-full max-w-[700px] mx-auto" />
+                     <Skeleton className="h-6 w-11/12 max-w-[650px] mx-auto" />
+                     <div className="flex justify-center space-x-4">
+                         <Skeleton className="h-12 w-32" />
+                         <Skeleton className="h-12 w-32" />
+                     </div>
+                 </div>
+             </main>
+             {/* Footer Skeleton */}
+             <footer className="py-6 px-4 md:px-6 border-t">
+                 <Skeleton className="h-4 w-1/4" />
+             </footer>
+         </div>
+     );
   }
 
   // If user is logged in, this page shouldn't be visible due to the redirect above.
@@ -32,24 +61,7 @@ export default function LandingPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="px-4 lg:px-6 h-16 flex items-center border-b">
-        <Link href="#" className="flex items-center justify-center" prefetch={false}>
-          <Tent className="h-6 w-6 text-primary" />
-          <span className="ml-2 text-xl font-semibold">Campanion</span>
-        </Link>
-        <nav className="ml-auto flex gap-4 sm:gap-6">
-          <Button variant="ghost" asChild>
-            <Link href="/login" prefetch={false}>
-              Login
-            </Link>
-          </Button>
-          <Button asChild>
-            <Link href="/register" prefetch={false}>
-              Register
-            </Link>
-          </Button>
-        </nav>
-      </header>
+      <Header /> {/* Use the reusable Header component */}
       <main className="flex-1">
         <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 flex justify-center items-center">
           <div className="container px-4 md:px-6 text-center">
@@ -94,3 +106,6 @@ export default function LandingPage() {
     </div>
   );
 }
+
+// Need Skeleton component for loading state
+import { Skeleton } from "@/components/ui/skeleton";

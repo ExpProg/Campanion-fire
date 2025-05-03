@@ -24,6 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import Header from '@/components/layout/Header'; // Import Header component
 
 // Zod schema for camp creation form validation
 const createCampSchema = z.object({
@@ -74,7 +75,10 @@ function DatePickerField({ field, label, disabled }: { field: any, label: string
             selected={field.value}
             onSelect={field.onChange}
             disabled={(date) =>
-              label === "Start Date" ? false : date < new Date("1900-01-01") // Basic disable logic, adjust if needed
+              // Allow selecting today or future dates.
+              // For end date, ensure it's not before the selected start date if available.
+              // This basic logic can be enhanced.
+              date < new Date(new Date().setHours(0, 0, 0, 0)) // Disable past dates
             }
             initialFocus
           />
@@ -211,7 +215,11 @@ function CreateCampForm() {
                         control={form.control}
                         name="endDate"
                         render={({ field }) => (
-                           <DatePickerField field={field} label="End Date" disabled={isLoading} />
+                           <DatePickerField
+                                field={field}
+                                label="End Date"
+                                disabled={isLoading || !form.watch('startDate')} // Disable if start date not picked
+                            />
                         )}
                      />
                  </div>
@@ -289,63 +297,94 @@ export default function CreateCampPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect if auth loading is done, user exists, but is not an organizer OR if user doesn't exist
+    // Redirect logic:
     if (!loading) {
         if (!user) {
             router.push('/login'); // Not logged in
-        } else if (!profile?.isOrganizer) {
-            router.push('/dashboard'); // Logged in but not an organizer
+        } else if (user && !profile?.isOrganizer) {
+            // Logged in but profile loaded and NOT organizer
+            router.push('/dashboard');
         }
+        // If profile is still loading but user is known, wait for profile.
+        // If profile is loaded and IS organizer, stay on page.
     }
   }, [user, profile, loading, router]);
 
-  if (loading || !user || !profile?.isOrganizer) {
-    // Show loading state or redirect happens in useEffect
-    return (
-        <div className="container mx-auto px-4 py-8 md:py-12">
-            <Skeleton className="h-8 w-32 mb-8" /> {/* Back button placeholder */}
-            <Card>
-                <CardHeader>
-                     <Skeleton className="h-8 w-1/2 mb-2" />
-                     <Skeleton className="h-4 w-3/4" />
-                </CardHeader>
-                <CardContent>
-                     <Skeleton className="h-10 w-full mb-4" />
-                     <Skeleton className="h-20 w-full mb-4" />
-                     <div className="grid grid-cols-2 gap-4 mb-4">
-                        <Skeleton className="h-10 w-full" />
-                        <Skeleton className="h-10 w-full" />
-                     </div>
-                     <div className="grid grid-cols-2 gap-4 mb-4">
-                        <Skeleton className="h-10 w-full" />
-                        <Skeleton className="h-10 w-full" />
-                     </div>
-                     <Skeleton className="h-10 w-full mb-4" />
-                     <Skeleton className="h-10 w-1/4 mt-6" />
-                </CardContent>
-            </Card>
-        </div>
-    );
+
+  if (loading || !user || (user && !profile?.isOrganizer && profile !== null)) { // Updated condition
+     // Show loading skeleton while auth/profile is loading or if user is not an organizer (and profile is loaded)
+     return (
+         <div className="flex flex-col min-h-screen">
+             {/* Header Skeleton */}
+             <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background z-10">
+                 <Skeleton className="h-6 w-6 mr-2" /> {/* Icon Skeleton */}
+                 <Skeleton className="h-6 w-32" />     {/* Title Skeleton */}
+                 <div className="ml-auto flex gap-4 sm:gap-6 items-center">
+                     <Skeleton className="h-8 w-20" /> {/* Button Skeleton */}
+                 </div>
+             </header>
+             {/* Create Camp Form Skeleton */}
+             <main className="flex-1 p-4 md:p-8 lg:p-12">
+                 <div className="container mx-auto px-4 py-8 md:py-12 max-w-4xl">
+                     <Skeleton className="h-8 w-32 mb-8" /> {/* Back button placeholder */}
+                     <Card>
+                         <CardHeader>
+                             <Skeleton className="h-8 w-1/2 mb-2" />
+                             <Skeleton className="h-4 w-3/4" />
+                         </CardHeader>
+                         <CardContent>
+                             <Skeleton className="h-10 w-full mb-4" />
+                             <Skeleton className="h-20 w-full mb-4" />
+                             <div className="grid grid-cols-2 gap-4 mb-4">
+                                 <Skeleton className="h-10 w-full" />
+                                 <Skeleton className="h-10 w-full" />
+                             </div>
+                             <div className="grid grid-cols-2 gap-4 mb-4">
+                                 <Skeleton className="h-10 w-full" />
+                                 <Skeleton className="h-10 w-full" />
+                             </div>
+                             <Skeleton className="h-10 w-full mb-4" />
+                             <Skeleton className="h-10 w-1/4 mt-6" />
+                         </CardContent>
+                     </Card>
+                 </div>
+             </main>
+             {/* Footer Skeleton */}
+             <footer className="py-6 px-4 md:px-6 border-t">
+                 <Skeleton className="h-4 w-1/4" />
+             </footer>
+         </div>
+     );
   }
 
 
   // User is logged in and is an organizer
   return (
-    <div className="container mx-auto px-4 py-8 md:py-12 max-w-4xl"> {/* Added max-w */}
-      <Link href="/dashboard" className="inline-flex items-center text-primary hover:underline mb-6" prefetch={false}>
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Dashboard
-      </Link>
+    <div className="flex flex-col min-h-screen bg-background">
+      <Header /> {/* Use the reusable Header component */}
 
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-2xl md:text-3xl font-bold">Create a New Camp</CardTitle>
-          <CardDescription>Fill in the details to list your camp on Campanion.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <CreateCampForm />
-        </CardContent>
-      </Card>
+      <main className="flex-1 p-4 md:p-8 lg:p-12">
+          <div className="container mx-auto px-4 py-8 md:py-12 max-w-4xl"> {/* Added max-w */}
+              <Link href="/dashboard" className="inline-flex items-center text-primary hover:underline mb-6" prefetch={false}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Dashboard
+              </Link>
+
+              <Card className="shadow-lg">
+                  <CardHeader>
+                      <CardTitle className="text-2xl md:text-3xl font-bold">Create a New Camp</CardTitle>
+                      <CardDescription>Fill in the details to list your camp on Campanion.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                      <CreateCampForm />
+                  </CardContent>
+              </Card>
+          </div>
+      </main>
+
+      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t mt-auto">
+          <p className="text-xs text-muted-foreground">&copy; 2024 Campanion. All rights reserved.</p>
+      </footer>
     </div>
   );
 }
