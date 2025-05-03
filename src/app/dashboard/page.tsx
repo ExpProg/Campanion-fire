@@ -10,7 +10,7 @@ import Image from 'next/image';
 import { signOut } from 'firebase/auth';
 import { collection, getDocs, deleteDoc, doc, query, where, Timestamp } from 'firebase/firestore';
 import { auth, db } from '@/config/firebase';
-import { Tent, LogOut, PlusCircle, Trash2, Home } from 'lucide-react'; // Removed unused icons
+import { Tent, LogOut, PlusCircle, Trash2, Home, Menu } from 'lucide-react'; // Added Menu
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
@@ -25,6 +25,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"; // Added Sheet imports
 import { useToast } from '@/hooks/use-toast';
 
 // Camp Data Interface - reflects Firestore structure
@@ -315,22 +325,63 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background z-10">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="mr-2">
+               <Menu className="h-6 w-6" />
+               <span className="sr-only">Open Menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+            <SheetHeader>
+              <SheetTitle>
+                <Link href="/dashboard" className="flex items-center justify-center sm:justify-start" prefetch={false}>
+                  <Tent className="h-6 w-6 text-primary" />
+                  <span className="ml-2 text-xl font-semibold">Campanion</span>
+                </Link>
+              </SheetTitle>
+              <SheetDescription>
+                 Welcome, {user.email}
+              </SheetDescription>
+            </SheetHeader>
+            <div className="flex flex-col space-y-4 py-6">
+               <SheetClose asChild>
+                   <Link href="/dashboard" className="text-lg font-medium hover:text-primary" prefetch={false}>
+                     Dashboard
+                   </Link>
+                </SheetClose>
+               {userIsOrganizer && (
+                 <SheetClose asChild>
+                     <Link href="/camps/new" className="text-lg font-medium hover:text-primary" prefetch={false}>
+                       Create Camp
+                     </Link>
+                 </SheetClose>
+               )}
+               {/* Add more links here as needed */}
+            </div>
+            <SheetFooter className="absolute bottom-6 left-0 right-0 px-6">
+              <Button variant="ghost" onClick={handleLogout} className="w-full justify-start">
+                <LogOut className="mr-2 h-4 w-4" /> Logout
+              </Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
         <Link href="/dashboard" className="flex items-center justify-center" prefetch={false}>
           <Tent className="h-6 w-6 text-primary" />
           <span className="ml-2 text-xl font-semibold">Campanion</span>
         </Link>
         <div className="ml-auto flex items-center gap-4">
           {userIsOrganizer && (
-             <Button asChild size="sm">
+             <Button asChild size="sm" className="hidden sm:inline-flex"> {/* Hide on small screens */}
                 <Link href="/camps/new" prefetch={false}>
                    <PlusCircle className="mr-2 h-4 w-4" /> Create Camp
                 </Link>
              </Button>
           )}
-          <span className="text-sm text-muted-foreground hidden sm:inline">
+          <span className="text-sm text-muted-foreground hidden md:inline"> {/* Hide on small/medium screens */}
               Welcome, {user.email}
           </span>
-          <Button variant="ghost" onClick={handleLogout} size="sm">
+          <Button variant="ghost" onClick={handleLogout} size="sm" className="hidden sm:inline-flex"> {/* Hide on small screens */}
             <LogOut className="mr-2 h-4 w-4" /> Logout
           </Button>
         </div>
