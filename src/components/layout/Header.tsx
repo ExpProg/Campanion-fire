@@ -148,7 +148,7 @@ export default function Header() {
              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                       <Avatar className="h-8 w-8">
+                       <Avatar className="h-8 w-8 border-2 border-primary"> {/* Added border here */}
                          {/* Add AvatarImage if user.photoURL is available */}
                          {/* <AvatarImage src={user.photoURL || undefined} alt={user.email || 'User'} /> */}
                          <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
