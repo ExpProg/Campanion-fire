@@ -10,7 +10,7 @@ import Image from 'next/image';
 import { signOut, User as FirebaseUser } from 'firebase/auth';
 import { collection, getDocs, deleteDoc, doc, query, where, Timestamp } from 'firebase/firestore';
 import { auth, db } from '@/config/firebase';
-import { Tent, LogOut, PlusCircle, Trash2, AlertTriangle } from 'lucide-react';
+import { Tent, LogOut, PlusCircle, Trash2, AlertTriangle, Menu, Home } from 'lucide-react'; // Added Menu, Home
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
@@ -26,7 +26,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
-
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter, // Added SheetFooter
+  SheetClose, // Added SheetClose
+} from '@/components/ui/sheet'; // Added Sheet components
 
 // Camp Data Interface - reflects Firestore structure
 interface Camp {
@@ -299,12 +307,10 @@ export default function DashboardPage() {
         <div className="flex flex-col min-h-screen">
            {/* Simplified Header Skeleton */}
            <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background z-10">
+                <Skeleton className="h-8 w-8 mr-2" /> {/* Burger Icon Skeleton */}
                <Skeleton className="h-6 w-32" />
                <div className="ml-auto flex gap-4 sm:gap-6 items-center">
-                   <Skeleton className="h-8 w-24 hidden sm:block" />
-                   {/* Removed UserCircle skeleton as it wasn't present in the original */}
-                   <Skeleton className="h-8 w-8 rounded-full" /> {/* Email/Avatar placeholder */}
-                   <Skeleton className="h-8 w-8" /> {/* Logout button placeholder */}
+                   {/* Navigation items are now in the sidebar, so maybe no skeleton needed here */}
                </div>
            </header>
            <main className="flex-1 p-4 md:p-8 lg:p-12">
@@ -327,23 +333,66 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col min-h-screen">
        <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background z-10">
+          <Sheet>
+              <SheetTrigger asChild>
+                 <Button variant="ghost" size="icon" className="mr-2">
+                   <Menu className="h-6 w-6" />
+                   <span className="sr-only">Toggle Menu</span>
+                 </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+                  <SheetHeader>
+                    <SheetTitle>
+                        <Link href="/dashboard" className="flex items-center gap-2" onClick={() => { /* Close sheet if needed */ }} prefetch={false}>
+                          <Tent className="h-6 w-6 text-primary" />
+                          <span className="text-xl font-semibold">Campanion</span>
+                        </Link>
+                    </SheetTitle>
+                  </SheetHeader>
+                  <nav className="mt-8 flex flex-col gap-4">
+                      <SheetClose asChild>
+                        <Button variant="ghost" className="justify-start" asChild>
+                          <Link href="/dashboard" prefetch={false}>
+                            <Home className="mr-2 h-4 w-4" /> Dashboard
+                          </Link>
+                        </Button>
+                      </SheetClose>
+                     {userIsOrganizer && ( // Show "Create Camp" only if the user is an organizer
+                        <SheetClose asChild>
+                         <Button variant="ghost" className="justify-start" asChild>
+                           <Link href="/camps/new" prefetch={false}>
+                             <PlusCircle className="mr-2 h-4 w-4" /> Create Camp
+                           </Link>
+                         </Button>
+                        </SheetClose>
+                     )}
+                     <Separator />
+                      <div className="px-4 py-2 text-sm text-muted-foreground">
+                         Welcome, {user.email}
+                      </div>
+                     {/* Add other navigation links here as needed */}
+                  </nav>
+                   <SheetFooter className="mt-auto absolute bottom-6 left-0 right-0 px-6">
+                     <Button variant="outline" onClick={handleLogout} className="w-full justify-start">
+                         <LogOut className="mr-2 h-4 w-4" /> Logout
+                     </Button>
+                   </SheetFooter>
+              </SheetContent>
+          </Sheet>
+
         <Link href="/dashboard" className="flex items-center justify-center" prefetch={false}>
           <Tent className="h-6 w-6 text-primary" />
           <span className="ml-2 text-xl font-semibold">Campanion</span>
         </Link>
-        <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
-           {userIsOrganizer && ( // Show "Create Camp" only if the user is an organizer
-             <Button variant="outline" size="sm" asChild>
-               <Link href="/camps/new" prefetch={false}>
-                 <PlusCircle className="mr-2 h-4 w-4" /> Create Camp
-               </Link>
-             </Button>
-           )}
-           <span className="text-sm text-muted-foreground hidden sm:inline">Welcome, {user.email}</span>
-           <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Logout">
-             <LogOut className="h-5 w-5" />
-           </Button>
-         </nav>
+        {/* Nav items moved to Sheet */}
+        <div className="ml-auto" /> {/* Pushes the user info/logout button to the right if still needed */}
+         {/* Optionally keep user info and logout here for larger screens, or rely solely on sidebar */}
+         {/*
+         <span className="text-sm text-muted-foreground hidden sm:inline mr-4">Welcome, {user.email}</span>
+         <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Logout">
+           <LogOut className="h-5 w-5" />
+         </Button>
+         */}
        </header>
 
        <main className="flex-1 p-4 md:p-8 lg:p-12 space-y-12">
