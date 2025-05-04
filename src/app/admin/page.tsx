@@ -2,13 +2,13 @@
 // src/app/admin/page.tsx
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/layout/Header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye } from 'lucide-react'; // Added Eye
+import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, Clock, CheckCircle } from 'lucide-react'; // Added Clock, CheckCircle
 import Link from 'next/link';
 import { collection, getDocs, deleteDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
-
+import { Badge } from '@/components/ui/badge'; // Import Badge
 
 // Camp Data Interface - consistent with other pages
 interface Camp {
@@ -70,9 +70,13 @@ const AdminPageSkeleton = () => (
                      </CardContent>
                  </Card>
                  {/* Camps List Skeleton */}
+                 <div className="mb-10">
+                    <Skeleton className="h-8 w-48 mb-6" /> {/* Section title */}
+                    <AdminCampListSkeleton count={2} />
+                 </div>
                  <div>
                     <Skeleton className="h-8 w-48 mb-6" /> {/* Section title */}
-                    <AdminCampListSkeleton count={3} />
+                    <AdminCampListSkeleton count={1} />
                  </div>
             </div>
         </main>
@@ -83,18 +87,25 @@ const AdminPageSkeleton = () => (
 );
 
 // Reusable Camp List Item Component for Admin Panel
-const AdminCampListItem = ({ camp, isOwner, onDeleteClick, deletingCampId }: {
+const AdminCampListItem = ({ camp, isOwner, onDeleteClick, deletingCampId, status }: {
     camp: Camp;
     isOwner: boolean; // Always true in admin context if filtered correctly
     onDeleteClick: (campId: string) => void;
     deletingCampId: string | null;
+    status: 'Active' | 'Past';
 }) => {
 
     return (
       <div key={camp.id} className="flex items-center justify-between p-4 border-b hover:bg-muted/50 transition-colors">
          {/* Basic Camp Info */}
          <div className="flex-1 min-w-0 mr-4">
-             <p className="font-semibold truncate">{camp.name}</p>
+             <div className="flex items-center gap-2 mb-1">
+                 <p className="font-semibold truncate">{camp.name}</p>
+                 <Badge variant={status === 'Active' ? 'default' : 'secondary'} className="flex-shrink-0">
+                    {status === 'Active' ? <CheckCircle className="h-3 w-3 mr-1" /> : <Clock className="h-3 w-3 mr-1" />}
+                    {status}
+                 </Badge>
+             </div>
              <p className="text-sm text-muted-foreground truncate">{camp.location} | {camp.dates}</p>
              <p className="text-sm text-primary font-medium">{camp.price} ₽</p>
          </div>
@@ -150,8 +161,11 @@ const AdminCampListSkeleton = ({ count = 3 }: { count?: number }) => (
         {[...Array(count)].map((_, index) => (
             <div key={index} className="flex items-center justify-between p-4 border-b last:border-b-0">
                 <div className="flex-1 min-w-0 mr-4 space-y-1">
-                    <Skeleton className="h-5 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
+                     <div className="flex items-center gap-2 mb-1">
+                        <Skeleton className="h-5 w-1/2" />
+                        <Skeleton className="h-5 w-16" /> {/* Badge placeholder */}
+                     </div>
+                    <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-4 w-1/4" />
                 </div>
                 <div className="flex gap-2 items-center flex-shrink-0">
@@ -169,7 +183,7 @@ export default function AdminPage() {
     const { user, isAdmin, loading: authLoading } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
-    const [adminCamps, setAdminCamps] = useState<Camp[]>([]);
+    const [allAdminCamps, setAllAdminCamps] = useState<Camp[]>([]);
     const [campsLoading, setCampsLoading] = useState(true);
     const [deletingCampId, setDeletingCampId] = useState<string | null>(null);
 
@@ -187,7 +201,7 @@ export default function AdminPage() {
             fetchAdminCamps(user.uid);
         } else {
             setCampsLoading(false); // Not admin or not logged in, no camps to load
-            setAdminCamps([]);
+            setAllAdminCamps([]);
         }
     }, [isAdmin, user]); // Re-fetch if admin status or user changes
 
@@ -204,7 +218,7 @@ export default function AdminPage() {
         .filter(camp => camp.organizerId === adminId) // Filter for admin's camps
         .sort((a, b) => (b.createdAt?.toDate() ?? new Date(0)).getTime() - (a.createdAt?.toDate() ?? new Date(0)).getTime()); // Sort newest first
 
-        setAdminCamps(fetchedCamps);
+        setAllAdminCamps(fetchedCamps);
         } catch (error) {
         console.error("Error fetching admin's created camps:", error);
         toast({
@@ -217,10 +231,33 @@ export default function AdminPage() {
         }
     };
 
-    // Function to handle camp deletion (same logic as profile)
+    // Separate camps into active and past using useMemo
+    const { activeCamps, pastCamps } = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to the beginning of today for comparison
+
+        const active: Camp[] = [];
+        const past: Camp[] = [];
+
+        allAdminCamps.forEach(camp => {
+            const endDate = camp.endDate?.toDate();
+            if (endDate && endDate >= today) {
+                active.push(camp);
+            } else {
+                past.push(camp); // Includes camps with missing or past end dates
+            }
+        });
+        // Optional: Sort each list further if needed (e.g., by start date)
+        // active.sort(...);
+        // past.sort(...);
+
+        return { activeCamps: active, pastCamps: past };
+    }, [allAdminCamps]);
+
+    // Function to handle camp deletion
     const handleDeleteCamp = async (campId: string) => {
         if (!campId || !user || !isAdmin) return; // Extra check for admin
-        const campToDelete = adminCamps.find(camp => camp.id === campId);
+        const campToDelete = allAdminCamps.find(camp => camp.id === campId);
         if (!campToDelete || campToDelete.organizerId !== user.uid) {
            toast({ title: 'Permission Denied', description: 'Cannot delete this camp.', variant: 'destructive' });
            return;
@@ -229,7 +266,8 @@ export default function AdminPage() {
         setDeletingCampId(campId);
         try {
         await deleteDoc(doc(db, 'camps', campId));
-        setAdminCamps(prev => prev.filter(camp => camp.id !== campId)); // Update admin camps state
+        // Update the main list, memoized lists will update automatically
+        setAllAdminCamps(prev => prev.filter(camp => camp.id !== campId));
         toast({ title: 'Camp Deleted', description: 'The camp has been successfully removed.' });
         } catch (error) {
         console.error("Error deleting camp:", error);
@@ -241,7 +279,7 @@ export default function AdminPage() {
 
 
     // Show skeleton while loading auth or if user is null but loading isn't finished
-    if (authLoading || !user) {
+    if (authLoading || (!user && !authLoading) ) { // Check if user exists before rendering admin page
         return <AdminPageSkeleton />;
     }
 
@@ -296,33 +334,72 @@ export default function AdminPage() {
                     </Card>
 
                      {/* Section for Admin's Created Camps */}
-                     <div>
-                         <h2 className="text-2xl font-bold mb-6">My Created Camps</h2>
+                    <div className="mb-10"> {/* Active Camps Section */}
+                         <h2 className="text-2xl font-bold mb-6">My Active Camps</h2>
                          {campsLoading ? (
-                            <AdminCampListSkeleton count={adminCamps.length > 0 ? adminCamps.length : 3} />
-                         ) : adminCamps.length > 0 ? (
-                            <div className="border rounded-md"> {/* Container for the list */}
-                                {adminCamps.map((camp) => (
+                            <AdminCampListSkeleton count={activeCamps.length > 0 ? activeCamps.length : 1} />
+                         ) : activeCamps.length > 0 ? (
+                            <div className="border rounded-md">
+                                {activeCamps.map((camp) => (
                                     <AdminCampListItem
                                         key={camp.id}
                                         camp={camp}
-                                        isOwner={true} // Admin is the owner
+                                        isOwner={true}
                                         onDeleteClick={handleDeleteCamp}
                                         deletingCampId={deletingCampId}
+                                        status="Active"
                                     />
                                 ))}
                             </div>
                          ) : (
-                             <Card className="text-center py-12">
+                             <Card className="text-center py-12 border-dashed">
                                  <CardContent>
-                                     <p className="text-muted-foreground mb-4">You haven't created any camps yet.</p>
-                                     <Button asChild>
-                                         <Link href="/camps/new">Create Your First Camp</Link>
-                                     </Button>
+                                     <p className="text-muted-foreground">No active camps found.</p>
                                  </CardContent>
                              </Card>
                          )}
-                     </div>
+                    </div>
+
+                    <Separator className="my-12" />
+
+                     <div > {/* Past Camps Section */}
+                         <h2 className="text-2xl font-bold mb-6">My Past Camps</h2>
+                          {campsLoading ? (
+                            <AdminCampListSkeleton count={pastCamps.length > 0 ? pastCamps.length : 1} />
+                         ) : pastCamps.length > 0 ? (
+                            <div className="border rounded-md">
+                                {pastCamps.map((camp) => (
+                                     <AdminCampListItem
+                                        key={camp.id}
+                                        camp={camp}
+                                        isOwner={true}
+                                        onDeleteClick={handleDeleteCamp}
+                                        deletingCampId={deletingCampId}
+                                        status="Past"
+                                    />
+                                ))}
+                            </div>
+                         ) : (
+                             <Card className="text-center py-12 border-dashed">
+                                 <CardContent>
+                                     <p className="text-muted-foreground">No past camps found.</p>
+                                 </CardContent>
+                             </Card>
+                         )}
+                    </div>
+
+                    {/* Message if no camps at all */}
+                     {!campsLoading && allAdminCamps.length === 0 && (
+                         <Card className="text-center py-12 mt-12">
+                             <CardContent>
+                                 <p className="text-muted-foreground mb-4">You haven't created any camps yet.</p>
+                                 <Button asChild>
+                                     <Link href="/camps/new">Create Your First Camp</Link>
+                                 </Button>
+                             </CardContent>
+                         </Card>
+                     )}
+
                 </div>
             </main>
             <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t mt-auto">
