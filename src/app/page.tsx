@@ -197,9 +197,11 @@ export default function LandingPage() {
                  {/* Featured Camps Skeleton */}
                  <section className="w-full py-12 md:py-20 lg:py-24 bg-muted/50">
                     <div className="container px-4 md:px-6">
-                        <Skeleton className="h-10 w-1/3 mb-8" />
+                        {/* Skeleton for centered title */}
+                        <Skeleton className="h-10 w-1/3 mx-auto mb-8" />
                         <SkeletonCard count={3} />
-                        <div className="mt-8 text-center">
+                        {/* Skeleton for centered button */}
+                        <div className="mt-12 text-center">
                             <Skeleton className="h-10 w-40 mx-auto" />
                         </div>
                     </div>
@@ -258,6 +260,7 @@ export default function LandingPage() {
         {/* Featured Camps Section */}
         <section className="w-full py-12 md:py-20 lg:py-24 bg-muted/50">
            <div className="container px-4 md:px-6">
+               {/* Added text-center to center the heading */}
                <h2 className="text-3xl md:text-4xl font-bold mb-8 text-center text-foreground">Recently Added Camps</h2>
                {campsLoading ? (
                    <SkeletonCard count={3} />
@@ -268,6 +271,7 @@ export default function LandingPage() {
                ) : (
                    <p className="text-center text-muted-foreground">No camps available right now. Check back soon!</p>
                )}
+               {/* Added text-center to center the button link */}
                <div className="mt-12 text-center">
                    <Link
                        href="/camps"
