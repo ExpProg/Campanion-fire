@@ -30,7 +30,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"; // Removed AvatarImage as it wasn't used
-import { Tent, LogOut, PlusCircle, Home, Menu, User, CalendarCheck, Shield } from 'lucide-react'; // Added Shield for Admin
+import { Tent, LogOut, PlusCircle, Home, Menu, User, CalendarCheck, Shield, LogIn, UserPlus, Compass } from 'lucide-react'; // Added Shield for Admin, LogIn, UserPlus, Compass
 import { cn } from '@/lib/utils'; // Import cn if not already imported
 
 // Helper to generate initials for fallback avatar
@@ -62,92 +62,117 @@ export default function Header() {
 
   return (
     <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background z-50">
-      {user && ( // Only show menu trigger if user is logged in
-         <Sheet>
-             <SheetTrigger asChild>
-                 <Button variant="ghost" size="icon" className="mr-2">
-                     <Menu className="h-6 w-6" />
-                     <span className="sr-only">Open Menu</span>
-                 </Button>
-             </SheetTrigger>
-             <SheetContent side="left" className="w-[250px] sm:w-[300px] bg-background p-0 flex flex-col"> {/* Use white background */}
-                 <SheetHeader className="p-6 border-b"> {/* Added padding here */}
-                     <SheetTitle>
-                         <SheetClose asChild>
-                           <Link href="/main" className="flex items-center justify-center sm:justify-start text-foreground" prefetch={false}>
-                               <Tent className="h-6 w-6 text-primary" />
-                               <span className="ml-2 text-xl font-semibold">Campanion</span>
+       {/* Always show menu trigger */}
+       <Sheet>
+           <SheetTrigger asChild>
+               <Button variant="ghost" size="icon" className="mr-2">
+                   <Menu className="h-6 w-6" />
+                   <span className="sr-only">Open Menu</span>
+               </Button>
+           </SheetTrigger>
+           <SheetContent side="left" className="w-[250px] sm:w-[300px] bg-background p-0 flex flex-col">
+               <SheetHeader className="p-6 border-b">
+                   <SheetTitle>
+                       <SheetClose asChild>
+                         <Link href={user ? "/main" : "/"} className="flex items-center justify-center sm:justify-start text-foreground" prefetch={false}>
+                             <Tent className="h-6 w-6 text-primary" />
+                             <span className="ml-2 text-xl font-semibold">Campanion</span>
+                         </Link>
+                       </SheetClose>
+                   </SheetTitle>
+                   {user?.email && (
+                     <SheetDescription className="text-muted-foreground pt-2 text-center sm:text-left">
+                         Logged in as {user.email}
+                     </SheetDescription>
+                   )}
+                   {!user && (
+                      <SheetDescription className="text-muted-foreground pt-2 text-center sm:text-left">
+                         Welcome to Campanion!
+                     </SheetDescription>
+                   )}
+               </SheetHeader>
+               <div className="flex flex-col space-y-1 p-4 flex-grow">
+                  {user ? (
+                    <>
+                      {/* Logged-in user menu items */}
+                      <SheetClose asChild>
+                           <Link href="/main" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground w-full" prefetch={false}>
+                               <Home className="h-5 w-5" />
+                               <span className="text-base font-medium">Main</span>
                            </Link>
-                         </SheetClose>
-                     </SheetTitle>
-                     {user?.email && (
-                       <SheetDescription className="text-muted-foreground pt-2 text-center sm:text-left">
-                           Logged in as {user.email}
-                       </SheetDescription>
-                     )}
-                 </SheetHeader>
-                 {/* Separator removed, handled by border-b on Header */}
-                 <div className="flex flex-col space-y-1 p-4 flex-grow"> {/* Use p-4 for link area, adjust spacing */}
-                     <SheetClose asChild>
-                         {/* Directly wrap Link with SheetClose asChild */}
-                         <Link href="/main" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground w-full" prefetch={false}>
-                             <Home className="h-5 w-5" />
-                             <span className="text-base font-medium">Main</span>
-                         </Link>
-                     </SheetClose>
-                     <SheetClose asChild>
-                         {/* Directly wrap Link with SheetClose asChild */}
-                         <Link href="/profile" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground w-full" prefetch={false}>
-                             <User className="h-5 w-5" />
-                             <span className="text-base font-medium">Profile</span>
-                         </Link>
-                     </SheetClose>
-                      {/* Removed "Create Camp" link from side menu */}
-
-                     {/* Conditional Admin Panel Link */}
-                      {isAdmin && (
-                         <SheetClose asChild>
-                             <Link href="/admin" className="flex items-center gap-3 rounded-md px-3 py-2 text-primary transition-colors hover:bg-accent hover:text-primary w-full" prefetch={false}>
-                                 <Shield className="h-5 w-5" />
-                                 <span className="text-base font-medium">Admin Panel</span>
-                             </Link>
-                         </SheetClose>
-                     )}
-                      {/* Conditional Create Camp Link for Admins Only */}
-                      {isAdmin && (
-                          <SheetClose asChild>
-                              <Link href="/camps/new" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground w-full" prefetch={false}>
-                                  <PlusCircle className="h-5 w-5" />
-                                  <span className="text-base font-medium">Create Camp</span>
-                              </Link>
-                          </SheetClose>
-                      )}
-                     {/* Add more links here as needed */}
-                 </div>
-                 {/* Footer pushed to bottom */}
-                 <SheetFooter className="p-6 border-t mt-auto"> {/* Added padding here */}
-                     {/* Separator removed, handled by border-t */}
+                       </SheetClose>
+                       <SheetClose asChild>
+                           <Link href="/profile" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground w-full" prefetch={false}>
+                               <User className="h-5 w-5" />
+                               <span className="text-base font-medium">Profile</span>
+                           </Link>
+                       </SheetClose>
+                        {/* Conditional Admin Panel Link */}
+                        {isAdmin && (
+                           <SheetClose asChild>
+                               <Link href="/admin" className="flex items-center gap-3 rounded-md px-3 py-2 text-primary transition-colors hover:bg-accent hover:text-primary w-full" prefetch={false}>
+                                   <Shield className="h-5 w-5" />
+                                   <span className="text-base font-medium">Admin Panel</span>
+                               </Link>
+                           </SheetClose>
+                       )}
+                        {/* Conditional Create Camp Link for Admins Only */}
+                        {isAdmin && (
+                            <SheetClose asChild>
+                                <Link href="/camps/new" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground w-full" prefetch={false}>
+                                    <PlusCircle className="h-5 w-5" />
+                                    <span className="text-base font-medium">Create Camp</span>
+                                </Link>
+                            </SheetClose>
+                        )}
+                    </>
+                  ) : (
+                    <>
+                       {/* Logged-out user menu items */}
+                       <SheetClose asChild>
+                           <Link href="/camps" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground w-full" prefetch={false}>
+                               <Compass className="h-5 w-5" />
+                               <span className="text-base font-medium">Explore Camps</span>
+                           </Link>
+                       </SheetClose>
+                        <SheetClose asChild>
+                           <Link href="/login" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground w-full" prefetch={false}>
+                               <LogIn className="h-5 w-5" />
+                               <span className="text-base font-medium">Login</span>
+                           </Link>
+                       </SheetClose>
+                       <SheetClose asChild>
+                           <Link href="/register" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground w-full" prefetch={false}>
+                               <UserPlus className="h-5 w-5" />
+                               <span className="text-base font-medium">Register</span>
+                           </Link>
+                       </SheetClose>
+                    </>
+                  )}
+               </div>
+               {/* Footer pushed to bottom */}
+               <SheetFooter className="p-6 border-t mt-auto">
+                  {user && (
                      <Button variant="ghost" onClick={handleLogout} className="w-full justify-start text-foreground hover:bg-accent hover:text-accent-foreground">
                          <LogOut className="mr-3 h-5 w-5" /> Logout
                      </Button>
-                 </SheetFooter>
-             </SheetContent>
-         </Sheet>
-       )}
+                  )}
+               </SheetFooter>
+           </SheetContent>
+       </Sheet>
+
       <Link href={user ? "/main" : "/"} className="flex items-center justify-center text-foreground" prefetch={false}>
         <Tent className="h-6 w-6 text-primary" />
         <span className="ml-2 text-xl font-semibold">Campanion</span>
       </Link>
-      <div className="ml-auto flex items-center gap-4"> {/* Adjusted gap */}
+      <div className="ml-auto flex items-center gap-4">
         {user ? (
           <>
              {/* Avatar Dropdown Menu */}
              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                       <Avatar className="h-8 w-8 border-2 border-primary"> {/* Added border here */}
-                         {/* Add AvatarImage if user.photoURL is available */}
-                         {/* <AvatarImage src={user.photoURL || undefined} alt={user.email || 'User'} /> */}
+                       <Avatar className="h-8 w-8 border-2 border-primary">
                          <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
                        </Avatar>
                    </Button>
@@ -156,7 +181,7 @@ export default function Header() {
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">
-                        {user.displayName || user.email?.split('@')[0]} {/* Show display name or part of email */}
+                        {user.displayName || user.email?.split('@')[0]}
                       </p>
                       <p className="text-xs leading-none text-muted-foreground">
                         {user.email}
@@ -165,12 +190,12 @@ export default function Header() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                     <Link href="/profile" className="flex items-center cursor-pointer w-full"> {/* Ensure Link takes full width */}
+                     <Link href="/profile" className="flex items-center cursor-pointer w-full">
                        <User className="mr-2 h-4 w-4" />
                        <span>Profile</span>
                      </Link>
                   </DropdownMenuItem>
-                   {/* Conditional Create Camp Link for Admins Only */}
+                    {/* Conditional Create Camp Link for Admins Only */}
                     {isAdmin && (
                        <DropdownMenuItem asChild>
                            <Link href="/camps/new" className="flex items-center cursor-pointer w-full">
@@ -182,7 +207,7 @@ export default function Header() {
                   {/* Conditional Admin Panel Link in Dropdown */}
                   {isAdmin && (
                      <DropdownMenuItem asChild>
-                        <Link href="/admin" className="flex items-center cursor-pointer w-full text-primary"> {/* Ensure Link takes full width */}
+                        <Link href="/admin" className="flex items-center cursor-pointer w-full text-primary">
                            <Shield className="mr-2 h-4 w-4" />
                            <span>Admin Panel</span>
                         </Link>
