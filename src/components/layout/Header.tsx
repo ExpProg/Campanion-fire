@@ -1,3 +1,4 @@
+
 // src/components/layout/Header.tsx
 'use client';
 
@@ -29,7 +30,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"; // Removed AvatarImage as it wasn't used
-import { Tent, LogOut, PlusCircle, Home, Menu, User, CalendarCheck } from 'lucide-react'; // Added CalendarCheck
+import { Tent, LogOut, PlusCircle, Home, Menu, User, CalendarCheck, Shield } from 'lucide-react'; // Added Shield for Admin
 import { cn } from '@/lib/utils'; // Import cn if not already imported
 
 // Helper to generate initials for fallback avatar
@@ -39,7 +40,7 @@ const getInitials = (email: string | null | undefined) => {
 };
 
 export default function Header() {
-  const { user } = useAuth(); // Removed profile
+  const { user, isAdmin } = useAuth(); // Get isAdmin status
   const router = useRouter();
   const { toast } = useToast();
 
@@ -58,13 +59,6 @@ export default function Header() {
     }
   };
 
-  // Removed userIsOrganizer variable
-
-  // Don't render header if user data is not yet available (or during initial load)
-  // This prevents flashing of incorrect states
-  // if (loading) {
-  //   return null; // Or a skeleton header
-  // }
 
   return (
     <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background z-50">
@@ -115,6 +109,16 @@ export default function Header() {
                              <span className="text-base font-medium">Create Camp</span>
                          </Link>
                      </SheetClose>
+
+                     {/* Conditional Admin Panel Link */}
+                      {isAdmin && (
+                         <SheetClose asChild>
+                             <Link href="/admin" className="flex items-center gap-3 rounded-md px-3 py-2 text-primary transition-colors hover:bg-accent hover:text-primary w-full" prefetch={false}>
+                                 <Shield className="h-5 w-5" />
+                                 <span className="text-base font-medium">Admin Panel</span>
+                             </Link>
+                         </SheetClose>
+                     )}
                      {/* Add more links here as needed */}
                  </div>
                  {/* Footer pushed to bottom */}
@@ -158,11 +162,20 @@ export default function Header() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                     <Link href="/profile" className="flex items-center cursor-pointer">
+                     <Link href="/profile" className="flex items-center cursor-pointer w-full"> {/* Ensure Link takes full width */}
                        <User className="mr-2 h-4 w-4" />
                        <span>Profile</span>
                      </Link>
                   </DropdownMenuItem>
+                  {/* Conditional Admin Panel Link in Dropdown */}
+                  {isAdmin && (
+                     <DropdownMenuItem asChild>
+                        <Link href="/admin" className="flex items-center cursor-pointer w-full text-primary"> {/* Ensure Link takes full width */}
+                           <Shield className="mr-2 h-4 w-4" />
+                           <span>Admin Panel</span>
+                        </Link>
+                     </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
