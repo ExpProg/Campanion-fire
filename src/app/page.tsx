@@ -2,26 +2,124 @@
 
 'use client';
 
-import React, { useEffect } from 'react'; // Removed useState as camps are no longer fetched here
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Tent } from 'lucide-react'; // Removed unused icons: Search, ListChecks, Sparkles, Building
+import { Tent, ArrowRight, Building } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/layout/Header';
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from '@/lib/utils';
-// Removed unused Card components and Firestore imports
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import Image from 'next/image';
+import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
+import { db } from '@/config/firebase';
+import { useToast } from '@/hooks/use-toast';
 
-// Removed Camp interface and CampCard/SkeletonCampCard components as they are no longer needed here
+
+// Camp Data Interface - consistent with other pages
+interface Camp {
+  id: string;
+  name: string;
+  description: string;
+  dates: string;
+  startDate?: Timestamp;
+  endDate?: Timestamp;
+  location: string;
+  imageUrl: string;
+  price: number;
+  status: 'draft' | 'active' | 'archive';
+  organizerId?: string;
+  organizerName?: string;
+  organizerLink?: string;
+  creatorId?: string;
+  createdAt?: Timestamp;
+  activities?: string[];
+}
+
+// Helper component for rendering camp cards (similar to main page)
+const CampCard = ({ camp }: { camp: Camp }) => {
+    const organizerDisplay = camp.organizerName || 'Campanion Partner'; // Fallback
+    const formattedPrice = camp.price.toLocaleString('ru-RU'); // Format price with spaces
+
+    return (
+      <Card key={camp.id} className="overflow-hidden flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300 bg-card h-full"> {/* Added h-full */}
+        <div className="relative w-full h-48">
+          <Image
+            src={camp.imageUrl || 'https://picsum.photos/seed/placeholder/600/400'}
+            alt={camp.name}
+            fill
+            style={{ objectFit: 'cover' }}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            data-ai-hint="camp nature adventure"
+          />
+        </div>
+        <CardHeader>
+          <CardTitle>{camp.name}</CardTitle>
+          <CardDescription>{camp.location} | {camp.dates}</CardDescription>
+          {/* Display Organizer Info */}
+          <CardDescription className="flex items-center pt-1">
+            <Building className="h-4 w-4 mr-1 text-muted-foreground" />
+             {camp.organizerLink ? (
+                <a href={camp.organizerLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline truncate">
+                    {organizerDisplay}
+                </a>
+            ) : (
+                <span className="text-sm text-muted-foreground truncate">{organizerDisplay}</span>
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex-grow">
+          <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{camp.description}</p>
+        </CardContent>
+        <div className="p-6 pt-0 flex justify-between items-center gap-2">
+          <span className="text-lg font-semibold text-primary">{formattedPrice} ₽</span>
+          <div className="flex gap-2 items-center"> {/* Ensure items are vertically centered */}
+            <Button size="sm" asChild variant="outline">
+              {/* Link to the specific camp details page */}
+              <Link href={`/camps/${camp.id}`} prefetch={false}>
+                View Details
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
+};
+
+// Helper component for rendering skeleton cards (similar to main page)
+const SkeletonCard = ({ count = 3 }: { count?: number }) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {[...Array(count)].map((_, index) => (
+        <Card key={index} className="overflow-hidden bg-card h-full"> {/* Added h-full */}
+          <Skeleton className="h-48 w-full" />
+          <CardHeader>
+            <Skeleton className="h-6 w-3/4 mb-2" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-4 w-2/5 mt-1" /> {/* Organizer placeholder */}
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
+          </CardContent>
+          <div className="p-6 pt-0 flex justify-between items-center">
+            <Skeleton className="h-6 w-1/4" />
+            <Skeleton className="h-8 w-1/3" />
+          </div>
+        </Card>
+      ))}
+    </div>
+);
+
 
 export default function LandingPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  // Removed unused toast import and state related to camps
-  // const { toast } = useToast();
-  // const [firestoreCamps, setFirestoreCamps] = useState<Camp[]>([]);
-  // const [campsLoading, setCampsLoading] = useState(true);
+  const { toast } = useToast();
+  const [featuredCamps, setFeaturedCamps] = useState<Camp[]>([]);
+  const [campsLoading, setCampsLoading] = useState(true);
 
   useEffect(() => {
     // Redirect if user is logged in
@@ -30,7 +128,44 @@ export default function LandingPage() {
     }
   }, [user, loading, router]);
 
-   // Removed useEffect related to fetching camps for landing page
+   // Fetch featured camps (latest 3 active)
+  useEffect(() => {
+    // Only fetch if user is not logged in (as logged-in users are redirected)
+    if (!user && !loading) {
+        fetchFeaturedCamps();
+    }
+  }, [user, loading]); // Re-run if user or loading state changes
+
+  // Function to fetch featured Firestore camps
+  const fetchFeaturedCamps = async () => {
+    setCampsLoading(true);
+    try {
+      const campsCollectionRef = collection(db, 'camps');
+      const q = query(
+        campsCollectionRef,
+        where('status', '==', 'active'),
+        orderBy('createdAt', 'desc'), // Order by creation date descending
+        limit(3) // Limit to 3 results
+      );
+      const querySnapshot = await getDocs(q);
+
+      const fetchedCamps = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data() as Omit<Camp, 'id'>
+      }));
+      setFeaturedCamps(fetchedCamps);
+    } catch (error) {
+      console.error("Error fetching featured camps from Firestore:", error);
+      toast({
+        title: 'Error fetching camps',
+        description: 'Could not load featured camps. Please try again later.',
+        variant: 'destructive',
+      });
+    } finally {
+      setCampsLoading(false);
+    }
+  };
+
 
   // Show loading skeleton if auth is loading
   if (loading) {
@@ -59,7 +194,16 @@ export default function LandingPage() {
                          </div>
                      </div>
                  </section>
-                 {/* Removed Camps List Skeleton */}
+                 {/* Featured Camps Skeleton */}
+                 <section className="w-full py-12 md:py-20 lg:py-24 bg-muted/50">
+                    <div className="container px-4 md:px-6">
+                        <Skeleton className="h-10 w-1/3 mb-8" />
+                        <SkeletonCard count={3} />
+                        <div className="mt-8 text-center">
+                            <Skeleton className="h-10 w-40 mx-auto" />
+                        </div>
+                    </div>
+                 </section>
              </main>
              {/* Footer Skeleton */}
              <footer className="py-6 px-4 md:px-6 border-t">
@@ -111,7 +255,30 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Removed Available Camps Section */}
+        {/* Featured Camps Section */}
+        <section className="w-full py-12 md:py-20 lg:py-24 bg-muted/50">
+           <div className="container px-4 md:px-6">
+               <h2 className="text-3xl md:text-4xl font-bold mb-8 text-center text-foreground">Recently Added Camps</h2>
+               {campsLoading ? (
+                   <SkeletonCard count={3} />
+               ) : featuredCamps.length > 0 ? (
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                       {featuredCamps.map((camp) => <CampCard key={camp.id} camp={camp} />)}
+                   </div>
+               ) : (
+                   <p className="text-center text-muted-foreground">No camps available right now. Check back soon!</p>
+               )}
+               <div className="mt-12 text-center">
+                   <Link
+                       href="/camps"
+                       prefetch={false}
+                       className={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}
+                   >
+                       Explore All Camps <ArrowRight className="ml-2 h-5 w-5" />
+                   </Link>
+               </div>
+           </div>
+        </section>
 
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
@@ -128,3 +295,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
