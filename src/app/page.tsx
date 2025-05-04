@@ -1,28 +1,171 @@
+
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react'; // Added useEffect, useState
 import Link from 'next/link';
-import { Button, buttonVariants } from '@/components/ui/button'; // Import buttonVariants
-import { Tent, Search, ListChecks, Sparkles } from 'lucide-react'; // Added Search, ListChecks, Sparkles
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Tent, Search, ListChecks, Sparkles, Building } from 'lucide-react'; // Added Building
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import Header from '@/components/layout/Header'; // Import the Header component
-import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
-import { cn } from '@/lib/utils'; // Import cn if not already imported
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'; // Import Card components
+import Header from '@/components/layout/Header';
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from '@/lib/utils';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'; // Import CardDescription
+import { collection, getDocs, Timestamp, query, where } from 'firebase/firestore'; // Added Firestore imports
+import { db } from '@/config/firebase'; // Added db import
+import { useToast } from '@/hooks/use-toast'; // Added useToast import
+import Image from 'next/image'; // Added Image import
+
+// Camp Data Interface (ensure consistency)
+interface Camp {
+  id: string;
+  name: string;
+  description: string;
+  dates: string; // Pre-formatted string like "Jul 10 - Jul 20, 2024"
+  startDate?: Timestamp; // Stored as Timestamp
+  endDate?: Timestamp;   // Stored as Timestamp
+  location: string;
+  imageUrl: string;
+  price: number;
+  status: 'draft' | 'active' | 'archive'; // Added 'archive' status
+  organizerId?: string; // Link to the organizers collection
+  organizerName?: string; // Denormalized organizer name
+  organizerLink?: string; // Denormalized organizer link
+  creatorId?: string; // ID of the user who created the camp
+  createdAt?: Timestamp;
+  activities?: string[];
+}
+
+// Helper component for rendering camp cards (similar to main page)
+const LandingCampCard = ({ camp }: { camp: Camp }) => {
+    const organizerDisplay = camp.organizerName || 'Campanion Partner'; // Fallback
+    const formattedPrice = camp.price.toLocaleString('ru-RU'); // Format price with spaces
+
+    return (
+      <Card key={camp.id} className="overflow-hidden flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300 bg-card">
+        <div className="relative w-full h-48">
+          <Image
+            src={camp.imageUrl || 'https://picsum.photos/seed/placeholder/600/400'}
+            alt={camp.name}
+            fill
+            style={{ objectFit: 'cover' }}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            data-ai-hint="camp nature adventure"
+          />
+        </div>
+        <CardHeader>
+          <CardTitle>{camp.name}</CardTitle>
+          <CardDescription>{camp.location} | {camp.dates}</CardDescription>
+          {/* Display Organizer Info */}
+          <CardDescription className="flex items-center pt-1">
+            <Building className="h-4 w-4 mr-1 text-muted-foreground" />
+             {camp.organizerLink ? (
+                <a href={camp.organizerLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline truncate">
+                    {organizerDisplay}
+                </a>
+            ) : (
+                <span className="text-sm text-muted-foreground truncate">{organizerDisplay}</span>
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex-grow">
+          <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{camp.description}</p>
+        </CardContent>
+        <div className="p-6 pt-0 flex justify-between items-center gap-2">
+          <span className="text-lg font-semibold text-primary">{formattedPrice} ₽</span>
+           {/* Link to details, maybe replace with login prompt later */}
+          <Button size="sm" asChild variant="outline">
+            <Link href={`/camps/${camp.id}`} prefetch={false}>
+                View Details
+            </Link>
+          </Button>
+        </div>
+      </Card>
+    );
+  };
+
+  // Helper component for rendering skeleton cards
+  const SkeletonCampCard = ({ count = 3 }: { count?: number }) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {[...Array(count)].map((_, index) => (
+        <Card key={index} className="overflow-hidden bg-card">
+          <Skeleton className="h-48 w-full" />
+          <CardHeader>
+            <Skeleton className="h-6 w-3/4 mb-2" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-4 w-2/5 mt-1" /> {/* Organizer placeholder */}
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
+          </CardContent>
+          <div className="p-6 pt-0 flex justify-between items-center">
+            <Skeleton className="h-6 w-1/4" />
+            <Skeleton className="h-8 w-1/3" /> {/* Adjusted width */}
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
 
 export default function LandingPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast(); // Get toast function
+  const [firestoreCamps, setFirestoreCamps] = useState<Camp[]>([]);
+  const [campsLoading, setCampsLoading] = useState(true); // State for camps loading
 
   React.useEffect(() => {
+    // Redirect if user is logged in
     if (!loading && user) {
-      router.push('/main'); // Redirect to main dashboard if logged in
+      router.push('/main');
     }
   }, [user, loading, router]);
 
-  if (loading) {
-    // Optionally show a loading spinner or skeleton screen
+   // Fetch Firestore camps (active only) - runs regardless of login status
+   useEffect(() => {
+    // Only fetch if user is not logged in or auth is still loading (to avoid duplicate fetch)
+    // We fetch here specifically for the landing page context.
+    if (!user || loading) {
+        setCampsLoading(true);
+        const fetchCamps = async () => {
+            try {
+                const campsCollectionRef = collection(db, 'camps');
+                const q = query(
+                    campsCollectionRef,
+                    where('status', '==', 'active') // Only fetch 'active' camps
+                );
+                const querySnapshot = await getDocs(q);
+                const fetchedCamps = querySnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data() as Omit<Camp, 'id'>
+                }))
+                .sort((a, b) => (b.createdAt?.toDate() ?? new Date(0)).getTime() - (a.createdAt?.toDate() ?? new Date(0)).getTime()); // Sort newest first
+
+                setFirestoreCamps(fetchedCamps);
+            } catch (error) {
+                console.error("Error fetching camps for landing page:", error);
+                toast({
+                    title: 'Error fetching camps',
+                    description: 'Could not load available camps.',
+                    variant: 'destructive',
+                });
+                setFirestoreCamps([]); // Set empty on error
+            } finally {
+                setCampsLoading(false);
+            }
+        };
+        fetchCamps();
+    } else {
+        // If user is logged in, we don't need to load camps here (they are redirected)
+        setCampsLoading(false);
+        setFirestoreCamps([]);
+    }
+   }, [user, loading, toast]); // Depend on user and loading state
+
+  // Show loading skeleton if auth is loading OR if camps are loading (for unauth users)
+  if (loading || (campsLoading && !user)) {
      return (
          <div className="flex flex-col min-h-screen">
              {/* Header Skeleton */}
@@ -59,6 +202,13 @@ export default function LandingPage() {
                        </div>
                     </div>
                  </section>
+                 {/* Camps List Skeleton */}
+                 <section className="w-full py-12 md:py-24 lg:py-32">
+                    <div className="container px-4 md:px-6">
+                         <Skeleton className="h-10 w-1/3 mx-auto mb-12" />
+                         <SkeletonCampCard count={3} />
+                    </div>
+                 </section>
              </main>
              {/* Footer Skeleton */}
              <footer className="py-6 px-4 md:px-6 border-t">
@@ -90,18 +240,17 @@ export default function LandingPage() {
                 Campanion helps you discover and book the best camps tailored to your interests. Explore nature, learn new skills, and make unforgettable memories.
               </p>
               <div className="space-x-4">
-                {/* Apply button styles directly to Link components */}
                  <Link
                     href="/register"
                     prefetch={false}
-                    className={cn(buttonVariants({ size: 'lg' }))} // Use cn and buttonVariants
+                    className={cn(buttonVariants({ size: 'lg' }))}
                  >
                     Get Started
                  </Link>
                  <Link
-                     href="#features" // Link to the new features section
+                     href="#features"
                      prefetch={false}
-                     className={cn(buttonVariants({ variant: 'secondary', size: 'lg' }))} // Use cn and buttonVariants
+                     className={cn(buttonVariants({ variant: 'secondary', size: 'lg' }))}
                  >
                      Learn More
                  </Link>
@@ -160,8 +309,40 @@ export default function LandingPage() {
            </div>
          </section>
 
-        {/* Placeholder for potential future sections like Testimonials etc. */}
-        {/* <section id="testimonials" className="w-full py-12 md:py-24 lg:py-32">...</section> */}
+        {/* Featured Camps Section - Added */}
+        <section id="featured-camps" className="w-full py-12 md:py-24 lg:py-32">
+            <div className="container px-4 md:px-6">
+                <h2 className="text-3xl font-bold tracking-tighter text-center mb-12 sm:text-4xl md:text-5xl">
+                    Featured Camps
+                </h2>
+                {/* Conditionally render based on campsLoading and firestoreCamps */}
+                {campsLoading ? (
+                    <SkeletonCampCard count={3} />
+                ) : firestoreCamps.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {/* Display only a few featured camps, e.g., the first 3 */}
+                        {firestoreCamps.slice(0, 3).map((camp) => (
+                            <LandingCampCard key={camp.id} camp={camp} />
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-center text-muted-foreground">No featured camps available at the moment. Check back soon!</p>
+                )}
+                 {/* Optional: Link to see all camps if there are more */}
+                 {firestoreCamps.length > 3 && (
+                    <div className="text-center mt-12">
+                        <Link
+                            href="/main" // Link to the main page where all camps are shown (or a dedicated camps page)
+                            prefetch={false}
+                            className={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}
+                        >
+                            View All Camps
+                        </Link>
+                    </div>
+                 )}
+            </div>
+        </section>
+
 
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
