@@ -99,9 +99,9 @@ const AdminCampListItem = ({ camp, isOwner, onDeleteClick, deletingCampId, statu
     const badgeClasses = cn(
         'flex-shrink-0 transition-colors pointer-events-none', // Added pointer-events-none to disable hover interactions
         {
-            // Apply yellow background and dark text for 'Active' status
+            // Apply the requested yellow background #FFD54F (using Tailwind's yellow-400) and contrasting text
             // Removed hover classes
-            'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 border-transparent': status === 'Active',
+            'bg-yellow-400 text-yellow-950 dark:bg-yellow-500 dark:text-yellow-950 border-transparent': status === 'Active',
             // Use default variant classes for 'Past' status - hover handled by variant
             '': status === 'Past'
         }
@@ -425,4 +425,3 @@ export default function AdminPage() {
         </div>
     );
 }
-
