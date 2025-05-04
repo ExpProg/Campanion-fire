@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/layout/Header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, CalendarCheck2, Check, PlusCircle, Users, FileText, Archive } from 'lucide-react'; // Keep Check icon for now, might be unused
+import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, CalendarCheck2, Check, PlusCircle, Users, FileText, Archive, AlertTriangle } from 'lucide-react'; // Added AlertTriangle
 import Link from 'next/link';
 import { collection, getDocs, deleteDoc, doc, Timestamp, addDoc, updateDoc } from 'firebase/firestore'; // Added addDoc, deleteDoc, updateDoc
 import { db } from '@/config/firebase';
@@ -142,6 +142,14 @@ const AdminPageSkeleton = () => (
                     <AdminOrganizerListSkeleton count={2}/>
                  </div>
                  <Separator className="my-12" />
+
+                 {/* Invalid Dates Section Skeleton */}
+                 <div className="mb-10">
+                    <Skeleton className="h-8 w-64 mb-4" /> {/* Section title */}
+                    <AdminCampListSkeleton count={1} />
+                 </div>
+                 <Separator className="my-12" />
+
                  {/* Camps List Skeleton */}
                  <div className="mb-10">
                     <div className="flex justify-between items-center mb-4"> {/* Flex container for title and button */}
@@ -165,12 +173,13 @@ const AdminPageSkeleton = () => (
 );
 
 // Reusable Camp List Item Component for Admin Panel
-const AdminCampListItem = ({ camp, isCreator, onDeleteClick, deletingCampId, status }: {
+const AdminCampListItem = ({ camp, isCreator, onDeleteClick, deletingCampId, status, isInvalidDate }: {
     camp: Camp;
     isCreator: boolean; // Check if the logged-in user is the creator
     onDeleteClick: (campId: string) => void;
     deletingCampId: string | null;
     status: DetailedCampStatus; // Use DetailedCampStatus
+    isInvalidDate?: boolean; // Optional flag for invalid date styling
 }) => {
 
     const badgeClasses = cn(
@@ -192,11 +201,15 @@ const AdminCampListItem = ({ camp, isCreator, onDeleteClick, deletingCampId, sta
                      : Archive; // Icon for Archived
 
     return (
-      <div key={camp.id} className="flex items-center justify-between p-4 border-b hover:bg-muted/50 transition-colors">
+      <div key={camp.id} className={cn(
+          "flex items-center justify-between p-4 border-b hover:bg-muted/50 transition-colors",
+          isInvalidDate && "bg-destructive/10 border-destructive/30 hover:bg-destructive/20" // Highlight if invalid date
+      )}>
          {/* Basic Camp Info */}
          <div className="flex-1 min-w-0 mr-4">
              <div className="flex items-center gap-2 mb-1">
-                 <p className="font-semibold truncate">{camp.name}</p>
+                 {isInvalidDate && <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />}
+                 <p className={cn("font-semibold truncate", isInvalidDate && "text-destructive")}>{camp.name}</p>
                  <Badge variant={badgeVariant} className={badgeClasses}>
                      <StatusIcon className="h-3 w-3 mr-1" />
                     {status}
@@ -204,6 +217,11 @@ const AdminCampListItem = ({ camp, isCreator, onDeleteClick, deletingCampId, sta
              </div>
              <p className="text-sm text-muted-foreground truncate">{camp.location} | {camp.dates}</p>
              <p className="text-sm text-primary font-medium">{formattedPrice} ₽</p> {/* Use formatted price */}
+             {isInvalidDate && camp.startDate && camp.endDate && (
+                <p className="text-xs text-destructive mt-1">
+                    End date ({camp.endDate.toDate().toLocaleDateString()}) is on or before start date ({camp.startDate.toDate().toLocaleDateString()})
+                </p>
+             )}
          </div>
 
          {/* Action Buttons */}
@@ -701,6 +719,20 @@ export default function AdminPage() {
 
     }, [allAdminCamps, filterStatus]);
 
+    // Filter for active camps with invalid dates (endDate <= startDate)
+    const invalidDateCamps = useMemo(() => {
+        return allAdminCamps.filter(camp =>
+            camp.status === 'active' &&
+            camp.startDate &&
+            camp.endDate &&
+            camp.endDate.toMillis() <= camp.startDate.toMillis()
+        ).sort((a, b) => { // Optional: Sort invalid camps as well
+            const dateA = a.createdAt?.toDate() ?? new Date(0);
+            const dateB = b.createdAt?.toDate() ?? new Date(0);
+            return dateB.getTime() - dateA.getTime();
+        });
+    }, [allAdminCamps]);
+
 
     // Function to handle camp deletion
     const handleDeleteCamp = async (campId: string) => {
@@ -869,6 +901,43 @@ export default function AdminPage() {
 
                     <Separator className="my-12"/>
 
+                     {/* Section for Active Camps with Invalid Dates */}
+                     <div className="mb-12">
+                          <h2 className="text-2xl font-bold flex items-center gap-2 mb-4 text-destructive">
+                              <AlertTriangle className="h-6 w-6" /> Active Camps with Invalid Dates
+                          </h2>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            These camps are marked 'active' but their end date is on or before their start date. Please review and edit them.
+                          </p>
+                          {campsLoading ? (
+                              <AdminCampListSkeleton count={1} />
+                          ) : invalidDateCamps.length > 0 ? (
+                              <div className="border rounded-md border-destructive/50">
+                                  {invalidDateCamps.map((camp) => (
+                                      <AdminCampListItem
+                                          key={camp.id}
+                                          camp={camp}
+                                          isCreator={camp.creatorId === user.uid}
+                                          onDeleteClick={handleDeleteCamp}
+                                          deletingCampId={deletingCampId}
+                                          status={getCampStatus(camp)}
+                                          isInvalidDate={true} // Pass the flag
+                                      />
+                                  ))}
+                              </div>
+                          ) : (
+                              <Card className="text-center py-8 border-dashed">
+                                  <CardContent>
+                                      <p className="text-muted-foreground">No active camps with invalid date ranges found.</p>
+                                  </CardContent>
+                              </Card>
+                          )}
+                     </div>
+
+
+                    <Separator className="my-12"/>
+
+
                      {/* Section for Admin's Created Camps with Filtering */}
                     <div className="mb-10">
                          <div className="flex justify-between items-center mb-4">
@@ -945,4 +1014,3 @@ export default function AdminPage() {
         </div>
     );
 }
-
