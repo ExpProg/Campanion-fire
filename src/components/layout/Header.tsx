@@ -7,8 +7,8 @@ import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
+import { useToast } from "@/hooks/use-toast";
+import { Button, buttonVariants } from '@/components/ui/button'; // Import buttonVariants
 import {
   Sheet,
   SheetClose,
@@ -17,7 +17,7 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
+  SheetTrigger
 } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -26,10 +26,11 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"; // Removed AvatarImage as it wasn't used
 import { Tent, LogOut, PlusCircle, Home, Menu, User, CalendarCheck } from 'lucide-react'; // Added CalendarCheck
+import { cn } from '@/lib/utils'; // Import cn if not already imported
 
 // Helper to generate initials for fallback avatar
 const getInitials = (email: string | null | undefined) => {
@@ -107,9 +108,8 @@ export default function Header() {
                              <span className="text-base font-medium">Profile</span>
                          </Link>
                      </SheetClose>
-                     {/* Always show Create Camp if user is logged in */}
+                      {/* Link to Create Camp page */}
                      <SheetClose asChild>
-                          {/* Directly wrap Link with SheetClose asChild */}
                          <Link href="/camps/new" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground w-full" prefetch={false}>
                              <PlusCircle className="h-5 w-5" />
                              <span className="text-base font-medium">Create Camp</span>
@@ -134,8 +134,6 @@ export default function Header() {
       <div className="ml-auto flex items-center gap-4"> {/* Adjusted gap */}
         {user ? (
           <>
-            {/* Create Camp button removed */}
-
              {/* Avatar Dropdown Menu */}
              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -175,17 +173,21 @@ export default function Header() {
           </>
         ) : (
           <>
-             {/* Show Login/Register buttons if user is not logged in - Adjust if needed on specific pages */}
-              <Button variant="ghost" asChild size="sm"> {/* Added size=sm */}
-                 <Link href="/login" prefetch={false}>
-                   Login
-                 </Link>
-              </Button>
-              <Button asChild size="sm"> {/* Added size=sm */}
-                 <Link href="/register" prefetch={false}>
-                   Register
-                 </Link>
-              </Button>
+            {/* Apply button styles directly to Link components */}
+            <Link
+              href="/login"
+              prefetch={false}
+              className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))} // Use cn and buttonVariants
+            >
+              Login
+            </Link>
+            <Link
+              href="/register"
+              prefetch={false}
+              className={cn(buttonVariants({ size: 'sm' }))} // Use cn and buttonVariants
+            >
+              Register
+            </Link>
           </>
         )}
       </div>

@@ -1,14 +1,14 @@
-
 'use client';
 
 import React from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button'; // Import buttonVariants
 import { Tent } from 'lucide-react'; // Removed MountainSnow as it wasn't used
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/layout/Header'; // Import the Header component
 import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
+import { cn } from '@/lib/utils'; // Import cn if not already imported
 
 export default function LandingPage() {
   const { user, loading } = useAuth();
@@ -74,17 +74,21 @@ export default function LandingPage() {
                 Campanion helps you discover and book the best camps tailored to your interests. Explore nature, learn new skills, and make unforgettable memories.
               </p>
               <div className="space-x-4">
-                <Button size="lg" asChild>
-                  <Link href="/register" prefetch={false}>
+                {/* Apply button styles directly to Link components */}
+                 <Link
+                    href="/register"
+                    prefetch={false}
+                    className={cn(buttonVariants({ size: 'lg' }))} // Use cn and buttonVariants
+                 >
                     Get Started
-                  </Link>
-                </Button>
-                {/* Fix: Ensure Button with asChild has a single React element child */}
-                 <Button variant="secondary" size="lg" asChild>
-                    <Link href="#features" prefetch={false}>
-                        Learn More
-                    </Link>
-                 </Button>
+                 </Link>
+                 <Link
+                     href="#features"
+                     prefetch={false}
+                     className={cn(buttonVariants({ variant: 'secondary', size: 'lg' }))} // Use cn and buttonVariants
+                 >
+                     Learn More
+                 </Link>
               </div>
             </div>
           </div>
