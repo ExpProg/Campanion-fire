@@ -196,7 +196,7 @@ export default function LandingPage() {
                      </div>
                  </section>
                  {/* Featured Camps Skeleton */}
-                 <section className="w-full py-12 md:py-20 lg:py-24 bg-muted/50">
+                 <section className="w-full py-12 bg-muted/50"> {/* Changed padding */}
                     <div className="container px-4 md:px-6">
                         {/* Skeleton for centered title */}
                         <Skeleton className="h-10 w-1/3 mx-auto mb-8" />
@@ -260,7 +260,7 @@ export default function LandingPage() {
         </section>
 
         {/* Featured Camps Section - Full Width Background */}
-        <section className="w-full py-12 md:py-20 lg:py-24 bg-muted/50">
+        <section className="w-full py-12 bg-muted/50"> {/* Reduced padding to py-12 */}
            {/* Container for content within the full-width section */}
            <div className="container px-4 md:px-6">
                {/* Added text-center to center the heading */}
@@ -302,4 +302,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
 
