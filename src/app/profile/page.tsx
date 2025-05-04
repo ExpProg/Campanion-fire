@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LogOut, Save, Trash2, Pencil, ArrowLeft, CalendarCheck, ShieldCheck, PlusCircle } from 'lucide-react'; // Added ShieldCheck for admin badge, PlusCircle
+import { LogOut, Save, Trash2, Pencil, ArrowLeft, CalendarCheck, ShieldCheck, PlusCircle } from 'lucide-react'; // Keep Pencil/Trash2 imports for now, just remove usage
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, Timestamp, collection, getDocs, deleteDoc } from 'firebase/firestore'; // Import Firestore functions
 import { auth, db } from '@/config/firebase';
@@ -99,9 +99,9 @@ interface Camp {
 // Reusable Camp Card Component (moved from my-events for profile page usage)
 const CampCard = ({ camp, isOwner, onDeleteClick, deletingCampId }: {
     camp: Camp;
-    isOwner: boolean;
-    onDeleteClick: (campId: string) => void;
-    deletingCampId: string | null;
+    isOwner: boolean; // Still needed to differentiate booked vs created for styling/context if necessary
+    onDeleteClick: (campId: string) => void; // This will be effectively unused here now
+    deletingCampId: string | null; // This will be effectively unused here now
 }) => {
 
     return (
@@ -131,7 +131,8 @@ const CampCard = ({ camp, isOwner, onDeleteClick, deletingCampId }: {
                   View
               </Link>
               </Button>
-              {/* Show Edit and Delete only for owned camps */}
+              {/* REMOVED Edit and Delete buttons - manage from admin panel */}
+              {/*
               {isOwner && (
                   <>
                       <Button size="sm" asChild variant="ghost">
@@ -164,6 +165,7 @@ const CampCard = ({ camp, isOwner, onDeleteClick, deletingCampId }: {
                       </AlertDialog>
                   </>
               )}
+               */}
           </div>
           </div>
       </Card>
@@ -206,7 +208,8 @@ export default function ProfilePage() {
   // Removed local isAdmin state, using context version
   const [myCreatedCamps, setMyCreatedCamps] = useState<Camp[]>([]);
   const [bookedCamps, setBookedCamps] = useState<Camp[]>([]); // Placeholder for booked camps
-  const [deletingCampId, setDeletingCampId] = useState<string | null>(null);
+  // Removed deletingCampId state as deletion is moved to admin panel
+  // const [deletingCampId, setDeletingCampId] = useState<string | null>(null);
 
 
   const form = useForm<ProfileFormValues>({
@@ -270,12 +273,12 @@ export default function ProfilePage() {
         fetchMyCreatedCamps(user.uid);
       } else {
         setMyCreatedCamps([]); // Non-admins have no created camps shown here
-        setCampsLoading(false); // Set loading false if not fetching created camps
+        // Loading state will be set by booked camps fetch
       }
 
 
       // Fetch Booked Camps Data (Placeholder) - Assuming all users can book
-      fetchMyBookedCamps(user.uid); // We need to adjust loading state based on this call
+      fetchMyBookedCamps(user.uid); // This will handle setting campsLoading to false
 
     }
   }, [user, authLoading, isAdmin, router, toast, form]); // Added isAdmin dependency
@@ -283,7 +286,7 @@ export default function ProfilePage() {
 
   // Function to fetch user's created Firestore camps (only called for admins now)
   const fetchMyCreatedCamps = async (userId: string) => {
-    setCampsLoading(true); // Ensure loading state is true
+    // campsLoading should be true already or set by caller
     try {
       const campsCollectionRef = collection(db, 'camps');
       const querySnapshot = await getDocs(campsCollectionRef);
@@ -303,28 +306,26 @@ export default function ProfilePage() {
         variant: 'destructive',
       });
     } finally {
-      // Loading state is managed in fetchMyBookedCamps or useEffect if not admin
+      // Loading state is managed by fetchMyBookedCamps
     }
   };
 
    // Function to fetch user's booked Firestore camps (Placeholder Logic)
    const fetchMyBookedCamps = async (userId: string) => {
-    // If created camps were fetched (i.e., user is admin), setCampsLoading(true) was already called.
-    // If not admin, set loading true here before starting the fetch.
+    // Set loading true here if not admin (admin case already has loading true)
     if (!isAdmin) {
-      setCampsLoading(true);
+        setCampsLoading(true);
     }
 
     try {
         // Simulate fetching booked camp IDs (replace with actual Firestore query)
-        // Example: Fetch a 'bookings' collection where userId matches
         const bookedCampIds: string[] = []; // Replace with actual data fetching logic
 
         if (bookedCampIds.length === 0) {
             setBookedCamps([]);
-            // If no booked camps and user is not admin, loading is done
-             if (!isAdmin) setCampsLoading(false);
-            return; // Exit early if no booked camps
+            // Loading is done if no booked camps found
+             setCampsLoading(false);
+            return;
         }
 
         // Fetch details for each booked camp
@@ -350,36 +351,18 @@ export default function ProfilePage() {
         });
          setBookedCamps([]); // Ensure it's empty on error
     } finally {
-        // Set loading false after all necessary fetches are done
+        // Set loading false after booked camps fetch is done
         setCampsLoading(false);
     }
 };
 
 
-  // Function to handle camp deletion (only callable by admin via UI)
+  // Removed handleDeleteCamp function as it's moved to admin panel
+  /*
   const handleDeleteCamp = async (campId: string) => {
-    if (!campId || !user || !isAdmin) { // Double-check admin status
-       toast({ title: 'Permission Denied', description: 'Only admins can delete camps.', variant: 'destructive' });
-       return;
-    }
-    const campToDelete = myCreatedCamps.find(camp => camp.id === campId);
-    if (!campToDelete || campToDelete.organizerId !== user.uid) {
-       toast({ title: 'Internal Error', description: 'Cannot delete this camp.', variant: 'destructive' }); // Should not happen if list is correct
-       return;
-    }
-
-    setDeletingCampId(campId);
-    try {
-      await deleteDoc(doc(db, 'camps', campId));
-      setMyCreatedCamps(prev => prev.filter(camp => camp.id !== campId)); // Update state locally
-      toast({ title: 'Camp Deleted', description: 'The camp has been successfully removed.' });
-    } catch (error) {
-      console.error("Error deleting camp:", error);
-      toast({ title: 'Deletion Failed', description: 'Could not delete the camp.', variant: 'destructive' });
-    } finally {
-      setDeletingCampId(null);
-    }
+    // ... (deletion logic removed)
   };
+  */
 
 
   const handleLogout = async () => {
@@ -433,6 +416,7 @@ export default function ProfilePage() {
         toast({ title: 'Update Failed', description: 'Could not save profile changes.', variant: 'destructive' });
     } finally {
         setIsSaving(false);
+        form.reset(form.getValues()); // Reset dirty state after saving
     }
   };
 
@@ -630,8 +614,8 @@ export default function ProfilePage() {
                                         key={camp.id}
                                         camp={camp}
                                         isOwner={true} // Always owner in this section
-                                        onDeleteClick={handleDeleteCamp}
-                                        deletingCampId={deletingCampId}
+                                        onDeleteClick={() => {}} // Deletion handled in admin panel
+                                        deletingCampId={null} // Deletion handled in admin panel
                                     />
                                 ))}
                             </div>

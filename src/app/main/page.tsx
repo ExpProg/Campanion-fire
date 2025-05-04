@@ -9,7 +9,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import Image from 'next/image';
 import { collection, getDocs, deleteDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
-import { Trash2, Pencil, PlusCircle } from 'lucide-react'; // Added PlusCircle
+import { Trash2, Pencil, PlusCircle } from 'lucide-react'; // Keep Pencil/Trash2 imports for now, just remove usage
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
@@ -72,12 +72,13 @@ const Banner = ({ title, description, imageUrl, imageAlt, imageHint }: {
 
 
 export default function MainPage() { // Renamed from DashboardPage
-  const { user, loading: authLoading } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth(); // Added isAdmin
   const router = useRouter();
   const { toast } = useToast();
   const [firestoreCamps, setFirestoreCamps] = useState<Camp[]>([]);
   const [firestoreLoading, setFirestoreLoading] = useState(true);
-  const [deletingCampId, setDeletingCampId] = useState<string | null>(null);
+  // Removed deletingCampId state as deletion is moved to admin panel
+  // const [deletingCampId, setDeletingCampId] = useState<string | null>(null);
 
   useEffect(() => {
     // Redirect to login if not authenticated and loading is finished
@@ -125,48 +126,17 @@ export default function MainPage() { // Renamed from DashboardPage
     }
   };
 
-  // Function to handle camp deletion
+  // Removed handleDeleteCamp function as it's moved to admin panel
+  /*
   const handleDeleteCamp = async (campId: string) => {
-    if (!campId) return;
-    // Ensure only the owner can delete
-    const campToDelete = firestoreCamps.find(camp => camp.id === campId);
-    if (campToDelete?.organizerId !== user?.uid) {
-       toast({
-         title: 'Permission Denied',
-         description: 'You can only delete camps you created.',
-         variant: 'destructive',
-       });
-       return;
-    }
-
-    setDeletingCampId(campId);
-
-    try {
-      const campDocRef = doc(db, 'camps', campId);
-      await deleteDoc(campDocRef);
-
-      setFirestoreCamps(prevCamps => prevCamps.filter(camp => camp.id !== campId));
-
-      toast({
-        title: 'Camp Deleted',
-        description: 'The camp has been successfully removed.',
-      });
-    } catch (error) {
-      console.error("Error deleting camp:", error);
-      toast({
-        title: 'Deletion Failed',
-        description: 'Could not delete the camp. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setDeletingCampId(null);
-    }
+    // ... (deletion logic removed)
   };
+  */
 
   // Helper component for rendering camp cards
   const CampCard = ({ camp }: { camp: Camp }) => {
-    // Check if the current logged-in user is the organizer of this specific camp
-    const isOwner = camp.organizerId === user?.uid;
+    // No need to check ownership here as edit/delete are removed
+    // const isOwner = camp.organizerId === user?.uid;
 
     return (
       <Card key={camp.id} className="overflow-hidden flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300 bg-card">
@@ -195,12 +165,12 @@ export default function MainPage() { // Renamed from DashboardPage
                 View
               </Link>
             </Button>
-            {/* Show Edit and Delete buttons only if the user owns this Firestore camp */}
+            {/* REMOVED Edit and Delete buttons */}
+            {/*
             {isOwner && (
               <>
                 <Button size="sm" asChild variant="ghost">
                     <Link href={`/camps/${camp.id}/edit`} prefetch={false} aria-label={`Edit ${camp.name}`}>
-                       {/* Wrap icon and text in a single element */}
                        <span className="flex items-center">
                            <Pencil className="h-4 w-4" />
                            <span className="sr-only">Edit</span>
@@ -211,8 +181,8 @@ export default function MainPage() { // Renamed from DashboardPage
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="ghost"
-                      size="icon" // Make it icon only
-                      className="text-destructive hover:bg-destructive/10" // Style ghost button for destructive action
+                      size="icon"
+                      className="text-destructive hover:bg-destructive/10"
                       disabled={deletingCampId === camp.id}
                       aria-label={`Delete ${camp.name}`}
                     >
@@ -241,6 +211,7 @@ export default function MainPage() { // Renamed from DashboardPage
                 </AlertDialog>
               </>
             )}
+            */}
           </div>
         </div>
       </Card>
@@ -336,9 +307,12 @@ export default function MainPage() { // Renamed from DashboardPage
              <Card className="text-center py-12">
                 <CardContent>
                     <p className="text-muted-foreground mb-4">No camps found in the database yet.</p>
-                    <Button asChild>
-                        <Link href="/camps/new">Be the first to create one!</Link>
-                    </Button>
+                    {/* Show create camp button only if user is admin */}
+                    {isAdmin && (
+                        <Button asChild>
+                            <Link href="/camps/new">Be the first to create one!</Link>
+                        </Button>
+                    )}
                 </CardContent>
              </Card>
           )}
