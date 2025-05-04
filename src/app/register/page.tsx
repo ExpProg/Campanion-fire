@@ -7,9 +7,11 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth'; // Import signInWithPopup
+// Removed signInWithPopup import
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, Timestamp, getDoc } from 'firebase/firestore'; // Added Timestamp, getDoc
-import { auth, db, googleProvider } from '@/config/firebase'; // Import db and googleProvider
+// Removed googleProvider import
+import { auth, db } from '@/config/firebase'; // Import db
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,14 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tent } from 'lucide-react';
 import { Separator } from '@/components/ui/separator'; // Import Separator
 
-
-// Define the Google icon as an inline SVG
-const GoogleIcon = () => (
-  <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
-    <path fill="currentColor" d="M488 261.8C488 403.3 381.5 512 244 512 110.3 512 0 401.7 0 265.2 0 130.8 109.3 21.8 244 21.8c67.7 0 120.6 28.2 159.9 64.9L353.4 137C319.1 109.3 286.3 92.8 244 92.8 155.6 92.8 85.8 162.4 85.8 255.6c0 93.1 69.8 162.8 158.2 162.8 74.3 0 124.9-49.3 130.5-114.3H244V261.8h244z"></path>
-  </svg>
-);
-
+// Removed GoogleIcon component
 
 const registerSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -39,7 +34,8 @@ export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  // Removed isGoogleLoading state
+  // const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -88,6 +84,9 @@ export default function RegisterPage() {
         errorMessage = 'This email is already registered. Please log in or use a different email.';
       } else if (error.code === 'auth/weak-password') {
         errorMessage = 'The password is too weak. Please choose a stronger password.';
+      } else if (error.code === 'auth/popup-closed-by-user') {
+         // Keep this check if popup errors can still somehow occur, though unlikely without Google sign-up
+         errorMessage = 'Registration process cancelled.';
       }
       toast({
         title: 'Registration Failed',
@@ -99,36 +98,7 @@ export default function RegisterPage() {
     }
   };
 
-  const handleGoogleSignUp = async () => {
-     setIsGoogleLoading(true);
-     try {
-       const result = await signInWithPopup(auth, googleProvider);
-       const user = result.user;
-       // Ensure profile exists/is created (important for sign-up flow)
-       await ensureUserProfile(user);
-       toast({
-         title: 'Google Sign-Up Successful',
-         description: `Welcome, ${user.displayName || user.email}!`,
-       });
-       router.push('/main');
-     } catch (error: any) {
-       console.error('Google Sign-Up Error:', error);
-       let errorMessage = 'Could not sign up with Google. Please try again.';
-       if (error.code === 'auth/popup-closed-by-user') {
-         errorMessage = 'Google Sign-Up cancelled.';
-       } else if (error.code === 'auth/email-already-in-use') {
-          // Although signInWithPopup usually handles this by signing in, good to have a check
-          errorMessage = 'This email is already associated with an account. Try logging in.';
-       }
-       toast({
-         title: 'Google Sign-Up Failed',
-         description: errorMessage,
-         variant: 'destructive',
-       });
-     } finally {
-       setIsGoogleLoading(false);
-     }
-   };
+  // Removed handleGoogleSignUp function
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background px-4">
@@ -139,7 +109,8 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold">Register</CardTitle>
-          <CardDescription>Create your Campanion account or use Google</CardDescription>
+          {/* Updated description */}
+          <CardDescription>Create your Campanion account</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -151,7 +122,8 @@ export default function RegisterPage() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="you@example.com" {...field} type="email" disabled={isLoading || isGoogleLoading} />
+                      {/* Removed isGoogleLoading from disabled */}
+                      <Input placeholder="you@example.com" {...field} type="email" disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -164,52 +136,23 @@ export default function RegisterPage() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input placeholder="••••••••" {...field} type="password" disabled={isLoading || isGoogleLoading} />
+                      {/* Removed isGoogleLoading from disabled */}
+                      <Input placeholder="••••••••" {...field} type="password" disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
+              {/* Removed isGoogleLoading from disabled */}
+              <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? 'Registering...' : 'Register'}
               </Button>
             </form>
           </Form>
-            {/* Divider */}
-           <div className="relative my-6">
-             <div className="absolute inset-0 flex items-center">
-               <span className="w-full border-t" />
-             </div>
-             <div className="relative flex justify-center text-xs uppercase">
-               <span className="bg-background px-2 text-muted-foreground">
-                 Or continue with
-               </span>
-             </div>
-           </div>
-            {/* Google Sign Up Button */}
-           <Button
-             variant="outline"
-             className="w-full"
-             onClick={handleGoogleSignUp}
-             disabled={isLoading || isGoogleLoading}
-           >
-             {isGoogleLoading ? (
-               <>
-                 <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                 </svg>
-                 Signing up...
-               </>
-             ) : (
-               <>
-                <GoogleIcon /> Sign up with Google
-               </>
-             )}
-           </Button>
+            {/* Removed Divider and Google Button */}
         </CardContent>
-        <CardFooter className="text-center text-sm">
+        <CardFooter className="text-center text-sm pt-6"> {/* Added pt-6 */}
           Already have an account?{' '}
           <Link href="/login" className="underline ml-1" prefetch={false}>
             Login
