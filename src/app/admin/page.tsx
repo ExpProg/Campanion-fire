@@ -11,9 +11,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/layout/Header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, History, CalendarCheck2, Check, PlusCircle, Users } from 'lucide-react'; // Added Check, PlusCircle, Users icons
+import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, CalendarCheck2, Check, PlusCircle, Users } from 'lucide-react'; // Removed History
 import Link from 'next/link';
-import { collection, getDocs, deleteDoc, doc, Timestamp, addDoc } from 'firebase/firestore'; // Added addDoc, deleteDoc
+import { collection, getDocs, deleteDoc, doc, Timestamp, addDoc, updateDoc } from 'firebase/firestore'; // Added addDoc, deleteDoc, updateDoc
 import { db } from '@/config/firebase';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -76,7 +76,7 @@ interface Organizer {
     createdAt: Timestamp;
 }
 
-// Zod schema for Organizer creation
+// Zod schema for Organizer creation/editing
 const organizerSchema = z.object({
   name: z.string().min(2, { message: "Organizer name must be at least 2 characters." }),
   link: z.string().url({ message: "Please enter a valid URL for the organizer link." }).optional().or(z.literal('')),
@@ -278,8 +278,7 @@ const AdminOrganizerListItem = ({ organizer, onEditClick, onDeleteClick, deletin
      // Placeholder for edit functionality - opens a dialog/modal
      const handleEdit = () => {
          onEditClick(organizer); // Pass the organizer data to the handler
-         console.log("Edit button clicked for organizer:", organizer.id);
-         // Later: Open an edit dialog here, pre-filled with organizer data
+         // console.log("Edit button clicked for organizer:", organizer.id); // Log removed, handled by opening dialog
      };
 
     return (
@@ -303,7 +302,8 @@ const AdminOrganizerListItem = ({ organizer, onEditClick, onDeleteClick, deletin
 
             {/* Action Buttons */}
             <div className="flex gap-2 items-center flex-shrink-0">
-                 <Button size="icon" variant="ghost" onClick={handleEdit} aria-label={`Edit ${organizer.name}`} disabled> {/* Disable edit for now */}
+                 {/* Enabled the edit button */}
+                 <Button size="icon" variant="ghost" onClick={handleEdit} aria-label={`Edit ${organizer.name}`}>
                      <Pencil className="h-4 w-4" />
                      <span className="sr-only">Edit</span>
                  </Button>
@@ -327,7 +327,6 @@ const AdminOrganizerListItem = ({ organizer, onEditClick, onDeleteClick, deletin
                          </AlertDialogFooter>
                      </AlertDialogContent>
                  </AlertDialog>
-                 {/* Removed the "(Actions coming soon)" text */}
              </div>
         </div>
     );
@@ -437,7 +436,7 @@ const CreateOrganizerForm = ({ setOpen, refreshOrganizers }: { setOpen: (open: b
     );
 };
 
-// Placeholder Organizer Edit Form Component (Inside a Dialog) - NOT IMPLEMENTED YET
+// Organizer Edit Form Component (Inside a Dialog) - IMPLEMENTED
 const EditOrganizerForm = ({ organizer, setOpen, refreshOrganizers }: {
     organizer: Organizer | null; // Organizer to edit, or null if not editing
     setOpen: (open: boolean) => void;
@@ -461,9 +460,9 @@ const EditOrganizerForm = ({ organizer, setOpen, refreshOrganizers }: {
         if (organizer) {
             form.reset({
                 name: organizer.name,
-                link: organizer.link,
+                link: organizer.link || '', // Ensure optional fields are handled correctly
                 description: organizer.description,
-                avatarUrl: organizer.avatarUrl,
+                avatarUrl: organizer.avatarUrl || '',
             });
         } else {
             form.reset({ // Reset to defaults if no organizer (e.g., dialog closed)
@@ -478,37 +477,85 @@ const EditOrganizerForm = ({ organizer, setOpen, refreshOrganizers }: {
             return;
         }
         setIsSaving(true);
-        console.warn(`Edit functionality for organizer ${organizer.id} not fully implemented yet.`);
-        // *** Implement Firestore update logic here ***
-        // Example:
-        // try {
-        //     const organizerRef = doc(db, 'organizers', organizer.id);
-        //     await updateDoc(organizerRef, { ...values }); // Update with new form values
-        //     toast({ title: 'Organizer Updated', description: `Organizer "${values.name}" updated.` });
-        //     setOpen(false);
-        //     refreshOrganizers();
-        // } catch (error) {
-        //     console.error("Error updating organizer:", error);
-        //     toast({ title: 'Update Failed', description: 'Could not update the organizer.', variant: 'destructive' });
-        // } finally {
-        //     setIsSaving(false);
-        // }
+        try {
+            const organizerRef = doc(db, 'organizers', organizer.id);
+            // Create the data object to update, ensuring optional fields are handled
+            const updatedData: Partial<Organizer> = {
+                name: values.name,
+                link: values.link || '', // Store empty string if link is removed
+                description: values.description,
+                avatarUrl: values.avatarUrl || `https://avatar.vercel.sh/${values.name.replace(/\s+/g, '-')}.png`, // Update or generate default avatar
+                // createdAt should not be updated
+            };
 
-        // Remove this simulation when Firestore update is implemented
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate save
-        toast({ title: 'Edit (Simulated)', description: `Organizer "${values.name}" edit action triggered (not saved).`, variant: 'default' });
-        setIsSaving(false);
-        setOpen(false); // Close dialog
+            await updateDoc(organizerRef, updatedData);
+            toast({ title: 'Organizer Updated', description: `Organizer "${values.name}" updated.` });
+            setOpen(false);
+            refreshOrganizers();
+        } catch (error) {
+            console.error("Error updating organizer:", error);
+            toast({ title: 'Update Failed', description: 'Could not update the organizer.', variant: 'destructive' });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
          <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                {/* Replicate FormFields from CreateOrganizerForm */}
-                 <FormField control={form.control} name="name" render={({ field }) => ( <FormItem> <FormLabel>Organizer Name</FormLabel> <FormControl> <Input {...field} disabled={isSaving} /> </FormControl> <FormMessage /> </FormItem> )} />
-                 <FormField control={form.control} name="link" render={({ field }) => ( <FormItem> <FormLabel>Website Link (Optional)</FormLabel> <FormControl> <Input {...field} disabled={isSaving} /> </FormControl> <FormMessage /> </FormItem> )} />
-                 <FormField control={form.control} name="description" render={({ field }) => ( <FormItem> <FormLabel>Description</FormLabel> <FormControl> <Textarea {...field} disabled={isSaving} /> </FormControl> <FormMessage /> </FormItem> )} />
-                 <FormField control={form.control} name="avatarUrl" render={({ field }) => ( <FormItem> <FormLabel>Avatar URL (Optional)</FormLabel> <FormControl> <Input {...field} disabled={isSaving} /> </FormControl> <FormMessage /> </FormItem> )} />
+                 <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Organizer Name</FormLabel>
+                            <FormControl>
+                                <Input placeholder="e.g., Camp Awesome Inc." {...field} disabled={isSaving} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="link"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Website Link (Optional)</FormLabel>
+                            <FormControl>
+                                <Input placeholder="https://campawesome.com" {...field} disabled={isSaving} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Description</FormLabel>
+                            <FormControl>
+                                <Textarea placeholder="Describe the organizer..." {...field} disabled={isSaving} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="avatarUrl"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Avatar URL (Optional)</FormLabel>
+                            <FormControl>
+                                <Input placeholder="https://example.com/logo.png" {...field} disabled={isSaving} />
+                            </FormControl>
+                             <FormDescription>If blank, a default avatar will be generated.</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                 />
 
                  <DialogFooter className="mt-6">
                      <DialogClose asChild>
@@ -588,7 +635,7 @@ export default function AdminPage() {
             const fetchedOrganizers = querySnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data() as Omit<Organizer, 'id'>
-            })).sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis()); // Sort by creation date desc
+            })).sort((a,b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0)); // Sort by creation date desc, handle potential missing createdAt
             setOrganizers(fetchedOrganizers);
         } catch (error) {
             console.error("Error fetching organizers:", error);
@@ -760,13 +807,13 @@ export default function AdminPage() {
                          )}
                     </div>
 
-                     {/* Edit Organizer Dialog (Placeholder/Not fully implemented) */}
+                     {/* Edit Organizer Dialog */}
                      <Dialog open={isEditOrganizerOpen} onOpenChange={setIsEditOrganizerOpen}>
                          <DialogContent className="sm:max-w-[425px]">
                              <DialogHeader>
                                  <DialogTitle>Edit Organizer</DialogTitle>
                                  <DialogDescription>
-                                     Update the details for {organizerToEdit?.name || 'the organizer'}. <span className="italic text-xs">(Edit save not implemented)</span>
+                                     Update the details for {organizerToEdit?.name || 'the organizer'}.
                                  </DialogDescription>
                              </DialogHeader>
                              {/* Pass organizer data and handlers */}
@@ -846,3 +893,4 @@ export default function AdminPage() {
         </div>
     );
 }
+
