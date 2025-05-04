@@ -101,7 +101,8 @@ const AdminCampListItem = ({ camp, isOwner, onDeleteClick, deletingCampId, statu
          <div className="flex-1 min-w-0 mr-4">
              <div className="flex items-center gap-2 mb-1">
                  <p className="font-semibold truncate">{camp.name}</p>
-                 <Badge variant={status === 'Active' ? 'default' : 'secondary'} className="flex-shrink-0">
+                 {/* Swapped variants: Active=secondary(gray), Past=default(teal/green) */}
+                 <Badge variant={status === 'Active' ? 'secondary' : 'default'} className="flex-shrink-0">
                     {/* Updated icons */}
                     {status === 'Active' ? <CalendarCheck2 className="h-3 w-3 mr-1" /> : <History className="h-3 w-3 mr-1" />}
                     {status}
