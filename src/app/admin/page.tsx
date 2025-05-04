@@ -28,6 +28,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge'; // Import Badge
+import { cn } from '@/lib/utils'; // Import cn for conditional classes
 
 // Camp Data Interface - consistent with other pages
 interface Camp {
@@ -95,14 +96,27 @@ const AdminCampListItem = ({ camp, isOwner, onDeleteClick, deletingCampId, statu
     status: 'Active' | 'Past';
 }) => {
 
+    const badgeClasses = cn(
+        'flex-shrink-0',
+        {
+            // Apply yellow background and dark text for 'Active' status
+            'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 border-transparent': status === 'Active',
+            // Use default variant (teal/primary) for 'Past' status
+            // Badge component applies default styles automatically if no variant/class overrides
+            '': status === 'Past'
+        }
+    );
+
+    const badgeVariant = status === 'Past' ? 'default' : undefined; // Use default variant only for Past
+
     return (
       <div key={camp.id} className="flex items-center justify-between p-4 border-b hover:bg-muted/50 transition-colors">
          {/* Basic Camp Info */}
          <div className="flex-1 min-w-0 mr-4">
              <div className="flex items-center gap-2 mb-1">
                  <p className="font-semibold truncate">{camp.name}</p>
-                 {/* Swapped variants: Active=secondary(gray), Past=default(teal/green) */}
-                 <Badge variant={status === 'Active' ? 'secondary' : 'default'} className="flex-shrink-0">
+                 {/* Apply conditional classes and variant */}
+                 <Badge variant={badgeVariant} className={badgeClasses}>
                     {/* Updated icons */}
                     {status === 'Active' ? <CalendarCheck2 className="h-3 w-3 mr-1" /> : <History className="h-3 w-3 mr-1" />}
                     {status}
@@ -410,3 +424,4 @@ export default function AdminPage() {
         </div>
     );
 }
+
