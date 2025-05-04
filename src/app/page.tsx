@@ -183,7 +183,8 @@ export default function LandingPage() {
              {/* Landing Content Skeleton */}
              <main className="flex-1">
                 {/* Hero Skeleton */}
-                 <section className="w-full py-12 md:py-20 lg:py-24 xl:py-32 flex justify-center items-center"> {/* Adjusted padding */}
+                 {/* Adjusted vertical padding (py-*) */}
+                 <section className="w-full py-8 md:py-12 lg:py-16 xl:py-20 flex justify-center items-center">
                      <div className="container px-4 md:px-6 text-center space-y-6">
                          <Skeleton className="h-12 w-3/4 mx-auto" />
                          <Skeleton className="h-6 w-full max-w-[700px] mx-auto" />
@@ -227,7 +228,8 @@ export default function LandingPage() {
       <Header /> {/* Use the reusable Header component */}
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="w-full py-12 md:py-20 lg:py-24 xl:py-32 flex justify-center items-center bg-gradient-to-b from-background to-muted/50"> {/* Adjusted padding */}
+        {/* Reduced vertical padding */}
+        <section className="w-full py-8 md:py-12 lg:py-16 xl:py-20 flex justify-center items-center bg-gradient-to-b from-background to-muted/50">
           <div className="container px-4 md:px-6 text-center">
             <div className="space-y-6">
               <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl/none text-foreground">
@@ -300,3 +302,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
