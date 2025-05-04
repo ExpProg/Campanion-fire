@@ -27,7 +27,7 @@ interface Camp {
   location: string;
   imageUrl: string;
   price: number;
-  status: 'draft' | 'active'; // Added status field
+  status: 'draft' | 'active' | 'archive'; // Added 'archive' status
   organizerId?: string; // Link to the organizers collection
   organizerName?: string; // Denormalized organizer name
   organizerLink?: string; // Denormalized organizer link
@@ -83,6 +83,7 @@ export default function MainPage() { // Renamed from DashboardPage
       const today = Timestamp.now(); // Use Firestore Timestamp for comparison
 
       // Query for active camps where the end date is today or in the future
+      // Exclude draft and archive statuses
       const q = query(
         campsCollectionRef,
         where('status', '==', 'active'), // Only fetch 'active' camps

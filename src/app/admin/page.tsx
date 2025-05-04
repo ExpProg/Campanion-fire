@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/layout/Header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, CalendarCheck2, Check, PlusCircle, Users, FileText } from 'lucide-react'; // Added FileText for Draft
+import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, CalendarCheck2, Check, PlusCircle, Users, FileText, Archive } from 'lucide-react'; // Added FileText, Archive
 import Link from 'next/link';
 import { collection, getDocs, deleteDoc, doc, Timestamp, addDoc, updateDoc } from 'firebase/firestore'; // Added addDoc, deleteDoc, updateDoc
 import { db } from '@/config/firebase';
@@ -63,7 +63,7 @@ interface Camp {
   organizerId?: string; // Link to the organizers collection
   creatorId: string; // ID of the admin who created the camp
   creationMode: 'admin' | 'user'; // Added creationMode
-  status: 'draft' | 'active'; // Added status field
+  status: 'draft' | 'active' | 'archive'; // Added 'archive' status
   organizerEmail?: string; // May no longer be relevant
   createdAt?: Timestamp;
   activities?: string[];
@@ -89,21 +89,33 @@ const organizerSchema = z.object({
 
 type OrganizerFormValues = z.infer<typeof organizerSchema>;
 
-// Define the possible filter values including draft
-type CampStatusFilter = 'all' | 'active' | 'past' | 'draft';
+// Define the possible filter values including draft and archive
+type CampStatusFilter = 'all' | 'active' | 'past' | 'draft' | 'archive';
 
 // Define the possible detailed camp statuses
-type DetailedCampStatus = 'Active' | 'Past' | 'Draft';
+type DetailedCampStatus = 'Active' | 'Past' | 'Draft' | 'Archived';
 
-// Helper function to determine camp status including draft
+// Helper function to determine camp status including draft and archive
 const getCampStatus = (camp: Camp): DetailedCampStatus => {
   if (camp.status === 'draft') {
     return 'Draft';
   }
+  if (camp.status === 'archive') {
+    return 'Archived';
+  }
   const today = new Date();
   today.setHours(0, 0, 0, 0); // Set to the beginning of today for comparison
   const endDate = camp.endDate?.toDate();
-  return endDate && endDate >= today ? 'Active' : 'Past';
+  // Only consider active camps as 'Past' if their end date has passed
+  if (camp.status === 'active' && endDate && endDate < today) {
+    return 'Past';
+  }
+  // If status is 'active' and end date is today or later, it's 'Active'
+  if (camp.status === 'active') {
+      return 'Active';
+  }
+  // Fallback for any other unexpected scenario (should ideally not happen with defined statuses)
+  return 'Draft'; // Or perhaps another default like 'Archived' if appropriate
 };
 
 
@@ -147,7 +159,8 @@ const AdminPageSkeleton = () => (
                        <Skeleton className="h-6 w-16" />
                        <Skeleton className="h-6 w-16" />
                        <Skeleton className="h-6 w-16" />
-                       <Skeleton className="h-6 w-16" /> {/* Added Draft filter skeleton */}
+                       <Skeleton className="h-6 w-16" />
+                       <Skeleton className="h-6 w-16" /> {/* Added Archive filter skeleton */}
                     </div>
                     <AdminCampListSkeleton count={3} />
                  </div>
@@ -173,7 +186,8 @@ const AdminCampListItem = ({ camp, isCreator, onDeleteClick, deletingCampId, sta
         {
             'bg-[#FFD54F] text-yellow-950 dark:bg-[#FFD54F] dark:text-yellow-950 border-transparent': status === 'Active',
             'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 border-transparent': status === 'Draft', // Draft color
-            '': status === 'Past' // Default variant for Past
+            'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400 border-transparent': status === 'Archived', // Archive color
+            '': status === 'Past' // Default variant for Past (uses text-foreground, bg-primary)
         }
     );
 
@@ -181,7 +195,10 @@ const AdminCampListItem = ({ camp, isCreator, onDeleteClick, deletingCampId, sta
     const formattedPrice = camp.price.toLocaleString('ru-RU'); // Format price with spaces
 
     // Choose icon based on status
-    const StatusIcon = status === 'Active' ? CalendarCheck2 : status === 'Past' ? Check : FileText;
+    const StatusIcon = status === 'Active' ? CalendarCheck2
+                     : status === 'Past' ? Check
+                     : status === 'Draft' ? FileText
+                     : Archive; // Icon for Archived
 
     return (
       <div key={camp.id} className="flex items-center justify-between p-4 border-b hover:bg-muted/50 transition-colors">
@@ -668,8 +685,8 @@ export default function AdminPage() {
         const sortedCamps = [...allAdminCamps].sort((a, b) => {
             const statusA = getCampStatus(a);
             const statusB = getCampStatus(b);
-            // Define sort order: Active > Draft > Past
-            const statusOrder = { 'Active': 1, 'Draft': 2, 'Past': 3 };
+            // Define sort order: Active > Draft > Past > Archived
+            const statusOrder = { 'Active': 1, 'Draft': 2, 'Past': 3, 'Archived': 4 };
             if (statusOrder[statusA] !== statusOrder[statusB]) {
                 return statusOrder[statusA] - statusOrder[statusB];
             }
@@ -687,6 +704,7 @@ export default function AdminPage() {
                  case 'active': return detailedStatus === 'Active';
                  case 'past': return detailedStatus === 'Past';
                  case 'draft': return detailedStatus === 'Draft';
+                 case 'archive': return detailedStatus === 'Archived';
                  default: return true; // Should not happen with 'all' handled
              }
          });
@@ -891,6 +909,10 @@ export default function AdminPage() {
                                 <RadioGroupItem value="draft" id="r-draft" />
                                 <Label htmlFor="r-draft">Draft</Label>
                              </div>
+                             <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="archive" id="r-archive" />
+                                <Label htmlFor="r-archive">Archived</Label>
+                            </div>
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="past" id="r-past" />
                                 <Label htmlFor="r-past">Past</Label>
@@ -920,6 +942,7 @@ export default function AdminPage() {
                                         {filterStatus === 'all' ? "You haven't created any camps yet." :
                                          filterStatus === 'active' ? "No active camps found." :
                                          filterStatus === 'draft' ? "No draft camps found." :
+                                         filterStatus === 'archive' ? "No archived camps found." :
                                          "No past camps found."}
                                      </p>
                                      {/* Button removed from here as it's now at the top of the section */}

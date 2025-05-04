@@ -49,7 +49,7 @@ const createCampSchema = z.object({
   price: z.coerce.number().min(0, { message: 'Price must be a positive number.' }), // coerce converts string input to number
   imageUrl: z.string().url({ message: 'Please enter a valid image URL.' }).optional().or(z.literal('')), // Optional image URL
   activities: z.string().optional(), // Optional comma-separated activities
-  status: z.enum(['draft', 'active'], { required_error: 'Status is required.' }), // Added status field
+  status: z.enum(['draft', 'active', 'archive'], { required_error: 'Status is required.' }), // Added 'archive' status
 }).refine((data) => data.endDate >= data.startDate, {
   message: "End date cannot be before start date.",
   path: ["endDate"], // Set the error path to the endDate field
@@ -74,7 +74,7 @@ interface CampFirestoreData {
   price: number;
   imageUrl: string;
   activities: string[];
-  status: 'draft' | 'active'; // Added status field
+  status: 'draft' | 'active' | 'archive'; // Added 'archive' status
   createdAt: Timestamp;
 }
 
@@ -444,10 +444,18 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
                               Active
                             </FormLabel>
                           </FormItem>
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="archive" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              Archive
+                            </FormLabel>
+                          </FormItem>
                         </RadioGroup>
                       </FormControl>
                       <FormDescription>
-                        'Draft' camps are only visible in the admin panel. 'Active' camps are visible to everyone.
+                        Control the visibility of the camp. 'Draft' is hidden, 'Active' is visible, 'Archive' hides from lists but keeps data.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
