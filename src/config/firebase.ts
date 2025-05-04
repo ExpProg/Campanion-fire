@@ -1,8 +1,7 @@
-
 // Firebase configuration provided by the user
 
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider } from "firebase/auth"; // Import GoogleAuthProvider
 import { getFirestore } from "firebase/firestore";
 
 // User provided Firebase config
@@ -28,6 +27,6 @@ if (!getApps().length) {
 
 const auth = getAuth(app);
 const db = getFirestore(app);
+const googleProvider = new GoogleAuthProvider(); // Create Google Auth Provider instance
 
-export { app, auth, db };
-
+export { app, auth, db, googleProvider }; // Export googleProvider
