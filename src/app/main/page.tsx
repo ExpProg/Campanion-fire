@@ -152,7 +152,7 @@ export default function MainPage() { // Renamed from DashboardPage
           <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{camp.description}</p>
         </CardContent>
         <div className="p-6 pt-0 flex justify-between items-center gap-2">
-          <span className="text-lg font-semibold text-primary">{formattedPrice} ₽</span> {/* Use formatted price */}
+          <span className="text-lg font-semibold text-primary">{formattedPrice} ₽</span>
           <div className="flex gap-2 items-center"> {/* Ensure items are vertically centered */}
             <Button size="sm" asChild variant="outline">
               <Link href={`/camps/${camp.id}`} prefetch={false}>
