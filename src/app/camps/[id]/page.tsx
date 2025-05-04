@@ -178,9 +178,9 @@ export default function CampDetailsPage() {
           <Header /> {/* Keep header for consistent navigation */}
           <main className="flex-1 flex items-center justify-center p-4">
              <div className="container mx-auto px-4 py-12 text-center">
-                 <Link href="/dashboard" className="inline-flex items-center text-primary hover:underline mb-4" prefetch={false}>
+                 <Link href="/main" className="inline-flex items-center text-primary hover:underline mb-4" prefetch={false}>
                      <ArrowLeft className="mr-2 h-4 w-4" />
-                     Back to Dashboard
+                     Back to Main
                  </Link>
                  <p className="text-xl text-destructive">{error || "Camp not found."}</p>
              </div>
@@ -201,9 +201,9 @@ export default function CampDetailsPage() {
 
        <main className="flex-1 p-4 md:p-8 lg:p-12">
           <div className="container mx-auto px-4 py-8 md:py-12">
-              <Link href="/dashboard" className="inline-flex items-center text-primary hover:underline mb-6" prefetch={false}>
+              <Link href="/main" className="inline-flex items-center text-primary hover:underline mb-6" prefetch={false}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Dashboard
+                  Back to Main
               </Link>
 
               <Card className="overflow-hidden shadow-lg">

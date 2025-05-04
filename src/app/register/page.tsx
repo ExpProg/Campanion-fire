@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, Timestamp } from 'firebase/firestore'; // Added Timestamp
 import { auth, db } from '@/config/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,14 +52,14 @@ export default function RegisterPage() {
       await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
         // isOrganizer: values.isOrganizer, // Removed isOrganizer field
-        createdAt: new Date(),
+        createdAt: Timestamp.now(), // Use Timestamp.now()
       });
 
       toast({
         title: 'Registration Successful',
         description: 'Welcome to Campanion!',
       });
-      router.push('/dashboard'); // Redirect to dashboard after successful registration
+      router.push('/main'); // Redirect to main page after successful registration
     } catch (error: any) {
       console.error('Registration Error:', error);
       let errorMessage = 'An error occurred during registration.';

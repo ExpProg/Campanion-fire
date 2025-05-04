@@ -45,7 +45,7 @@ export default function LoginPage() {
         title: 'Login Successful',
         description: 'Welcome back!',
       });
-      router.push('/dashboard'); // Redirect to dashboard after successful login
+      router.push('/main'); // Redirect to main page after successful login
     } catch (error: any) {
       console.error('Login Error:', error);
       let errorMessage = 'Invalid email or password.';

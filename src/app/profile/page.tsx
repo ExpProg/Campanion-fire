@@ -1,3 +1,4 @@
+
 // src/app/profile/page.tsx
 'use client';
 
@@ -397,8 +398,9 @@ export default function ProfilePage() {
         const userDocRef = doc(db, 'users', user.uid);
         // Clean phone number before saving (remove mask characters EXCEPT the leading +)
         const cleanedPhoneNumber = values.phoneNumber
-            ? '+' + values.phoneNumber.replace(/[^\d]/g, '').slice(1) // Keep '+', remove others, slice removes potential extra '+'
+            ? '+' + (values.phoneNumber.replace(/[^\d]/g, '') || '').slice(1) // Keep '+', remove others, handle potential empty string after replace, slice removes potential extra '+'
             : '';
+
 
         // Validate the cleaned number again before saving
         if (cleanedPhoneNumber && !/^\+7\d{10}$/.test(cleanedPhoneNumber)) {
@@ -538,24 +540,13 @@ export default function ProfilePage() {
                                             <FormItem>
                                                 <FormLabel>Phone Number</FormLabel>
                                                  <FormControl>
-                                                     {/* Use InputMask component */}
-                                                    <InputMask
-                                                      mask="+7 999 999-99-99"
-                                                      value={field.value ?? ''} // Ensure value is never null/undefined for InputMask
-                                                      onChange={field.onChange}
-                                                      onBlur={field.onBlur}
-                                                      disabled={isSaving || false} // Ensure disabled is boolean
-                                                      maskChar={null} // Optional: hide mask placeholders
-                                                    >
-                                                        {/* Need to pass props from InputMask to the underlying Input */}
-                                                        {(inputProps: any) => (
-                                                            <Input
-                                                                {...inputProps} // Pass all props from InputMask
-                                                                type="tel"
-                                                                placeholder="+7 ___ ___-__-__"
-                                                            />
-                                                        )}
-                                                    </InputMask>
+                                                     {/* Removed InputMask, using standard Input */}
+                                                    <Input
+                                                        type="tel"
+                                                        placeholder="+7 xxx xxx-xx-xx"
+                                                        {...field} // Pass field props
+                                                        disabled={isSaving}
+                                                    />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -668,9 +659,8 @@ export default function ProfilePage() {
                            <CardContent>
                                <p className="text-muted-foreground">You haven't booked any camps yet.</p>
                                <Button variant="outline" asChild>
-                                    {/* Fix: Wrap multiple children in a single element */}
-                                    <Link href="/main">
-                                        <span>Discover Camps</span>
+                                    <Link href="/main"> {/* Corrected link */}
+                                        Discover Camps
                                     </Link>
                                 </Button>
                            </CardContent>

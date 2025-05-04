@@ -1,3 +1,4 @@
+
 // src/app/my-events/page.tsx
 'use client';
 
@@ -260,9 +261,9 @@ export default function MyEventsPage() {
       <Header />
       <main className="flex-1 p-4 md:p-8 lg:p-12">
         <div className="container mx-auto px-4 py-8 md:py-12">
-           <Link href="/dashboard" className="inline-flex items-center text-primary hover:underline mb-8" prefetch={false}>
+           <Link href="/main" className="inline-flex items-center text-primary hover:underline mb-8" prefetch={false}>
                <ArrowLeft className="mr-2 h-4 w-4" />
-               Back to Dashboard
+               Back to Main
            </Link>
 
            {/* Section for User's Created Camps */}
@@ -301,9 +302,9 @@ export default function MyEventsPage() {
                    <Card className="text-center py-12">
                        <CardContent>
                            <p className="text-muted-foreground">You haven't booked any camps yet.</p>
-                           {/* Optionally link to the dashboard to discover camps */}
+                           {/* Optionally link to the main page to discover camps */}
                            <Button variant="outline" asChild>
-                                <Link href="/dashboard">Discover Camps</Link>
+                                <Link href="/main">Discover Camps</Link>
                             </Button>
                        </CardContent>
                    </Card>

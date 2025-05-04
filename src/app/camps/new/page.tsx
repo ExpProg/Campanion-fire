@@ -153,8 +153,8 @@ function CreateCampForm() {
                 title: 'Camp Created Successfully!',
                 description: `Your camp "${values.name}" has been added.`,
             });
-            // Redirect to the dashboard or the new camp's page
-            router.push('/dashboard');
+            // Redirect to the main page or the new camp's page
+            router.push('/main');
             // Optional: redirect to the new camp's detail page: router.push(`/camps/${docRef.id}`);
 
         } catch (error) {
@@ -357,9 +357,9 @@ export default function CreateCampPage() {
 
       <main className="flex-1 p-4 md:p-8 lg:p-12">
           <div className="container mx-auto px-4 py-8 md:py-12 max-w-4xl"> {/* Added max-w */}
-              <Link href="/dashboard" className="inline-flex items-center text-primary hover:underline mb-6" prefetch={false}>
+              <Link href="/main" className="inline-flex items-center text-primary hover:underline mb-6" prefetch={false}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Dashboard
+                  Back to Main
               </Link>
 
               <Card className="shadow-lg">

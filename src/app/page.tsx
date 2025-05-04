@@ -80,11 +80,11 @@ export default function LandingPage() {
                   </Link>
                 </Button>
                 {/* Fix: Ensure Button with asChild has a single React element child */}
-                <Button variant="secondary" size="lg" asChild>
-                   <Link href="#features" prefetch={false}>
-                     Learn More
-                   </Link>
-                </Button>
+                 <Button variant="secondary" size="lg" asChild>
+                    <Link href="#features" prefetch={false}>
+                        Learn More
+                    </Link>
+                 </Button>
               </div>
             </div>
           </div>
@@ -108,6 +108,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-// Need Skeleton component for loading state
-// import { Skeleton } from "@/components/ui/skeleton"; // Already imported above

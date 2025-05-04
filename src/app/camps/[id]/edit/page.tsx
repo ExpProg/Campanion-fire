@@ -165,7 +165,7 @@ function EditCampForm({ campData, campId }: { campData: CampData, campId: string
                 title: 'Camp Updated Successfully!',
                 description: `Your camp "${values.name}" has been updated.`,
             });
-            router.push('/dashboard'); // Redirect to dashboard after update
+            router.push('/main'); // Redirect to main page after update
 
         } catch (error) {
             console.error('Error updating camp in Firestore:', error);
@@ -329,12 +329,12 @@ export default function EditCampPage() {
                         } else {
                             setError('You do not have permission to edit this camp.');
                             toast({ title: 'Permission Denied', description: 'You can only edit camps you created.', variant: 'destructive' });
-                            router.push('/dashboard'); // Redirect if not owner
+                            router.push('/main'); // Redirect if not owner
                         }
                     } else {
                         setError("Camp not found.");
                         toast({ title: 'Error', description: 'Camp not found.', variant: 'destructive' });
-                        router.push('/dashboard'); // Redirect if camp doesn't exist
+                        router.push('/main'); // Redirect if camp doesn't exist
                     }
                 })
                 .catch(fetchError => {
@@ -348,7 +348,7 @@ export default function EditCampPage() {
         } else if (!campId) {
             setError("Camp ID is missing.");
             setLoading(false);
-            router.push('/dashboard'); // Redirect if no ID
+            router.push('/main'); // Redirect if no ID
         }
     }, [campId, user, authLoading, router, toast]);
 
@@ -406,9 +406,9 @@ export default function EditCampPage() {
                 <Header />
                 <main className="flex-1 flex items-center justify-center p-4">
                     <div className="container mx-auto px-4 py-12 text-center">
-                        <Link href="/dashboard" className="inline-flex items-center text-primary hover:underline mb-4" prefetch={false}>
+                        <Link href="/main" className="inline-flex items-center text-primary hover:underline mb-4" prefetch={false}>
                             <ArrowLeft className="mr-2 h-4 w-4" />
-                            Back to Dashboard
+                            Back to Main
                         </Link>
                         <p className="text-xl text-destructive">{error}</p>
                     </div>
@@ -426,9 +426,9 @@ export default function EditCampPage() {
             <Header />
             <main className="flex-1 p-4 md:p-8 lg:p-12">
                 <div className="container mx-auto px-4 py-8 md:py-12 max-w-4xl">
-                    <Link href="/dashboard" className="inline-flex items-center text-primary hover:underline mb-6" prefetch={false}>
+                    <Link href="/main" className="inline-flex items-center text-primary hover:underline mb-6" prefetch={false}>
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Dashboard
+                        Back to Main
                     </Link>
                     <Card className="shadow-lg">
                         <CardHeader>

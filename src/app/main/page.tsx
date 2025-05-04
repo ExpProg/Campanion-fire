@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -70,7 +71,7 @@ const Banner = ({ title, description, imageUrl, imageAlt, imageHint }: {
 );
 
 
-export default function DashboardPage() {
+export default function MainPage() { // Renamed from DashboardPage
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -351,4 +352,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
