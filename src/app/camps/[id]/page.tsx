@@ -99,7 +99,7 @@ async function fetchCampDetailsFromFirestore(id: string): Promise<Camp | null> {
 
 
 export default function CampDetailsPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth(); // Keep user context for potential future use (e.g., booking button)
   const router = useRouter();
   const params = useParams();
   const campId = params.id as string;
@@ -108,15 +108,11 @@ export default function CampDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Redirect if auth is done loading and user is not logged in
-    if (!authLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, authLoading, router]);
+  // Removed useEffect dependency on user for redirecting non-logged in users
 
   useEffect(() => {
-    if (campId && user) { // Fetch only if ID is present and user is logged in
+    // Fetch camp details regardless of login status
+    if (campId) {
       setLoading(true);
       setError(null); // Reset error state
       fetchCampDetailsFromFirestore(campId)
@@ -134,14 +130,14 @@ export default function CampDetailsPage() {
         .finally(() => {
           setLoading(false);
         });
-    } else if (!campId) {
+    } else {
         setLoading(false); // Stop loading if no ID
         setError("Camp ID is missing.");
         console.error("Camp ID is missing");
     }
-  }, [campId, user]); // Depend on campId and user
+  }, [campId]); // Only depend on campId
 
-  if (authLoading || loading || (!user && !authLoading)) { // Added condition for redirecting user
+  if (authLoading || loading) { // Show skeleton if auth is loading OR camp data is loading
      return (
          <div className="flex flex-col min-h-screen">
              {/* Header Skeleton */}
@@ -310,4 +306,3 @@ export default function CampDetailsPage() {
     </div>
   );
 }
-

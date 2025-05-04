@@ -82,24 +82,20 @@ export default function MainPage() { // Renamed from DashboardPage
   // Removed deletingCampId state as deletion is moved to admin panel
   // const [deletingCampId, setDeletingCampId] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Redirect to login if not authenticated and loading is finished
-    if (!authLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, authLoading, router]);
+  // useEffect(() => {
+  //   // Redirect to login if not authenticated and loading is finished
+  //   // Commented out redirect: Page should be accessible without login
+  //   // if (!authLoading && !user) {
+  //   //   router.push('/login');
+  //   // }
+  // }, [user, authLoading, router]);
 
   useEffect(() => {
-    // Fetch Firestore data if user is logged in
-    if (user) {
-      setFirestoreLoading(true);
-      fetchFirestoreCamps(); // Call fetch function
-    } else {
-      // Reset states if user logs out
-      setFirestoreLoading(false);
-      setFirestoreCamps([]);
-    }
-  }, [user]); // Depend on user to refetch if user changes
+    // Fetch Firestore data regardless of user login status
+    // Fetch camps once when the component mounts
+    setFirestoreLoading(true);
+    fetchFirestoreCamps(); // Call fetch function
+  }, []); // Empty dependency array means this runs once on mount
 
   // Function to fetch Firestore camps
   const fetchFirestoreCamps = async () => {
@@ -229,7 +225,7 @@ export default function MainPage() { // Renamed from DashboardPage
     );
 
 
-  if (authLoading || (!user && !authLoading) ) { // Show skeleton if loading or if redirect hasn't happened yet
+  if (authLoading || firestoreLoading) { // Show skeleton if auth is loading OR firestore data is loading
     return (
        <div className="flex flex-col min-h-screen">
            {/* Use a simpler Header skeleton or just the header structure */}
@@ -276,9 +272,8 @@ export default function MainPage() { // Renamed from DashboardPage
         {/* Section for All Available Firestore Camps */}
         <div id="available-camps"> {/* Added ID for potential linking */}
           <h2 className="text-2xl font-bold mb-6 text-foreground">Available Camps</h2>
-          {firestoreLoading ? (
-            <SkeletonCard count={firestoreCamps.length > 0 ? firestoreCamps.length : 3} /> // Show reasonable number during load
-          ) : firestoreCamps.length > 0 ? (
+          {/* Loading state handled above, now render based on fetched data */}
+          {firestoreCamps.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              {firestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} />)}
            </div>
@@ -286,8 +281,8 @@ export default function MainPage() { // Renamed from DashboardPage
              <Card className="text-center py-12">
                 <CardContent>
                     <p className="text-muted-foreground mb-4">No upcoming camps found.</p>
-                    {/* Show create camp button only if user is admin */}
-                    {isAdmin && (
+                    {/* Show create camp button only if user is admin and logged in */}
+                    {isAdmin && user && (
                         <Button asChild>
                             <Link href="/camps/new">Create a New Camp</Link>
                         </Button>
@@ -305,4 +300,3 @@ export default function MainPage() { // Renamed from DashboardPage
     </div>
   );
 }
-
