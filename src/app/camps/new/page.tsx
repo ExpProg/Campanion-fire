@@ -45,7 +45,12 @@ const createCampSchema = z.object({
 type CreateCampFormValues = z.infer<typeof createCampSchema>;
 
 // Date Picker Component (simplified version)
-function DatePickerField({ field, label, disabled }: { field: any, label: string, disabled: boolean }) {
+function DatePickerField({ field, label, disabled, isAdmin }: {
+    field: any;
+    label: string;
+    disabled: boolean;
+    isAdmin: boolean; // Added isAdmin prop
+}) {
   return (
     <FormItem className="flex flex-col">
       <FormLabel>{label}</FormLabel>
@@ -74,12 +79,17 @@ function DatePickerField({ field, label, disabled }: { field: any, label: string
             mode="single"
             selected={field.value}
             onSelect={field.onChange}
-            disabled={(date) =>
-              // Allow selecting today or future dates.
-              // For end date, ensure it's not before the selected start date if available.
-              // This basic logic can be enhanced.
-              date < new Date(new Date().setHours(0, 0, 0, 0)) // Disable past dates
-            }
+            disabled={(date) => {
+                // Allow admins to select any date
+                if (isAdmin) {
+                    return false;
+                }
+                // For non-admins, disable past dates (excluding today)
+                // Ensure comparison is only against the date part, not time
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // Set time to the beginning of the day
+                return date < today;
+            }}
             initialFocus
           />
         </PopoverContent>
@@ -92,7 +102,7 @@ function DatePickerField({ field, label, disabled }: { field: any, label: string
 
 // Actual form component
 function CreateCampForm() {
-    const { user } = useAuth(); // Get user to associate camp with organizer
+    const { user, isAdmin } = useAuth(); // Get user and isAdmin status
     const router = useRouter();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
@@ -120,6 +130,19 @@ function CreateCampForm() {
             });
             return;
         }
+
+        // Additional check for non-admins trying to create past camps (though UI should prevent this)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (!isAdmin && values.startDate < today) {
+            toast({
+                title: 'Invalid Date',
+                description: 'Start date cannot be in the past.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
 
         setIsLoading(true);
         try {
@@ -206,7 +229,12 @@ function CreateCampForm() {
                         control={form.control}
                         name="startDate"
                         render={({ field }) => (
-                            <DatePickerField field={field} label="Start Date" disabled={isLoading} />
+                            <DatePickerField
+                                field={field}
+                                label="Start Date"
+                                disabled={isLoading}
+                                isAdmin={isAdmin} // Pass admin status
+                            />
                         )}
                     />
 
@@ -219,6 +247,7 @@ function CreateCampForm() {
                                 field={field}
                                 label="End Date"
                                 disabled={isLoading || !form.watch('startDate')} // Disable if start date not picked
+                                isAdmin={isAdmin} // Pass admin status
                             />
                         )}
                      />
@@ -293,7 +322,7 @@ function CreateCampForm() {
 
 
 export default function CreateCampPage() {
-  const { user, loading } = useAuth(); // Removed profile check
+  const { user, loading } = useAuth(); // Get user and loading status
   const router = useRouter();
 
   useEffect(() => {
@@ -301,7 +330,7 @@ export default function CreateCampPage() {
     if (!loading && !user) {
         router.push('/login'); // Not logged in
     }
-  }, [user, loading, router]); // Removed profile dependency
+  }, [user, loading, router]);
 
 
   if (loading || !user) { // Updated condition: Show loading skeleton if auth is loading or user is not logged in

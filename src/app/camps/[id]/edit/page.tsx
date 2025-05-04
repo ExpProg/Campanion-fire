@@ -58,7 +58,12 @@ interface CampData {
 }
 
 // Date Picker Component (reusable)
-function DatePickerField({ field, label, disabled }: { field: any, label: string, disabled: boolean }) {
+function DatePickerField({ field, label, disabled, isAdmin }: {
+    field: any;
+    label: string;
+    disabled: boolean;
+    isAdmin: boolean; // Added isAdmin prop
+}) {
     return (
         <FormItem className="flex flex-col">
         <FormLabel>{label}</FormLabel>
@@ -87,9 +92,16 @@ function DatePickerField({ field, label, disabled }: { field: any, label: string
                 mode="single"
                 selected={field.value}
                 onSelect={field.onChange}
-                disabled={(date) =>
-                    date < new Date(new Date().setHours(0, 0, 0, 0)) // Disable past dates
-                }
+                disabled={(date) => {
+                    // Allow admins to select any date
+                    if (isAdmin) {
+                        return false;
+                    }
+                    // For non-admins, disable past dates (excluding today)
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0); // Set time to the beginning of the day
+                    return date < today;
+                }}
                 initialFocus
             />
             </PopoverContent>
@@ -101,7 +113,7 @@ function DatePickerField({ field, label, disabled }: { field: any, label: string
 
 // Edit Camp Form Component
 function EditCampForm({ campData, campId }: { campData: CampData, campId: string }) {
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth(); // Get user and isAdmin status
     const router = useRouter();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
@@ -129,6 +141,18 @@ function EditCampForm({ campData, campId }: { campData: CampData, campId: string
             toast({
                 title: 'Error',
                 description: 'You do not have permission to edit this camp.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        // Additional check for non-admins trying to set past dates (though UI should prevent this)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (!isAdmin && values.startDate < today) {
+            toast({
+                title: 'Invalid Date',
+                description: 'Start date cannot be in the past.',
                 variant: 'destructive',
             });
             return;
@@ -215,7 +239,12 @@ function EditCampForm({ campData, campId }: { campData: CampData, campId: string
                         control={form.control}
                         name="startDate"
                         render={({ field }) => (
-                           <DatePickerField field={field} label="Start Date" disabled={isLoading} />
+                           <DatePickerField
+                                field={field}
+                                label="Start Date"
+                                disabled={isLoading}
+                                isAdmin={isAdmin} // Pass admin status
+                           />
                         )}
                      />
                     <FormField
@@ -226,6 +255,7 @@ function EditCampForm({ campData, campId }: { campData: CampData, campId: string
                                field={field}
                                label="End Date"
                                disabled={isLoading || !startDateValue} // Disable if start date not picked
+                               isAdmin={isAdmin} // Pass admin status
                            />
                         )}
                     />
