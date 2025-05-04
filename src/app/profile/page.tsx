@@ -236,7 +236,8 @@ export default function ProfilePage() {
               const profileData = docSnap.data() as UserProfile;
               form.reset({
                   firstName: profileData.firstName || '',
-                  phoneNumber: profileData.phoneNumber || '',
+                  // Ensure phoneNumber is reset correctly, potentially handling the masked format if it was stored that way
+                  phoneNumber: profileData.phoneNumber || '', // Use the stored value directly
                   organizerName: profileData.organizerName || '',
                   websiteUrl: profileData.websiteUrl || '',
               });
@@ -309,8 +310,10 @@ export default function ProfilePage() {
     // 3. A separate top-level 'bookings' collection linking users and camps.
     // Assuming approach 2 for this example:
     try {
-        const bookedCampsRefs = await getDocs(collection(db, 'users', userId, 'bookedCamps'));
-        const bookedCampIds = bookedCampsRefs.docs.map(doc => doc.id);
+        // Simulate fetching booked camp IDs (replace with actual Firestore query)
+        // const bookedCampsRefs = await getDocs(collection(db, 'users', userId, 'bookedCamps'));
+        // const bookedCampIds = bookedCampsRefs.docs.map(doc => doc.id);
+        const bookedCampIds: string[] = []; // Replace with actual data
 
         if (bookedCampIds.length === 0) {
             setBookedCamps([]);
@@ -392,8 +395,18 @@ export default function ProfilePage() {
 
     try {
         const userDocRef = doc(db, 'users', user.uid);
-        // Clean phone number before saving (remove mask characters)
-        const cleanedPhoneNumber = values.phoneNumber ? values.phoneNumber.replace(/[^\d+]/g, '') : '';
+        // Clean phone number before saving (remove mask characters EXCEPT the leading +)
+        const cleanedPhoneNumber = values.phoneNumber
+            ? '+' + values.phoneNumber.replace(/[^\d]/g, '').slice(1) // Keep '+', remove others, slice removes potential extra '+'
+            : '';
+
+        // Validate the cleaned number again before saving
+        if (cleanedPhoneNumber && !/^\+7\d{10}$/.test(cleanedPhoneNumber)) {
+             toast({ title: 'Invalid Phone Number', description: 'Please enter a valid Russian phone number.', variant: 'destructive' });
+             setIsSaving(false);
+             return;
+        }
+
 
         const dataToSave: Partial<UserProfile> = { // Use Partial<UserProfile> for update
             firstName: values.firstName || '',
@@ -531,17 +544,15 @@ export default function ProfilePage() {
                                                       value={field.value ?? ''} // Ensure value is never null/undefined for InputMask
                                                       onChange={field.onChange}
                                                       onBlur={field.onBlur}
-                                                      disabled={isSaving}
+                                                      disabled={isSaving || false} // Ensure disabled is boolean
+                                                      maskChar={null} // Optional: hide mask placeholders
                                                     >
+                                                        {/* Need to pass props from InputMask to the underlying Input */}
                                                         {(inputProps: any) => (
                                                             <Input
-                                                                {...inputProps}
+                                                                {...inputProps} // Pass all props from InputMask
                                                                 type="tel"
                                                                 placeholder="+7 ___ ___-__-__"
-                                                                // Apply the same base input styles
-                                                                className={cn(
-                                                                    "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                                                                )}
                                                             />
                                                         )}
                                                     </InputMask>
@@ -657,7 +668,7 @@ export default function ProfilePage() {
                            <CardContent>
                                <p className="text-muted-foreground">You haven't booked any camps yet.</p>
                                <Button variant="outline" asChild>
-                                     {/* Fix: Wrap multiple children in a single element */}
+                                    {/* Fix: Wrap multiple children in a single element */}
                                     <Link href="/main">
                                         <span>Discover Camps</span>
                                     </Link>

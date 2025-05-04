@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -45,11 +44,9 @@ interface Camp {
 }
 
 // Banner Component
-const Banner = ({ title, description, buttonText, buttonLink, imageUrl, imageAlt, imageHint }: {
+const Banner = ({ title, description, imageUrl, imageAlt, imageHint }: {
     title: string;
     description: string;
-    buttonText: string;
-    buttonLink: string;
     imageUrl: string;
     imageAlt: string;
     imageHint: string;
@@ -67,11 +64,7 @@ const Banner = ({ title, description, buttonText, buttonLink, imageUrl, imageAlt
         <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent p-8 md:p-12 flex flex-col justify-center items-start text-white">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">{title}</h2>
             <p className="text-lg md:text-xl mb-6 max-w-xl">{description}</p>
-            <Button size="lg" asChild>
-                <Link href={buttonLink} prefetch={false}>
-                    {buttonText}
-                </Link>
-            </Button>
+            {/* Button removed as requested */}
         </div>
     </div>
 );
@@ -206,8 +199,11 @@ export default function DashboardPage() {
               <>
                 <Button size="sm" asChild variant="ghost">
                     <Link href={`/camps/${camp.id}/edit`} prefetch={false} aria-label={`Edit ${camp.name}`}>
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Edit</span>
+                       {/* Wrap icon and text in a single element */}
+                       <span className="flex items-center">
+                           <Pencil className="h-4 w-4" />
+                           <span className="sr-only">Edit</span>
+                       </span>
                     </Link>
                 </Button>
                 <AlertDialog>
@@ -317,24 +313,12 @@ export default function DashboardPage() {
          {/* Banners Section */}
          <div className="mb-12"> {/* Margin bottom to separate from camps */}
              <Banner
-                 title="Create Your Own Camp Adventure!"
-                 description="Got a great idea for a camp? Share your passion and host your own event on Campanion."
-                 buttonText="Create a Camp"
-                 buttonLink="/camps/new"
-                 imageUrl="https://picsum.photos/seed/banner-create/1200/400"
-                 imageAlt="Scenic view with a tent"
-                 imageHint="camp create hosting"
+                 title="Find Your Perfect Camp Experience" // Changed title
+                 description="Explore a wide variety of camps, from outdoor adventures to creative workshops, and book your next adventure." // Changed description
+                 imageUrl="https://picsum.photos/seed/banner-discover/1200/400" // Changed seed for potentially different image
+                 imageAlt="Children enjoying activities at a summer camp" // More descriptive alt text
+                 imageHint="camp discover explore fun" // Updated hints
              />
-             {/* Add another banner if needed */}
-              {/* <Banner
-                 title="Discover Unique Summer Camps"
-                 description="Explore a wide variety of camps, from outdoor adventures to creative workshops."
-                 buttonText="Explore Camps"
-                 buttonLink="#available-camps" // Link to the section below
-                 imageUrl="https://picsum.photos/seed/banner-discover/1200/400"
-                 imageAlt="Children doing activities at camp"
-                 imageHint="camp discover explore"
-             /> */}
          </div>
 
 
