@@ -12,14 +12,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LogOut, Save, Trash2, Pencil, ArrowLeft, CalendarCheck } from 'lucide-react'; // Added missing icons
+import { LogOut, Save, Trash2, Pencil, ArrowLeft, CalendarCheck, ShieldCheck } from 'lucide-react'; // Added ShieldCheck for admin badge
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, Timestamp, collection, getDocs, deleteDoc } from 'firebase/firestore'; // Import Firestore functions
 import { auth, db } from '@/config/firebase';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/layout/Header';
 import { Input } from '@/components/ui/input';
-import InputMask from 'react-input-mask'; // Import InputMask
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator'; // Import Separator
@@ -37,6 +36,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"; // Import AlertDialog components
 import { cn } from '@/lib/utils'; // Import cn for styling
+import { Badge } from '@/components/ui/badge'; // Import Badge
 
 
 // Basic regex for phone validation: allows optional +, digits, spaces, hyphens. Adjust as needed.
@@ -75,6 +75,7 @@ interface UserProfile {
     phoneNumber?: string;
     organizerName?: string;
     websiteUrl?: string;
+    isAdmin?: boolean; // Added isAdmin field
 }
 
 // Interface for Camp data (matching structure used elsewhere)
@@ -135,11 +136,10 @@ const CampCard = ({ camp, isOwner, onDeleteClick, deletingCampId }: {
                   <>
                       <Button size="sm" asChild variant="ghost">
                           <Link href={`/camps/${camp.id}/edit`} prefetch={false} aria-label={`Edit ${camp.name}`}>
-                              {/* Wrap icon and text in a single element */}
-                              <span className="flex items-center">
+                               <span className="flex items-center">
                                   <Pencil className="h-4 w-4" />
                                   <span className="sr-only">Edit</span>
-                              </span>
+                               </span>
                           </Link>
                       </Button>
                       <AlertDialog>
@@ -203,6 +203,7 @@ export default function ProfilePage() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [campsLoading, setCampsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false); // State for admin status
   const [myCreatedCamps, setMyCreatedCamps] = useState<Camp[]>([]);
   const [bookedCamps, setBookedCamps] = useState<Camp[]>([]); // Placeholder for booked camps
   const [deletingCampId, setDeletingCampId] = useState<string | null>(null);
@@ -237,14 +238,13 @@ export default function ProfilePage() {
               const profileData = docSnap.data() as UserProfile;
               form.reset({
                   firstName: profileData.firstName || '',
-                  // Ensure phoneNumber is reset correctly, potentially handling the masked format if it was stored that way
-                  phoneNumber: profileData.phoneNumber || '', // Use the stored value directly
+                  phoneNumber: profileData.phoneNumber || '',
                   organizerName: profileData.organizerName || '',
                   websiteUrl: profileData.websiteUrl || '',
               });
+              setIsAdmin(profileData.isAdmin || false); // Set admin status from profile
           } else {
               console.log("No profile document found for user.");
-              // Initialize profile if it doesn't exist? Optional.
                const initialProfileData: UserProfile = {
                    email: user.email!,
                    createdAt: Timestamp.now(),
@@ -252,12 +252,15 @@ export default function ProfilePage() {
                    phoneNumber: '',
                    organizerName: '',
                    websiteUrl: '',
+                   isAdmin: false, // Default isAdmin to false
                };
                setDoc(userDocRef, initialProfileData).catch(err => console.error("Failed to create initial profile:", err));
+               setIsAdmin(false); // Set admin status to false for new profile
           }
       }).catch(error => {
           console.error("Error fetching profile data:", error);
           toast({ title: 'Error', description: 'Could not load profile data.', variant: 'destructive' });
+          setIsAdmin(false); // Ensure isAdmin is false on error
       }).finally(() => {
           setProfileLoading(false);
       });
@@ -266,9 +269,7 @@ export default function ProfilePage() {
       fetchMyCreatedCamps(user.uid);
 
       // Fetch Booked Camps Data (Placeholder)
-      // Replace with actual fetch logic when available
-      fetchMyBookedCamps(user.uid); // Call fetch function for booked camps
-      // Consider setting campsLoading to false after *both* fetches complete
+      fetchMyBookedCamps(user.uid);
 
     }
   }, [user, authLoading, router, toast, form]); // Dependencies
@@ -296,24 +297,14 @@ export default function ProfilePage() {
         variant: 'destructive',
       });
     } finally {
-      // Set loading false *only* after created camps are fetched
-      // If booked camps fetch is added, adjust this logic
-       // setCampsLoading(false); // Moved to fetchMyBookedCamps finally block
+      // Loading state managed in fetchMyBookedCamps
     }
   };
 
    // Function to fetch user's booked Firestore camps (Placeholder Logic)
    const fetchMyBookedCamps = async (userId: string) => {
-    // This is placeholder logic. You need a way to track bookings.
-    // Common approaches:
-    // 1. Subcollection 'bookings' under each 'camp' document, containing user IDs.
-    // 2. Subcollection 'bookedCamps' under each 'user' document, containing camp IDs.
-    // 3. A separate top-level 'bookings' collection linking users and camps.
-    // Assuming approach 2 for this example:
     try {
         // Simulate fetching booked camp IDs (replace with actual Firestore query)
-        // const bookedCampsRefs = await getDocs(collection(db, 'users', userId, 'bookedCamps'));
-        // const bookedCampIds = bookedCampsRefs.docs.map(doc => doc.id);
         const bookedCampIds: string[] = []; // Replace with actual data
 
         if (bookedCampIds.length === 0) {
@@ -321,7 +312,6 @@ export default function ProfilePage() {
             return;
         }
 
-        // Fetch details for each booked camp
         const campPromises = bookedCampIds.map(campId => getDoc(doc(db, 'camps', campId)));
         const campSnapshots = await Promise.all(campPromises);
 
@@ -344,8 +334,7 @@ export default function ProfilePage() {
         });
          setBookedCamps([]); // Ensure it's empty on error
     } finally {
-        // Set loading false after both created and booked fetches are complete
-        setCampsLoading(false);
+        setCampsLoading(false); // Set loading false after both fetches are complete
     }
 };
 
@@ -353,7 +342,6 @@ export default function ProfilePage() {
   // Function to handle camp deletion
   const handleDeleteCamp = async (campId: string) => {
     if (!campId || !user) return;
-    // Double-check ownership just before deletion
     const campToDelete = myCreatedCamps.find(camp => camp.id === campId);
     if (!campToDelete || campToDelete.organizerId !== user.uid) {
        toast({ title: 'Permission Denied', description: 'Cannot delete this camp.', variant: 'destructive' });
@@ -396,13 +384,11 @@ export default function ProfilePage() {
 
     try {
         const userDocRef = doc(db, 'users', user.uid);
-        // Clean phone number before saving (remove mask characters EXCEPT the leading +)
         const cleanedPhoneNumber = values.phoneNumber
-            ? '+' + (values.phoneNumber.replace(/[^\d]/g, '') || '').slice(1) // Keep '+', remove others, handle potential empty string after replace, slice removes potential extra '+'
+            ? '+' + (values.phoneNumber.replace(/[^\d]/g, '') || '').slice(1)
             : '';
 
 
-        // Validate the cleaned number again before saving
         if (cleanedPhoneNumber && !/^\+7\d{10}$/.test(cleanedPhoneNumber)) {
              toast({ title: 'Invalid Phone Number', description: 'Please enter a valid Russian phone number.', variant: 'destructive' });
              setIsSaving(false);
@@ -412,10 +398,10 @@ export default function ProfilePage() {
 
         const dataToSave: Partial<UserProfile> = { // Use Partial<UserProfile> for update
             firstName: values.firstName || '',
-            phoneNumber: cleanedPhoneNumber, // Save the cleaned number
+            phoneNumber: cleanedPhoneNumber,
             organizerName: values.organizerName || '',
             websiteUrl: values.websiteUrl || '',
-            // Add updatedAt timestamp if desired: updatedAt: Timestamp.now()
+            // isAdmin is not editable via this form, fetched separately
         };
 
         // Use setDoc with merge: true to update or create the document
@@ -515,6 +501,11 @@ export default function ProfilePage() {
                                 <CardDescription>
                                    Manage your profile and events
                                 </CardDescription>
+                                {isAdmin && (
+                                    <Badge variant="default" className="mt-2 bg-primary text-primary-foreground">
+                                        <ShieldCheck className="mr-1 h-4 w-4" /> Administrator
+                                    </Badge>
+                                )}
                             </CardHeader>
                             <CardContent className="space-y-6">
                                  {/* Block 1: Personal Data */}
@@ -539,8 +530,8 @@ export default function ProfilePage() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Phone Number</FormLabel>
-                                                 <FormControl>
-                                                     {/* Removed InputMask, using standard Input */}
+                                                <FormControl>
+                                                    {/* Removed InputMask, using standard Input */}
                                                     <Input
                                                         type="tel"
                                                         placeholder="+7 xxx xxx-xx-xx"
@@ -590,7 +581,7 @@ export default function ProfilePage() {
 
                                 <Separator className="my-6" />
 
-                                <Button type="submit" className="w-full" disabled={isSaving || !form.formState.isValid}>
+                                <Button type="submit" className="w-full" disabled={isSaving || !form.formState.isDirty}> {/* Disable if not saving and form is not dirty */}
                                     <Save className="mr-2 h-4 w-4" /> {isSaving ? 'Saving...' : 'Save Profile'}
                                 </Button>
 
