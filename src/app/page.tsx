@@ -257,8 +257,9 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Featured Camps Section */}
+        {/* Featured Camps Section - Full Width Background */}
         <section className="w-full py-12 md:py-20 lg:py-24 bg-muted/50">
+           {/* Container for content within the full-width section */}
            <div className="container px-4 md:px-6">
                {/* Added text-center to center the heading */}
                <h2 className="text-3xl md:text-4xl font-bold mb-8 text-center text-foreground">Recently Added Camps</h2>
