@@ -237,7 +237,7 @@ export default function LandingPage() {
                     Get Started
                  </Link>
                  <Link
-                     href="#featured-camps" // Link to the camps section instead of removed features
+                     href="#available-camps" // Link to the available camps section
                      prefetch={false}
                      className={cn(buttonVariants({ variant: 'secondary', size: 'lg' }))}
                  >
@@ -248,40 +248,27 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Featured Camps Section */}
-        <section id="featured-camps" className="w-full py-12 md:py-24 lg:py-32">
+        {/* Available Camps Section */}
+        <section id="available-camps" className="w-full py-12 md:py-24 lg:py-32">
             <div className="container px-4 md:px-6">
                 <h2 className="text-3xl font-bold tracking-tighter text-center mb-12 sm:text-4xl md:text-5xl">
-                    Featured Camps
+                    Available Camps
                 </h2>
                 {/* Conditionally render based on campsLoading and firestoreCamps */}
                 {campsLoading ? (
-                    <SkeletonCampCard count={3} />
+                    <SkeletonCampCard count={6} /> // Show more skeletons
                 ) : firestoreCamps.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {/* Display only a few featured camps, e.g., the first 3 */}
-                        {firestoreCamps.slice(0, 3).map((camp) => (
+                        {/* Display all available camps */}
+                        {firestoreCamps.map((camp) => (
                             <LandingCampCard key={camp.id} camp={camp} />
                         ))}
                     </div>
                 ) : (
-                    <p className="text-center text-muted-foreground">No featured camps available at the moment. Check back soon!</p>
+                    <p className="text-center text-muted-foreground">No camps available at the moment. Check back soon!</p>
                 )}
-                 {/* Optional: Link to see all camps if there are more */}
-                 {firestoreCamps.length > 3 && (
-                    <div className="text-center mt-12">
-                        <Link
-                            href="/main" // Link to the main page where all camps are shown (or a dedicated camps page)
-                            prefetch={false}
-                            className={cn(buttonVariants({ variant: 'outline', size: 'lg' }))}
-                        >
-                            View All Camps
-                        </Link>
-                    </div>
-                 )}
             </div>
         </section>
-
 
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
@@ -298,4 +285,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
