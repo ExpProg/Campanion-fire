@@ -149,6 +149,7 @@ export default function MainPage() { // Renamed from DashboardPage
     // No need to check ownership here as edit/delete are removed
     // const isOwner = camp.organizerId === user?.uid;
     const organizerDisplay = camp.organizerName || 'Campanion Partner'; // Fallback
+    const formattedPrice = camp.price.toLocaleString('ru-RU'); // Format price with spaces
 
     return (
       <Card key={camp.id} className="overflow-hidden flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300 bg-card">
@@ -181,7 +182,7 @@ export default function MainPage() { // Renamed from DashboardPage
           <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{camp.description}</p>
         </CardContent>
         <div className="p-6 pt-0 flex justify-between items-center gap-2">
-          <span className="text-lg font-semibold text-primary">{camp.price} ₽</span> {/* Changed $ to ₽ */}
+          <span className="text-lg font-semibold text-primary">{formattedPrice} ₽</span> {/* Use formatted price */}
           <div className="flex gap-2 items-center"> {/* Ensure items are vertically centered */}
             <Button size="sm" asChild variant="outline">
               <Link href={`/camps/${camp.id}`} prefetch={false}>

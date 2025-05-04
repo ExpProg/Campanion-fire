@@ -206,6 +206,7 @@ export default function CampDetailsPage() {
   // Camp data is available
   // const displayContactEmail = camp.contactEmail || 'Not specified'; // Removed contactEmail
   const organizerDisplay = camp.organizerName || 'Campanion Partner'; // Fallback
+  const formattedPrice = camp.price.toLocaleString('ru-RU'); // Format price with spaces
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -290,7 +291,7 @@ export default function CampDetailsPage() {
                                   <DollarSign className="h-5 w-5 mr-3 mt-1 text-primary flex-shrink-0" />
                                   <div>
                                       <p className="font-medium">Price</p>
-                                      <p className="text-2xl font-bold text-primary">{camp.price} ₽</p> {/* Changed $ to ₽ */}
+                                      <p className="text-2xl font-bold text-primary">{formattedPrice} ₽</p> {/* Use formatted price */}
                                   </div>
                               </div>
                           </div>

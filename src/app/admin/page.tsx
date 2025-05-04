@@ -169,6 +169,7 @@ const AdminCampListItem = ({ camp, isCreator, onDeleteClick, deletingCampId, sta
     );
 
     const badgeVariant = status === 'Past' ? 'default' : undefined;
+    const formattedPrice = camp.price.toLocaleString('ru-RU'); // Format price with spaces
 
     return (
       <div key={camp.id} className="flex items-center justify-between p-4 border-b hover:bg-muted/50 transition-colors">
@@ -182,7 +183,7 @@ const AdminCampListItem = ({ camp, isCreator, onDeleteClick, deletingCampId, sta
                  </Badge>
              </div>
              <p className="text-sm text-muted-foreground truncate">{camp.location} | {camp.dates}</p>
-             <p className="text-sm text-primary font-medium">{camp.price} ₽</p>
+             <p className="text-sm text-primary font-medium">{formattedPrice} ₽</p> {/* Use formatted price */}
          </div>
 
          {/* Action Buttons */}

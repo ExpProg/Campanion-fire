@@ -105,6 +105,7 @@ const CampCard = ({ camp, isOwner, onDeleteClick, deletingCampId }: {
     onDeleteClick: (campId: string) => void; // This will be effectively unused here now
     deletingCampId: string | null; // This will be effectively unused here now
 }) => {
+    const formattedPrice = camp.price.toLocaleString('ru-RU'); // Format price with spaces
 
     return (
       <Card key={camp.id} className="overflow-hidden flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300 bg-card">
@@ -126,7 +127,7 @@ const CampCard = ({ camp, isOwner, onDeleteClick, deletingCampId }: {
           <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{camp.description}</p>
           </CardContent>
           <div className="p-6 pt-0 flex justify-between items-center gap-2">
-          <span className="text-lg font-semibold text-primary">{camp.price} ₽</span>
+          <span className="text-lg font-semibold text-primary">{formattedPrice} ₽</span>
           <div className="flex gap-2 items-center">
               <Button size="sm" asChild variant="outline">
               <Link href={`/camps/${camp.id}`} prefetch={false}>
