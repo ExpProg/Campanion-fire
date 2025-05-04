@@ -204,6 +204,7 @@ export default function ProfilePage() {
         organizerName: '',
         websiteUrl: '',
     },
+    mode: 'onBlur', // Trigger validation on blur
   });
 
   // Fetch profile and camp data on mount
