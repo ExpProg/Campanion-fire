@@ -134,15 +134,7 @@ export default function Header() {
       <div className="ml-auto flex items-center gap-4"> {/* Adjusted gap */}
         {user ? (
           <>
-            {/* Always show Create Camp button if user is logged in */}
-            <Button asChild size="sm" className="hidden sm:inline-flex">
-              <Link href="/camps/new" prefetch={false}>
-                {/* Wrap icon and text inside a single span */}
-                <span className="flex items-center">
-                  <PlusCircle className="mr-2 h-4 w-4" /> Create Camp
-                </span>
-              </Link>
-            </Button>
+            {/* Create Camp button removed */}
 
              {/* Avatar Dropdown Menu */}
              <DropdownMenu>
@@ -185,14 +177,14 @@ export default function Header() {
           <>
              {/* Show Login/Register buttons if user is not logged in - Adjust if needed on specific pages */}
               <Button variant="ghost" asChild size="sm"> {/* Added size=sm */}
-                  <Link href="/login" prefetch={false}>
-                      Login
-                  </Link>
+                 <Link href="/login" prefetch={false}>
+                   Login
+                 </Link>
               </Button>
               <Button asChild size="sm"> {/* Added size=sm */}
-                  <Link href="/register" prefetch={false}>
-                      Register
-                  </Link>
+                 <Link href="/register" prefetch={false}>
+                   Register
+                 </Link>
               </Button>
           </>
         )}
