@@ -132,7 +132,10 @@ const AdminPageSkeleton = () => (
                  <Separator className="my-12" />
                  {/* Camps List Skeleton */}
                  <div className="mb-10">
-                    <Skeleton className="h-8 w-48 mb-4" /> {/* Section title */}
+                    <div className="flex justify-between items-center mb-4"> {/* Flex container for title and button */}
+                       <Skeleton className="h-8 w-48" /> {/* Section title */}
+                       <Skeleton className="h-10 w-40" /> {/* Create Camp Button Placeholder */}
+                    </div>
                     <div className="flex space-x-4 mb-6"> {/* Filter Skeleton */}
                        <Skeleton className="h-6 w-16" />
                        <Skeleton className="h-6 w-16" />
@@ -832,7 +835,15 @@ export default function AdminPage() {
 
                      {/* Section for Admin's Created Camps with Filtering */}
                     <div className="mb-10">
-                         <h2 className="text-2xl font-bold mb-4">My Created Camps</h2>
+                         <div className="flex justify-between items-center mb-4">
+                             <h2 className="text-2xl font-bold">My Created Camps</h2>
+                             <Button asChild>
+                                <Link href="/camps/new">
+                                  <PlusCircle className="mr-2 h-4 w-4" /> Create New Camp
+                                </Link>
+                             </Button>
+                         </div>
+
 
                          {/* Filter Controls */}
                          <RadioGroup
@@ -878,11 +889,7 @@ export default function AdminPage() {
                                          filterStatus === 'active' ? "No active camps found." :
                                          "No past camps found."}
                                      </p>
-                                     {filterStatus === 'all' && allAdminCamps.length === 0 && (
-                                         <Button asChild className="mt-4">
-                                             <Link href="/camps/new">Create Your First Camp</Link>
-                                         </Button>
-                                     )}
+                                     {/* Button removed from here as it's now at the top of the section */}
                                  </CardContent>
                              </Card>
                          )}
