@@ -143,12 +143,6 @@ const AdminPageSkeleton = () => (
                  </div>
                  <Separator className="my-12" />
 
-                 {/* Problematic Dates Section Skeleton */}
-                 <div className="mb-10">
-                    <Skeleton className="h-8 w-64 mb-4" /> {/* Section title */}
-                    <AdminCampListSkeleton count={1} />
-                 </div>
-                 <Separator className="my-12" />
 
                  {/* Camps List Skeleton */}
                  <div className="mb-10">
@@ -163,6 +157,13 @@ const AdminPageSkeleton = () => (
                        <Skeleton className="h-6 w-16" /> {/* Removed Past filter skeleton */}
                     </div>
                     <AdminCampListSkeleton count={3} />
+                 </div>
+                 <Separator className="my-12" />
+
+                 {/* Problematic Dates Section Skeleton */}
+                 <div className="mb-10">
+                    <Skeleton className="h-8 w-64 mb-4" /> {/* Section title */}
+                    <AdminCampListSkeleton count={1} />
                  </div>
             </div>
         </main>
@@ -906,45 +907,8 @@ export default function AdminPage() {
 
                     <Separator className="my-12"/>
 
-                     {/* Section for Active Camps that have started */}
-                     <div className="mb-12">
-                          <h2 className="text-2xl font-bold flex items-center gap-2 mb-4 text-yellow-700 dark:text-yellow-500">
-                              <CalendarClock className="h-6 w-6" /> Started Active Camps
-                          </h2>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            These camps are marked 'active' and their start date is in the past or today. Review if needed.
-                          </p>
-                          {campsLoading ? (
-                              <AdminCampListSkeleton count={1} />
-                          ) : startedActiveCamps.length > 0 ? (
-                              <div className="border rounded-md border-yellow-200 dark:border-yellow-800/50">
-                                  {startedActiveCamps.map((camp) => (
-                                      <AdminCampListItem
-                                          key={camp.id}
-                                          camp={camp}
-                                          isCreator={camp.creatorId === user.uid}
-                                          onDeleteClick={handleDeleteCamp}
-                                          deletingCampId={deletingCampId}
-                                          status={getCampStatus(camp)}
-                                          highlight={true} // Pass the highlight flag
-                                      />
-                                  ))}
-                              </div>
-                          ) : (
-                              <Card className="text-center py-8 border-dashed">
-                                  <CardContent>
-                                      <p className="text-muted-foreground">No active camps have started yet.</p>
-                                  </CardContent>
-                              </Card>
-                          )}
-                     </div>
-
-
-                    <Separator className="my-12"/>
-
-
                      {/* Section for Admin's Created Camps with Filtering */}
-                    <div className="mb-10">
+                    <div className="mb-12"> {/* Changed mb-10 to mb-12 */}
                          <div className="flex justify-between items-center mb-4">
                              <h2 className="text-2xl font-bold">My Created Camps</h2>
                              <Button asChild>
@@ -1011,6 +975,42 @@ export default function AdminPage() {
                              </Card>
                          )}
                     </div>
+
+                    <Separator className="my-12"/>
+
+                     {/* Section for Active Camps that have started */}
+                     <div className="mb-10"> {/* Changed mb-12 to mb-10 */}
+                          <h2 className="text-2xl font-bold flex items-center gap-2 mb-4 text-yellow-700 dark:text-yellow-500">
+                              <CalendarClock className="h-6 w-6" /> Started Active Camps
+                          </h2>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            These camps are marked 'active' and their start date is in the past or today. Review if needed.
+                          </p>
+                          {campsLoading ? (
+                              <AdminCampListSkeleton count={1} />
+                          ) : startedActiveCamps.length > 0 ? (
+                              <div className="border rounded-md border-yellow-200 dark:border-yellow-800/50">
+                                  {startedActiveCamps.map((camp) => (
+                                      <AdminCampListItem
+                                          key={camp.id}
+                                          camp={camp}
+                                          isCreator={camp.creatorId === user.uid}
+                                          onDeleteClick={handleDeleteCamp}
+                                          deletingCampId={deletingCampId}
+                                          status={getCampStatus(camp)}
+                                          highlight={true} // Pass the highlight flag
+                                      />
+                                  ))}
+                              </div>
+                          ) : (
+                              <Card className="text-center py-8 border-dashed">
+                                  <CardContent>
+                                      <p className="text-muted-foreground">No active camps have started yet.</p>
+                                  </CardContent>
+                              </Card>
+                          )}
+                     </div>
+
                 </div>
             </main>
             <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t mt-auto">
@@ -1020,3 +1020,5 @@ export default function AdminPage() {
     );
 }
 
+
+    
