@@ -18,6 +18,7 @@ import { auth, db } from '@/config/firebase';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/layout/Header';
 import { Input } from '@/components/ui/input';
+import InputMask from 'react-input-mask'; // Import InputMask
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator'; // Import Separator
@@ -34,10 +35,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"; // Import AlertDialog components
+import { cn } from '@/lib/utils'; // Import cn for styling
+
 
 // Basic regex for phone validation: allows optional +, digits, spaces, hyphens. Adjust as needed.
 // Allows optional leading +, requires at least 7 digits, allows spaces and hyphens.
-const phoneRegex = /^\+?[\d\s-]{7,}$/;
+// Updated regex to match the mask format +7 xxx xxx-xx-xx more closely.
+// It expects +7 followed by 10 digits, possibly separated by spaces or hyphens.
+const phoneRegex = /^\+7[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}$/;
 
 
 // Zod schema for profile form validation
@@ -46,8 +51,14 @@ const profileSchema = z.object({
   phoneNumber: z.string()
     .optional()
     .or(z.literal('')) // Allow empty string
-    .refine((val) => !val || phoneRegex.test(val), { // Validate only if not empty
-      message: 'Invalid phone number format. Use numbers, spaces, hyphens. Optional leading +.',
+    .refine((val) => {
+        if (!val) return true; // Allow empty string
+        // Remove mask characters before validation
+        const digitsOnly = val.replace(/[^\d+]/g, '');
+        // Basic check for Russian format +7 followed by 10 digits
+        return /^\+7\d{10}$/.test(digitsOnly);
+    }, {
+      message: 'Invalid phone number format. Expected +7 xxx xxx-xx-xx.',
     }),
   organizerName: z.string().optional(),
   websiteUrl: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
@@ -381,10 +392,12 @@ export default function ProfilePage() {
 
     try {
         const userDocRef = doc(db, 'users', user.uid);
+        // Clean phone number before saving (remove mask characters)
+        const cleanedPhoneNumber = values.phoneNumber ? values.phoneNumber.replace(/[^\d+]/g, '') : '';
+
         const dataToSave: Partial<UserProfile> = { // Use Partial<UserProfile> for update
             firstName: values.firstName || '',
-             // Keep phone number logic as is for now, country code requires more UI
-            phoneNumber: values.phoneNumber || '',
+            phoneNumber: cleanedPhoneNumber, // Save the cleaned number
             organizerName: values.organizerName || '',
             websiteUrl: values.websiteUrl || '',
             // Add updatedAt timestamp if desired: updatedAt: Timestamp.now()
@@ -511,10 +524,27 @@ export default function ProfilePage() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Phone Number</FormLabel>
-                                                {/* Basic input, consider adding country code dropdown later */}
-                                                <FormControl>
-                                                    {/* Defaulting to Russia requires UI for country code selection */}
-                                                    <Input placeholder="+7 999 123-45-67" {...field} disabled={isSaving} type="tel" />
+                                                 <FormControl>
+                                                     {/* Use InputMask component */}
+                                                    <InputMask
+                                                      mask="+7 999 999-99-99"
+                                                      value={field.value ?? ''} // Ensure value is never null/undefined for InputMask
+                                                      onChange={field.onChange}
+                                                      onBlur={field.onBlur}
+                                                      disabled={isSaving}
+                                                    >
+                                                        {(inputProps: any) => (
+                                                            <Input
+                                                                {...inputProps}
+                                                                type="tel"
+                                                                placeholder="+7 ___ ___-__-__"
+                                                                // Apply the same base input styles
+                                                                className={cn(
+                                                                    "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                                                )}
+                                                            />
+                                                        )}
+                                                    </InputMask>
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -558,7 +588,7 @@ export default function ProfilePage() {
 
                                 <Separator className="my-6" />
 
-                                <Button type="submit" className="w-full" disabled={isSaving}>
+                                <Button type="submit" className="w-full" disabled={isSaving || !form.formState.isValid}>
                                     <Save className="mr-2 h-4 w-4" /> {isSaving ? 'Saving...' : 'Save Profile'}
                                 </Button>
 
