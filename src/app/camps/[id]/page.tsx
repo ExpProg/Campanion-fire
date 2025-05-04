@@ -11,7 +11,7 @@ import Image from 'next/image';
 import { ArrowLeft, CalendarDays, MapPin, DollarSign, Building } from 'lucide-react'; // Added Building
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
-import { doc, getDoc, Timestamp } from 'firebase/firestore'; // Removed getDocFromServer
+import { doc, getDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { format } from 'date-fns'; // Import format for date display if needed
 import Header from '@/components/layout/Header'; // Import Header component
@@ -30,13 +30,11 @@ interface Camp {
   organizerId: string; // Keep organizerId
   organizerName?: string; // Denormalized organizer name from Firestore
   organizerLink?: string; // Denormalized organizer link from Firestore
-  contactEmail?: string; // Might be the same as organizerEmail or a separate field
+  // contactEmail?: string; // Might be the same as organizerEmail or a separate field (REMOVED for now, use organizer info)
   activities?: string[];
+  creatorId?: string; // Added creatorId
   // Add any other fields present in your Firestore document
 }
-
-// Removed Organizer Data Interface
-
 
 // Function to fetch camp details from Firestore
 async function fetchCampDetailsFromFirestore(id: string): Promise<Camp | null> {
@@ -66,8 +64,8 @@ async function fetchCampDetailsFromFirestore(id: string): Promise<Camp | null> {
 
       // --- Organizer Handling ---
       // Use denormalized data directly from the camp document
-      const organizerName = data.organizerName || 'Campanion Partner';
-      const organizerLink = data.organizerLink; // Assuming denormalized link
+      const organizerName = data.organizerName || 'Campanion Partner'; // Fallback name
+      const organizerLink = data.organizerLink; // Get denormalized link (might be undefined)
 
 
       // Construct the Camp object, mapping Firestore fields to the interface
@@ -84,8 +82,9 @@ async function fetchCampDetailsFromFirestore(id: string): Promise<Camp | null> {
         organizerId: data.organizerId || '', // Get organizerId
         organizerName: organizerName, // Use the determined organizer name
         organizerLink: organizerLink, // Use the fetched or denormalized link
-        contactEmail: data.contactEmail || data.organizerEmail || 'Not specified', // Use specific contact email or fallback to organizer's email
+        // contactEmail: data.contactEmail || data.organizerEmail || 'Not specified', // Removed contactEmail
         activities: data.activities || [], // Assuming activities is an array of strings
+        creatorId: data.creatorId, // Added creatorId
       };
       return camp;
     } else {
@@ -205,7 +204,7 @@ export default function CampDetailsPage() {
   }
 
   // Camp data is available
-  const displayContactEmail = camp.contactEmail || 'Not specified';
+  // const displayContactEmail = camp.contactEmail || 'Not specified'; // Removed contactEmail
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -260,9 +259,12 @@ export default function CampDetailsPage() {
                                   </div>
                               )}
 
+                              {/* Removed contact email section */}
+                              {/*
                               <div className="text-sm text-muted-foreground">
                                   Contact: {displayContactEmail}
                               </div>
+                              */}
                           </CardContent>
                       </div>
                       <div className="bg-muted/50 p-6 md:p-8 border-t md:border-t-0 md:border-l">

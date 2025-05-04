@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { collection, addDoc, Timestamp } from 'firebase/firestore'; // Removed getDocs
+import { collection, addDoc, Timestamp, getDocs } from 'firebase/firestore'; // Added getDocs
 import { db } from '@/config/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -17,23 +17,31 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CalendarIcon, ShieldAlert } from 'lucide-react'; // Removed Building icon
+import { ArrowLeft, CalendarIcon, ShieldAlert, Building } from 'lucide-react'; // Added Building icon
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import Header from '@/components/layout/Header'; // Import Header component
-// Removed Select component imports
+import Header from '@/components/layout/Header';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
 
-// Removed Organizer Interface
+// Organizer Interface (matching Firestore structure)
+interface Organizer {
+  id: string;
+  name: string;
+  link?: string;
+  description: string;
+  avatarUrl?: string;
+  createdAt: Timestamp;
+}
 
 // Zod schema for camp creation form validation
 const createCampSchema = z.object({
   name: z.string().min(3, { message: 'Camp name must be at least 3 characters.' }),
   description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
-  // Removed organizerId validation
+  organizerId: z.string().min(1, { message: 'Organizer is required.' }), // Added organizerId validation
   startDate: z.date({ required_error: 'Start date is required.' }),
   endDate: z.date({ required_error: 'End date is required.' }),
   location: z.string().min(3, { message: 'Location is required.' }),
@@ -104,8 +112,8 @@ function DatePickerField({ field, label, disabled, isAdmin }: {
 }
 
 
-// Actual form component - removed organizers and organizersLoading props
-function CreateCampForm() {
+// Actual form component - Added organizers and organizersLoading props
+function CreateCampForm({ organizers, organizersLoading }: { organizers: Organizer[]; organizersLoading: boolean }) {
     const { user, isAdmin } = useAuth(); // Get user and isAdmin status
     const router = useRouter();
     const { toast } = useToast();
@@ -116,7 +124,7 @@ function CreateCampForm() {
         defaultValues: {
             name: '',
             description: '',
-            // Removed organizerId default
+            organizerId: '', // Added organizerId default
             startDate: undefined, // Use undefined for date picker initial state
             endDate: undefined,
             location: '',
@@ -160,14 +168,19 @@ function CreateCampForm() {
             const formattedEndDate = format(values.endDate, "MMM d, yyyy");
             const datesString = `${formattedStartDate} - ${formattedEndDate}`;
 
-            // Removed fetching selected organizer name
+            // Find selected organizer details for denormalization
+            const selectedOrganizer = organizers.find(org => org.id === values.organizerId);
+            const organizerName = selectedOrganizer?.name || 'Unknown Organizer';
+            const organizerLink = selectedOrganizer?.link || '';
 
             const campData = {
                 name: values.name,
                 description: values.description,
-                organizerId: user.uid, // Assign the admin's user ID as the organizer ID
-                organizerName: user.email || 'Admin', // Use admin's email or fallback name
-                // organizerEmail: user.email, // Optionally store email
+                organizerId: values.organizerId, // Store the selected organizer ID
+                organizerName: organizerName, // Denormalize name
+                organizerLink: organizerLink, // Denormalize link
+                // organizerEmail: user.email, // This might not be the organizer's contact email
+                creatorId: user.uid, // Keep track of the admin who created it
                 startDate: Timestamp.fromDate(values.startDate), // Store as Timestamp
                 endDate: Timestamp.fromDate(values.endDate),     // Store as Timestamp
                 dates: datesString, // Store formatted string for easy display
@@ -210,15 +223,53 @@ function CreateCampForm() {
                         <FormItem>
                             <FormLabel>Camp Name</FormLabel>
                             <FormControl>
-                                <Input placeholder="Enter camp name" {...field} disabled={isLoading} />
+                                <Input placeholder="Enter camp name" {...field} disabled={isLoading || organizersLoading} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
 
-                 {/* Removed Organizer Select Dropdown */}
-
+                {/* Organizer Select Dropdown */}
+                 <FormField
+                    control={form.control}
+                    name="organizerId"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Organizer</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading || organizersLoading}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select an organizer..." />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {organizersLoading ? (
+                                        <SelectItem value="loading" disabled>Loading organizers...</SelectItem>
+                                    ) : organizers.length > 0 ? (
+                                        organizers.map((organizer) => (
+                                            <SelectItem key={organizer.id} value={organizer.id}>
+                                                 <div className="flex items-center gap-2">
+                                                    {organizer.avatarUrl && (
+                                                        <img src={organizer.avatarUrl} alt={organizer.name} className="h-5 w-5 rounded-full object-cover"/>
+                                                    )}
+                                                    {!organizer.avatarUrl && <Building className="h-5 w-5 text-muted-foreground" />}
+                                                    <span>{organizer.name}</span>
+                                                </div>
+                                            </SelectItem>
+                                        ))
+                                    ) : (
+                                         <SelectItem value="no-organizers" disabled>No organizers found. Create one first.</SelectItem>
+                                    )}
+                                </SelectContent>
+                            </Select>
+                             <FormDescription>
+                                Select the organizer responsible for this camp.
+                             </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
                 <FormField
                     control={form.control}
@@ -227,7 +278,7 @@ function CreateCampForm() {
                         <FormItem>
                             <FormLabel>Description</FormLabel>
                             <FormControl>
-                                <Textarea placeholder="Describe your camp" {...field} disabled={isLoading} />
+                                <Textarea placeholder="Describe your camp" {...field} disabled={isLoading || organizersLoading} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -243,7 +294,7 @@ function CreateCampForm() {
                             <DatePickerField
                                 field={field}
                                 label="Start Date"
-                                disabled={isLoading}
+                                disabled={isLoading || organizersLoading}
                                 isAdmin={isAdmin} // Pass admin status
                             />
                         )}
@@ -257,7 +308,7 @@ function CreateCampForm() {
                            <DatePickerField
                                 field={field}
                                 label="End Date"
-                                disabled={isLoading || !form.watch('startDate')} // Disable if start date not picked
+                                disabled={isLoading || organizersLoading || !form.watch('startDate')} // Disable if start date not picked
                                 isAdmin={isAdmin} // Pass admin status
                             />
                         )}
@@ -272,7 +323,7 @@ function CreateCampForm() {
                             <FormItem>
                                 <FormLabel>Location</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="e.g., Rocky Mountains, CO" {...field} disabled={isLoading} />
+                                    <Input placeholder="e.g., Rocky Mountains, CO" {...field} disabled={isLoading || organizersLoading} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -285,7 +336,7 @@ function CreateCampForm() {
                             <FormItem>
                                 <FormLabel>Price (₽)</FormLabel> {/* Changed $ to ₽ */}
                                 <FormControl>
-                                    <Input type="number" placeholder="Enter price" {...field} disabled={isLoading} min="0" step="0.01" />
+                                    <Input type="number" placeholder="Enter price" {...field} disabled={isLoading || organizersLoading} min="0" step="0.01" />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -300,7 +351,7 @@ function CreateCampForm() {
                         <FormItem>
                             <FormLabel>Image URL (Optional)</FormLabel>
                             <FormControl>
-                                <Input placeholder="https://example.com/image.jpg" {...field} disabled={isLoading} />
+                                <Input placeholder="https://example.com/image.jpg" {...field} disabled={isLoading || organizersLoading} />
                             </FormControl>
                             <FormDescription>If left blank, a placeholder image will be used.</FormDescription>
                             <FormMessage />
@@ -315,7 +366,7 @@ function CreateCampForm() {
                         <FormItem>
                             <FormLabel>Activities (Optional)</FormLabel>
                             <FormControl>
-                                <Input placeholder="Hiking, Swimming, Coding" {...field} disabled={isLoading} />
+                                <Input placeholder="Hiking, Swimming, Coding" {...field} disabled={isLoading || organizersLoading} />
                             </FormControl>
                             <FormDescription>Enter activities separated by commas.</FormDescription>
                             <FormMessage />
@@ -323,8 +374,7 @@ function CreateCampForm() {
                     )}
                 />
 
-                {/* Removed dependency on organizersLoading/organizers.length */}
-                <Button type="submit" className="mt-6" disabled={isLoading}>
+                <Button type="submit" className="mt-6" disabled={isLoading || organizersLoading || organizers.length === 0}>
                    {isLoading ? 'Creating Camp...' : 'Create Camp'}
                 </Button>
             </form>
@@ -336,10 +386,9 @@ function CreateCampForm() {
 export default function CreateCampPage() {
   const { user, isAdmin, loading } = useAuth(); // Get user, isAdmin and loading status
   const router = useRouter();
-  // Removed organizers state and loading state
-  // const [organizers, setOrganizers] = useState<Organizer[]>([]);
-  // const [organizersLoading, setOrganizersLoading] = useState(true);
-  const { toast } = useToast(); // Added toast for organizer fetch error
+  const [organizers, setOrganizers] = useState<Organizer[]>([]); // Added organizers state
+  const [organizersLoading, setOrganizersLoading] = useState(true); // Added organizers loading state
+  const { toast } = useToast();
 
   useEffect(() => {
     // Redirect logic: Redirect if loading is done and user is not logged in OR not an admin
@@ -347,23 +396,42 @@ export default function CreateCampPage() {
         toast({ title: 'Access Denied', description: 'Only administrators can create camps.', variant: 'destructive' });
         router.push('/main'); // Redirect to main page if not admin or not logged in
     }
-  }, [user, isAdmin, loading, router, toast]); // Added toast dependency
+  }, [user, isAdmin, loading, router, toast]);
 
-  // Removed fetching of organizers
-  // useEffect(() => {
-  //     if (isAdmin) {
-  //         fetchOrganizers();
-  //     } else if (!loading && user) {
-  //         setOrganizersLoading(false);
-  //     }
-  // }, [isAdmin, user, loading]);
-
-   // Removed fetchOrganizers function
-    // const fetchOrganizers = async () => { ... };
+  // Fetch organizers when the component mounts and user is confirmed as admin
+  useEffect(() => {
+      if (isAdmin && user && !loading) { // Ensure user is admin and auth is not loading
+          fetchOrganizers();
+      } else if (!isAdmin && !loading && user) {
+          // Non-admin user doesn't need to load organizers for this page
+          setOrganizersLoading(false);
+      }
+  }, [isAdmin, user, loading]); // Depend on admin status and auth loading
 
 
-  // Show skeleton if auth loading or redirecting
-  if (loading || (!user && !loading)) {
+    // Function to fetch organizers from Firestore
+    const fetchOrganizers = async () => {
+         setOrganizersLoading(true);
+         try {
+             const organizersCollectionRef = collection(db, 'organizers');
+             const querySnapshot = await getDocs(organizersCollectionRef);
+             const fetchedOrganizers = querySnapshot.docs.map(doc => ({
+                 id: doc.id,
+                 ...doc.data() as Omit<Organizer, 'id'>
+             })).sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically by name
+             setOrganizers(fetchedOrganizers);
+         } catch (error) {
+             console.error("Error fetching organizers:", error);
+             toast({ title: 'Error', description: 'Could not load organizers list.', variant: 'destructive' });
+             setOrganizers([]); // Set to empty array on error
+         } finally {
+             setOrganizersLoading(false);
+         }
+    };
+
+
+  // Show skeleton if auth loading or redirecting, or if organizers are loading
+  if (loading || organizersLoading || (!user && !loading)) {
      return (
          <div className="flex flex-col min-h-screen">
              {/* Header Skeleton */}
@@ -396,7 +464,7 @@ export default function CreateCampPage() {
                             </CardHeader>
                             <CardContent>
                                 <Skeleton className="h-10 w-full mb-4" /> {/* Camp Name */}
-                                {/* Organizer Dropdown Skeleton Removed */}
+                                <Skeleton className="h-10 w-full mb-4" /> {/* Organizer Dropdown Skeleton */}
                                 <Skeleton className="h-20 w-full mb-4" /> {/* Description */}
                                 <div className="grid grid-cols-2 gap-4 mb-4">
                                     <Skeleton className="h-10 w-full" /> {/* Start Date */}
@@ -442,8 +510,8 @@ export default function CreateCampPage() {
                       <CardDescription>Fill in the details to list your camp on Campanion.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                      {/* Pass only needed props */}
-                      <CreateCampForm />
+                      {/* Pass organizers and loading state */}
+                      <CreateCampForm organizers={organizers} organizersLoading={organizersLoading} />
                   </CardContent>
               </Card>
           </div>

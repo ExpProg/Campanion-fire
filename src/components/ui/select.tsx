@@ -130,12 +130,9 @@ const SelectItem = React.forwardRef<
       </SelectPrimitive.ItemIndicator>
     </span>
 
-    {/* Wrap children in ItemText only if it's not already a complex element */}
-     {typeof children === 'string' || typeof children === 'number' ? (
-        <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
-     ) : (
-        children // Render complex children directly (like the div with icon)
-     )}
+    {/* Use ItemText for the primary text content */}
+    <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+
   </SelectPrimitive.Item>
 ))
 SelectItem.displayName = SelectPrimitive.Item.displayName
