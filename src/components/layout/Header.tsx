@@ -75,11 +75,11 @@ export default function Header() {
                      <span className="sr-only">Open Menu</span>
                  </Button>
              </SheetTrigger>
-             <SheetContent side="left" className="w-[250px] sm:w-[300px] bg-background p-0 flex flex-col"> {/* Removed p-6, use sections for padding */}
+             <SheetContent side="left" className="w-[250px] sm:w-[300px] bg-background p-0 flex flex-col"> {/* Use white background */}
                  <SheetHeader className="p-6 border-b"> {/* Added padding here */}
                      <SheetTitle>
                          <SheetClose asChild>
-                           <Link href="/dashboard" className="flex items-center justify-center sm:justify-start text-foreground" prefetch={false}>
+                           <Link href="/main" className="flex items-center justify-center sm:justify-start text-foreground" prefetch={false}>
                                <Tent className="h-6 w-6 text-primary" />
                                <span className="ml-2 text-xl font-semibold">Campanion</span>
                            </Link>
@@ -94,33 +94,37 @@ export default function Header() {
                  {/* Separator removed, handled by border-b on Header */}
                  <div className="flex flex-col space-y-1 p-4 flex-grow"> {/* Use p-4 for link area, adjust spacing */}
                      <SheetClose asChild>
-                         <Button variant="ghost" asChild className="justify-start">
-                           <Link href="/dashboard" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground" prefetch={false}>
+                         {/* Removed asChild from Button, SheetClose handles click */}
+                         <Button variant="ghost" className="justify-start w-full">
+                           <Link href="/main" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground w-full" prefetch={false}>
                                <Home className="h-5 w-5" />
-                               <span className="text-base font-medium">Dashboard</span>
+                               <span className="text-base font-medium">Main</span>
                            </Link>
                          </Button>
                      </SheetClose>
                      <SheetClose asChild>
-                         <Button variant="ghost" asChild className="justify-start">
-                           <Link href="/profile" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground" prefetch={false}>
+                         {/* Removed asChild from Button, SheetClose handles click */}
+                         <Button variant="ghost" className="justify-start w-full">
+                           <Link href="/profile" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground w-full" prefetch={false}>
                                <User className="h-5 w-5" />
                                <span className="text-base font-medium">Profile</span>
                            </Link>
                          </Button>
                      </SheetClose>
-                      <SheetClose asChild>
-                         <Button variant="ghost" asChild className="justify-start">
-                           <Link href="/my-events" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground" prefetch={false}>
+                      {/* <SheetClose asChild> */}
+                         {/* Removed asChild from Button, SheetClose handles click */}
+                         {/* <Button variant="ghost" className="justify-start w-full">
+                           <Link href="/my-events" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground w-full" prefetch={false}>
                                <CalendarCheck className="h-5 w-5" />
                                <span className="text-base font-medium">My Events</span>
                            </Link>
-                         </Button>
-                     </SheetClose>
+                         </Button> */}
+                     {/* </SheetClose> */}
                      {/* Always show Create Camp if user is logged in */}
                      <SheetClose asChild>
-                         <Button variant="ghost" asChild className="justify-start">
-                           <Link href="/camps/new" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground" prefetch={false}>
+                         {/* Removed asChild from Button, SheetClose handles click */}
+                         <Button variant="ghost" className="justify-start w-full">
+                           <Link href="/camps/new" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground w-full" prefetch={false}>
                                <PlusCircle className="h-5 w-5" />
                                <span className="text-base font-medium">Create Camp</span>
                            </Link>
@@ -138,7 +142,7 @@ export default function Header() {
              </SheetContent>
          </Sheet>
        )}
-      <Link href={user ? "/dashboard" : "/"} className="flex items-center justify-center text-foreground" prefetch={false}>
+      <Link href={user ? "/main" : "/"} className="flex items-center justify-center text-foreground" prefetch={false}>
         <Tent className="h-6 w-6 text-primary" />
         <span className="ml-2 text-xl font-semibold">Campanion</span>
       </Link>
@@ -181,12 +185,12 @@ export default function Header() {
                        <span>Profile</span>
                      </Link>
                   </DropdownMenuItem>
-                   <DropdownMenuItem asChild>
+                   {/* <DropdownMenuItem asChild>
                      <Link href="/my-events" className="flex items-center cursor-pointer">
                        <CalendarCheck className="mr-2 h-4 w-4" />
                        <span>My Events</span>
                      </Link>
-                  </DropdownMenuItem>
+                  </DropdownMenuItem> */}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
