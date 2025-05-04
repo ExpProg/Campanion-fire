@@ -104,15 +104,24 @@ export default function MainPage() { // Renamed from DashboardPage
     try {
       const campsCollectionRef = collection(db, 'camps');
       const querySnapshot = await getDocs(campsCollectionRef);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Set to the beginning of today for accurate comparison
+
       const fetchedCamps = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data() as Omit<Camp, 'id'> // Assert data type, excluding id
-      })).sort((a, b) => {
-          // Sort by creation date, newest first, if createdAt exists
+      }))
+      .filter(camp => {
+          // Keep camps where the end date is today or in the future
+          const endDate = camp.endDate?.toDate();
+          return endDate && endDate >= today;
+      })
+      .sort((a, b) => {
+          // Sort active camps by creation date, newest first, if createdAt exists
           const dateA = a.createdAt?.toDate() ?? new Date(0);
           const dateB = b.createdAt?.toDate() ?? new Date(0);
           return dateB.getTime() - dateA.getTime();
-      }); // Sort camps by creation date
+      });
       setFirestoreCamps(fetchedCamps);
     } catch (error) {
       console.error("Error fetching camps from Firestore:", error);
@@ -306,11 +315,11 @@ export default function MainPage() { // Renamed from DashboardPage
           ) : (
              <Card className="text-center py-12">
                 <CardContent>
-                    <p className="text-muted-foreground mb-4">No camps found in the database yet.</p>
+                    <p className="text-muted-foreground mb-4">No upcoming camps found.</p>
                     {/* Show create camp button only if user is admin */}
                     {isAdmin && (
                         <Button asChild>
-                            <Link href="/camps/new">Be the first to create one!</Link>
+                            <Link href="/camps/new">Create a New Camp</Link>
                         </Button>
                     )}
                 </CardContent>
@@ -326,3 +335,4 @@ export default function MainPage() { // Renamed from DashboardPage
     </div>
   );
 }
+
