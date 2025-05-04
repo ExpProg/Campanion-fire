@@ -82,8 +82,7 @@ export default function LandingPage() {
                 {/* Fix: Ensure Button with asChild has a single React element child */}
                 <Button variant="secondary" size="lg" asChild>
                    <Link href="#features" prefetch={false}>
-                     {/* Wrap text node in a span */}
-                     <span>Learn More</span>
+                     Learn More
                    </Link>
                 </Button>
               </div>
