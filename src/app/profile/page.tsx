@@ -36,7 +36,9 @@ import {
 } from "@/components/ui/alert-dialog"; // Import AlertDialog components
 
 // Basic regex for phone validation: allows optional +, digits, spaces, hyphens. Adjust as needed.
-const phoneRegex = /^\+?[0-9\s-]{7,15}$/;
+// Allows optional leading +, requires at least 7 digits, allows spaces and hyphens.
+const phoneRegex = /^\+?[\d\s-]{7,}$/;
+
 
 // Zod schema for profile form validation
 const profileSchema = z.object({
@@ -45,7 +47,7 @@ const profileSchema = z.object({
     .optional()
     .or(z.literal('')) // Allow empty string
     .refine((val) => !val || phoneRegex.test(val), { // Validate only if not empty
-      message: 'Invalid phone number format.',
+      message: 'Invalid phone number format. Use numbers, spaces, hyphens. Optional leading +.',
     }),
   organizerName: z.string().optional(),
   websiteUrl: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')),
@@ -121,8 +123,11 @@ const CampCard = ({ camp, isOwner, onDeleteClick, deletingCampId }: {
                   <>
                       <Button size="sm" asChild variant="ghost">
                           <Link href={`/camps/${camp.id}/edit`} prefetch={false} aria-label={`Edit ${camp.name}`}>
-                              <Pencil className="h-4 w-4" />
-                              <span className="sr-only">Edit</span>
+                              {/* Wrap icon and text in a single element */}
+                              <span className="flex items-center">
+                                  <Pencil className="h-4 w-4" />
+                                  <span className="sr-only">Edit</span>
+                              </span>
                           </Link>
                       </Button>
                       <AlertDialog>
@@ -225,6 +230,16 @@ export default function ProfilePage() {
               });
           } else {
               console.log("No profile document found for user.");
+              // Initialize profile if it doesn't exist? Optional.
+               const initialProfileData: UserProfile = {
+                   email: user.email!,
+                   createdAt: Timestamp.now(),
+                   firstName: '',
+                   phoneNumber: '',
+                   organizerName: '',
+                   websiteUrl: '',
+               };
+               setDoc(userDocRef, initialProfileData).catch(err => console.error("Failed to create initial profile:", err));
           }
       }).catch(error => {
           console.error("Error fetching profile data:", error);
@@ -238,8 +253,8 @@ export default function ProfilePage() {
 
       // Fetch Booked Camps Data (Placeholder)
       // Replace with actual fetch logic when available
-      setBookedCamps([]);
-      // Consider setting campsLoading to false after *both* fetches complete if fetching booked camps
+      fetchMyBookedCamps(user.uid); // Call fetch function for booked camps
+      // Consider setting campsLoading to false after *both* fetches complete
 
     }
   }, [user, authLoading, router, toast, form]); // Dependencies
@@ -256,7 +271,7 @@ export default function ProfilePage() {
         ...doc.data() as Omit<Camp, 'id'>
       }))
       .filter(camp => camp.organizerId === userId) // Filter for user's camps
-      .sort((a, b) => (b.createdAt?.toDate() ?? 0) > (a.createdAt?.toDate() ?? 0) ? 1 : -1); // Sort newest first
+      .sort((a, b) => (b.createdAt?.toDate() ?? new Date(0)).getTime() - (a.createdAt?.toDate() ?? new Date(0)).getTime()); // Sort newest first
 
       setMyCreatedCamps(fetchedCamps);
     } catch (error) {
@@ -269,9 +284,55 @@ export default function ProfilePage() {
     } finally {
       // Set loading false *only* after created camps are fetched
       // If booked camps fetch is added, adjust this logic
-       setCampsLoading(false);
+       // setCampsLoading(false); // Moved to fetchMyBookedCamps finally block
     }
   };
+
+   // Function to fetch user's booked Firestore camps (Placeholder Logic)
+   const fetchMyBookedCamps = async (userId: string) => {
+    // This is placeholder logic. You need a way to track bookings.
+    // Common approaches:
+    // 1. Subcollection 'bookings' under each 'camp' document, containing user IDs.
+    // 2. Subcollection 'bookedCamps' under each 'user' document, containing camp IDs.
+    // 3. A separate top-level 'bookings' collection linking users and camps.
+    // Assuming approach 2 for this example:
+    try {
+        const bookedCampsRefs = await getDocs(collection(db, 'users', userId, 'bookedCamps'));
+        const bookedCampIds = bookedCampsRefs.docs.map(doc => doc.id);
+
+        if (bookedCampIds.length === 0) {
+            setBookedCamps([]);
+            return;
+        }
+
+        // Fetch details for each booked camp
+        const campPromises = bookedCampIds.map(campId => getDoc(doc(db, 'camps', campId)));
+        const campSnapshots = await Promise.all(campPromises);
+
+        const fetchedBookedCamps = campSnapshots
+            .filter(snap => snap.exists())
+            .map(snap => ({
+                id: snap.id,
+                ...snap.data() as Omit<Camp, 'id'>
+            }))
+             .sort((a, b) => (b.createdAt?.toDate() ?? new Date(0)).getTime() - (a.createdAt?.toDate() ?? new Date(0)).getTime()); // Sort newest first
+
+        setBookedCamps(fetchedBookedCamps);
+
+    } catch (error) {
+        console.error("Error fetching user's booked camps:", error);
+        toast({
+            title: 'Error',
+            description: 'Could not load your booked camps.',
+            variant: 'destructive',
+        });
+         setBookedCamps([]); // Ensure it's empty on error
+    } finally {
+        // Set loading false after both created and booked fetches are complete
+        setCampsLoading(false);
+    }
+};
+
 
   // Function to handle camp deletion
   const handleDeleteCamp = async (campId: string) => {
@@ -321,14 +382,14 @@ export default function ProfilePage() {
         const userDocRef = doc(db, 'users', user.uid);
         const dataToSave: Partial<UserProfile> = { // Use Partial<UserProfile> for update
             firstName: values.firstName || '',
+             // Keep phone number logic as is for now, country code requires more UI
             phoneNumber: values.phoneNumber || '',
             organizerName: values.organizerName || '',
             websiteUrl: values.websiteUrl || '',
-            // Add updatedAt timestamp if desired
+            // Add updatedAt timestamp if desired: updatedAt: Timestamp.now()
         };
 
-        // Ensure email and createdAt are not overwritten if they exist
-        // Fetch existing data first if you need to preserve fields not in the form
+        // Use setDoc with merge: true to update or create the document
         await setDoc(userDocRef, dataToSave, { merge: true });
 
         toast({ title: 'Profile Updated', description: 'Your profile information has been saved.' });
@@ -368,15 +429,19 @@ export default function ProfilePage() {
                             <Skeleton className="h-4 w-32" />
                         </CardHeader>
                         <CardContent className="space-y-6">
-                             <Skeleton className="h-10 w-full" />
-                             <Skeleton className="h-10 w-full" />
-                             <Separator className="my-6" />
+                             {/* Block 1 Skeletons */}
                              <Skeleton className="h-6 w-1/3 mb-4" />
-                             <Skeleton className="h-10 w-full" />
-                             <Skeleton className="h-10 w-full" />
+                             <Skeleton className="h-10 w-full mb-4" />
+                             <Skeleton className="h-10 w-full mb-4" />
                              <Separator className="my-6" />
-                            <Skeleton className="h-10 w-full mt-6" /> {/* Save button skeleton */}
-                            <Skeleton className="h-10 w-full" /> {/* Logout button skeleton */}
+                             {/* Block 2 Skeletons */}
+                             <Skeleton className="h-6 w-1/3 mb-4" />
+                             <Skeleton className="h-10 w-full mb-4" />
+                             <Skeleton className="h-10 w-full mb-4" />
+                             <Separator className="my-6" />
+                             {/* Button Skeletons */}
+                            <Skeleton className="h-10 w-full mt-6" />
+                            <Skeleton className="h-10 w-full" />
                         </CardContent>
                     </Card>
                 </div>
@@ -447,6 +512,7 @@ export default function ProfilePage() {
                                                 <FormLabel>Phone Number</FormLabel>
                                                 {/* Basic input, consider adding country code dropdown later */}
                                                 <FormControl>
+                                                    {/* Defaulting to Russia requires UI for country code selection */}
                                                     <Input placeholder="+7 999 123-45-67" {...field} disabled={isSaving} type="tel" />
                                                 </FormControl>
                                                 <FormMessage />
@@ -537,22 +603,33 @@ export default function ProfilePage() {
 
                <Separator className="my-12"/>
 
-                {/* Section for Camps User Responded To (Placeholder) */}
+                {/* Section for Camps User Responded To (Booked Camps) */}
                <div>
                    <h2 className="text-2xl md:text-3xl font-bold mb-6">Camps I'm Attending</h2>
                    {campsLoading ? ( // Reuse campsLoading or create a specific one for booked camps
                        <SkeletonCard count={1} />
                    ) : bookedCamps.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                           {/* Map over bookedCamps and render appropriate card */}
-                           {/* Example: bookedCamps.map((camp) => <CampCard key={camp.id} camp={camp} isOwner={false} ... />) */}
+                           {/* Map over bookedCamps and render CampCard (or a different booked card style) */}
+                            {bookedCamps.map((camp) => (
+                                <CampCard
+                                    key={camp.id}
+                                    camp={camp}
+                                    isOwner={false} // User is attending, not owning
+                                    onDeleteClick={() => {}} // No delete action for booked camps here
+                                    deletingCampId={null}
+                                />
+                            ))}
                        </div>
                    ) : (
                        <Card className="text-center py-12">
                            <CardContent>
                                <p className="text-muted-foreground">You haven't booked any camps yet.</p>
                                <Button variant="outline" asChild>
-                                    <Link href="/main">Discover Camps</Link> {/* Link to main/dashboard */}
+                                     {/* Fix: Wrap multiple children in a single element */}
+                                    <Link href="/main">
+                                        <span>Discover Camps</span>
+                                    </Link>
                                 </Button>
                            </CardContent>
                        </Card>
