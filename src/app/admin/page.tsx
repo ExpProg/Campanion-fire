@@ -245,8 +245,8 @@ export default function AdminPage() {
             id: doc.id,
             ...doc.data() as Omit<Camp, 'id'>
         }))
-        .filter(camp => camp.organizerId === adminId) // Filter for admin's camps
-        .sort((a, b) => (b.createdAt?.toDate() ?? new Date(0)).getTime() - (a.createdAt?.toDate() ?? new Date(0)).getTime()); // Sort newest first
+        .filter(camp => camp.organizerId === adminId); // Filter for admin's camps
+        // Sorting is now handled in useMemo for filteredCamps
 
         setAllAdminCamps(fetchedCamps);
         } catch (error) {
@@ -261,12 +261,27 @@ export default function AdminPage() {
         }
     };
 
-    // Filter camps based on the selected status using useMemo
-    const filteredCamps = useMemo(() => {
+    // Filter and sort camps based on the selected status and desired order using useMemo
+    const filteredAndSortedCamps = useMemo(() => {
+        // 1. Sort the full list: Active first, then Past, then by creation date descending
+        const sortedCamps = [...allAdminCamps].sort((a, b) => {
+            const statusA = getCampStatus(a);
+            const statusB = getCampStatus(b);
+
+            if (statusA === 'Active' && statusB === 'Past') return -1; // Active comes before Past
+            if (statusA === 'Past' && statusB === 'Active') return 1; // Past comes after Active
+
+            // If statuses are the same, sort by creation date (newest first)
+            const dateA = a.createdAt?.toDate() ?? new Date(0);
+            const dateB = b.createdAt?.toDate() ?? new Date(0);
+            return dateB.getTime() - dateA.getTime();
+        });
+
+        // 2. Apply the filter
         if (filterStatus === 'all') {
-            return allAdminCamps;
+            return sortedCamps;
         }
-        return allAdminCamps.filter(camp => {
+        return sortedCamps.filter(camp => {
             const status = getCampStatus(camp);
             return filterStatus === 'active' ? status === 'Active' : status === 'Past';
         });
@@ -380,9 +395,9 @@ export default function AdminPage() {
                          {/* Camp List */}
                          {campsLoading ? (
                             <AdminCampListSkeleton count={3} />
-                         ) : filteredCamps.length > 0 ? (
+                         ) : filteredAndSortedCamps.length > 0 ? ( // Use the filtered and sorted list
                             <div className="border rounded-md">
-                                {filteredCamps.map((camp) => (
+                                {filteredAndSortedCamps.map((camp) => (
                                     <AdminCampListItem
                                         key={camp.id}
                                         camp={camp}
@@ -401,6 +416,7 @@ export default function AdminPage() {
                                          filterStatus === 'active' ? "No active camps found." :
                                          "No past camps found."}
                                      </p>
+                                     {/* Show create button only if no camps exist at all (filter is 'all') */}
                                      {filterStatus === 'all' && allAdminCamps.length === 0 && (
                                          <Button asChild className="mt-4">
                                              <Link href="/camps/new">Create Your First Camp</Link>
