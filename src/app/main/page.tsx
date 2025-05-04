@@ -80,14 +80,13 @@ export default function MainPage() { // Renamed from DashboardPage
   const fetchFirestoreCamps = async () => {
     try {
       const campsCollectionRef = collection(db, 'camps');
-      const today = Timestamp.now(); // Use Firestore Timestamp for comparison
+      // const today = Timestamp.now(); // No longer needed for filtering
 
-      // Query for active camps where the end date is today or in the future
-      // Exclude draft and archive statuses
+      // Query for active camps only
       const q = query(
         campsCollectionRef,
-        where('status', '==', 'active'), // Only fetch 'active' camps
-        where('endDate', '>=', today) // Only fetch camps ending today or later
+        where('status', '==', 'active') // Only fetch 'active' camps
+        // Removed: where('endDate', '>=', today)
       );
 
       const querySnapshot = await getDocs(q);
