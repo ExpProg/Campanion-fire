@@ -11,7 +11,7 @@ import Image from 'next/image';
 import { ArrowLeft, CalendarDays, MapPin, DollarSign, Building } from 'lucide-react'; // Added Building
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
-import { doc, getDoc, Timestamp, getDocFromServer } from 'firebase/firestore'; // Import Timestamp, getDocFromServer for potential organizer fetch
+import { doc, getDoc, Timestamp } from 'firebase/firestore'; // Removed getDocFromServer
 import { db } from '@/config/firebase';
 import { format } from 'date-fns'; // Import format for date display if needed
 import Header from '@/components/layout/Header'; // Import Header component
@@ -27,20 +27,15 @@ interface Camp {
   location: string;
   imageUrl: string;
   price: number;
-  organizerId: string; // Add organizerId
+  organizerId: string; // Keep organizerId
   organizerName?: string; // Denormalized organizer name from Firestore
-  organizerLink?: string; // Add organizer link if available
+  organizerLink?: string; // Denormalized organizer link from Firestore
   contactEmail?: string; // Might be the same as organizerEmail or a separate field
   activities?: string[];
   // Add any other fields present in your Firestore document
 }
 
-// Organizer Data Interface (Only needed if fetching organizer separately)
-interface Organizer {
-    id: string;
-    name: string;
-    link?: string;
-}
+// Removed Organizer Data Interface
 
 
 // Function to fetch camp details from Firestore
@@ -70,31 +65,9 @@ async function fetchCampDetailsFromFirestore(id: string): Promise<Camp | null> {
       // --- End Date Handling ---
 
       // --- Organizer Handling ---
-      let organizerName = data.organizerName || 'Campanion Partner'; // Use denormalized name if available
-      let organizerLink: string | undefined;
-
-      // Optional: Fetch organizer details if name is missing or link is needed
-      // This adds an extra read, consider if denormalization is sufficient
-      // if (!organizerName || needOrganizerLink) {
-      //    if (data.organizerId) {
-      //      try {
-      //        const organizerDocRef = doc(db, 'organizers', data.organizerId);
-      //        // Use getDocFromServer for potentially fresher data if needed, or just getDoc
-      //        const organizerSnap = await getDoc(organizerDocRef);
-      //        if (organizerSnap.exists()) {
-      //          const orgData = organizerSnap.data();
-      //          organizerName = orgData.name || organizerName; // Update name if found
-      //          organizerLink = orgData.link; // Get the link
-      //        }
-      //      } catch (orgError) {
-      //        console.error("Error fetching organizer details:", orgError);
-      //      }
-      //    }
-      // }
-      // For now, we rely on the denormalized `organizerName` stored in the camp document.
-      // If the organizer document itself contains a `link`, we'd need to fetch it separately if required.
-      // Let's assume `organizerLink` might also be denormalized in the camp doc for simplicity here.
-      organizerLink = data.organizerLink; // Assuming denormalized link
+      // Use denormalized data directly from the camp document
+      const organizerName = data.organizerName || 'Campanion Partner';
+      const organizerLink = data.organizerLink; // Assuming denormalized link
 
 
       // Construct the Camp object, mapping Firestore fields to the interface
@@ -111,7 +84,7 @@ async function fetchCampDetailsFromFirestore(id: string): Promise<Camp | null> {
         organizerId: data.organizerId || '', // Get organizerId
         organizerName: organizerName, // Use the determined organizer name
         organizerLink: organizerLink, // Use the fetched or denormalized link
-        contactEmail: data.contactEmail || 'Not specified', // Use specific contact email if available
+        contactEmail: data.contactEmail || data.organizerEmail || 'Not specified', // Use specific contact email or fallback to organizer's email
         activities: data.activities || [], // Assuming activities is an array of strings
       };
       return camp;

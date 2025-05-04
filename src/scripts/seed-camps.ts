@@ -18,8 +18,9 @@ interface CampFirestoreData {
   location: string;
   imageUrl: string;
   price: number;
-  organizerEmail: string; // Keep email for potential display or fallback
-  organizerId: string; // Link to the user's UID
+  organizerEmail?: string; // Optional email
+  organizerName: string; // Store organizer name (admin's email or fallback)
+  organizerId: string; // Link to the user's UID (admin's UID in this case)
   createdAt: Timestamp; // Use Firestore Timestamp for consistency
   activities?: string[]; // Added based on create camp form
 }
@@ -124,15 +125,23 @@ const sampleCampsDataRaw = [
 
 const seedCamps = async () => {
   const campsCollectionRef = collection(db, 'camps');
-  const defaultOrganizerEmail = 'seed@example.com'; // Use a generic email or specific one if needed
-  const defaultOrganizerId = 'SEED_USER_ID'; // Generic ID for seeded camps
+  // Replace with the actual admin user's email and UID you want to associate these camps with
+  const defaultAdminEmail = 'admin@admin.com';
+  const defaultAdminId = 'REPLACE_WITH_ADMIN_UID'; // <<<--- IMPORTANT: Replace this with the actual UID from Firebase Auth
+
+   if (defaultAdminId === 'REPLACE_WITH_ADMIN_UID') {
+     console.error("ERROR: Please replace 'REPLACE_WITH_ADMIN_UID' in the script with the actual Firebase UID of the admin user.");
+     return; // Stop execution if UID is not set
+   }
+
+
   let successCount = 0;
   let errorCount = 0;
 
-  console.log(`Starting to seed ${sampleCampsDataRaw.length} camps...`);
+  console.log(`Starting to seed ${sampleCampsDataRaw.length} camps for admin: ${defaultAdminEmail} (UID: ${defaultAdminId})...`);
   // Removed organizer UID lookup
 
-  console.log("Ensure Firebase security rules allow writes to the 'camps' collection.");
+  console.log("Ensure Firebase security rules allow writes to the 'camps' collection for the specified admin user.");
 
   const promises = sampleCampsDataRaw.map(async (campDataRaw) => {
     const dateInfo = parseDateRange(campDataRaw.dates);
@@ -152,8 +161,9 @@ const seedCamps = async () => {
         location: campDataRaw.location,
         imageUrl: campDataRaw.imageUrl,
         price: campDataRaw.price,
-        organizerEmail: defaultOrganizerEmail, // Use default or specific email
-        organizerId: defaultOrganizerId, // Use the default seed ID
+        organizerEmail: defaultAdminEmail, // Use admin's email
+        organizerId: defaultAdminId, // Use the admin's UID
+        organizerName: defaultAdminEmail, // Use admin's email as default name
         createdAt: Timestamp.fromDate(new Date()), // Use Firestore Timestamp
         activities: campDataRaw.activities || [], // Ensure activities array exists
       };
