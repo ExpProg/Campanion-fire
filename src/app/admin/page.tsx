@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/layout/Header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye } from 'lucide-react'; // Added Eye
 import Link from 'next/link';
 import { collection, getDocs, deleteDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
@@ -57,20 +57,23 @@ const AdminPageSkeleton = () => (
             </div>
         </header>
         <main className="flex-1 p-4 md:p-8 lg:p-12">
-            <div className="container mx-auto px-4 py-8 md:py-12 max-w-4xl">
+            <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
                  <Skeleton className="h-8 w-40 mb-8" /> {/* Back link placeholder */}
-                 <Card>
+                 <Card className="mb-12">
                      <CardHeader>
                          <Skeleton className="h-8 w-1/2 mb-2" />
                          <Skeleton className="h-4 w-3/4" />
                      </CardHeader>
                      <CardContent>
-                        <Skeleton className="h-8 w-48 mb-6" /> {/* Section title */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <SkeletonCardSkeleton count={2} />
-                        </div>
+                        <Skeleton className="h-6 w-full max-w-md" />
+                        <Skeleton className="h-16 w-full mt-6" />
                      </CardContent>
                  </Card>
+                 {/* Camps List Skeleton */}
+                 <div>
+                    <Skeleton className="h-8 w-48 mb-6" /> {/* Section title */}
+                    <AdminCampListSkeleton count={3} />
+                 </div>
             </div>
         </main>
         <footer className="py-6 px-4 md:px-6 border-t">
@@ -79,102 +82,86 @@ const AdminPageSkeleton = () => (
     </div>
 );
 
-// Reusable Camp Card Component (similar to profile page)
-const CampCard = ({ camp, isOwner, onDeleteClick, deletingCampId }: {
+// Reusable Camp List Item Component for Admin Panel
+const AdminCampListItem = ({ camp, isOwner, onDeleteClick, deletingCampId }: {
     camp: Camp;
-    isOwner: boolean; // Always true in admin context if filtered correctly, but keep prop for consistency
+    isOwner: boolean; // Always true in admin context if filtered correctly
     onDeleteClick: (campId: string) => void;
     deletingCampId: string | null;
 }) => {
 
     return (
-      <Card key={camp.id} className="overflow-hidden flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300 bg-card">
-          <div className="relative w-full h-48">
-          <Image
-              src={camp.imageUrl || 'https://picsum.photos/seed/placeholder/600/400'}
-              alt={camp.name}
-              fill
-              style={{ objectFit: 'cover' }}
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              data-ai-hint="camp nature outdoor"
-          />
-          </div>
-          <CardHeader>
-          <CardTitle>{camp.name}</CardTitle>
-          <CardDescription>{camp.location} | {camp.dates}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-grow">
-          <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{camp.description}</p>
-          </CardContent>
-          <CardFooter className="p-6 pt-0 flex justify-between items-center gap-2">
-          <span className="text-lg font-semibold text-primary">{camp.price} ₽</span>
-          <div className="flex gap-2 items-center">
-              <Button size="sm" asChild variant="outline">
-              <Link href={`/camps/${camp.id}`} prefetch={false}>
-                  View
-              </Link>
+      <div key={camp.id} className="flex items-center justify-between p-4 border-b hover:bg-muted/50 transition-colors">
+         {/* Basic Camp Info */}
+         <div className="flex-1 min-w-0 mr-4">
+             <p className="font-semibold truncate">{camp.name}</p>
+             <p className="text-sm text-muted-foreground truncate">{camp.location} | {camp.dates}</p>
+             <p className="text-sm text-primary font-medium">{camp.price} ₽</p>
+         </div>
+
+         {/* Action Buttons */}
+         <div className="flex gap-2 items-center flex-shrink-0">
+              <Button size="sm" asChild variant="ghost" aria-label={`View ${camp.name}`}>
+                <Link href={`/camps/${camp.id}`} prefetch={false}>
+                    <Eye className="h-4 w-4" />
+                    <span className="sr-only">View</span>
+                </Link>
               </Button>
               {/* Show Edit and Delete only for owned camps */}
               {isOwner && (
                   <>
-                      <Button size="sm" asChild variant="ghost">
-                          <Link href={`/camps/${camp.id}/edit`} prefetch={false} aria-label={`Edit ${camp.name}`}>
-                               <span className="flex items-center">
-                                  <Pencil className="h-4 w-4" />
-                                  <span className="sr-only">Edit</span>
-                               </span>
-                          </Link>
+                      <Button size="sm" asChild variant="ghost" aria-label={`Edit ${camp.name}`}>
+                           <Link href={`/camps/${camp.id}/edit`} prefetch={false}>
+                               <Pencil className="h-4 w-4" />
+                               <span className="sr-only">Edit</span>
+                           </Link>
                       </Button>
                       <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={deletingCampId === camp.id} aria-label={`Delete ${camp.name}`}>
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Delete</span>
-                          </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                          <AlertDialogHeader>
-                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete the camp "{camp.name}".
-                          </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => onDeleteClick(camp.id)} className="bg-destructive hover:bg-destructive/90">Delete Camp</AlertDialogAction>
-                          </AlertDialogFooter>
-                      </AlertDialogContent>
+                          <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={deletingCampId === camp.id} aria-label={`Delete ${camp.name}`}>
+                                  <Trash2 className="h-4 w-4" />
+                                  <span className="sr-only">Delete</span>
+                              </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                              <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                      This action cannot be undone. This will permanently delete the camp "{camp.name}".
+                                  </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => onDeleteClick(camp.id)} className="bg-destructive hover:bg-destructive/90">Delete Camp</AlertDialogAction>
+                              </AlertDialogFooter>
+                          </AlertDialogContent>
                       </AlertDialog>
                   </>
               )}
           </div>
-          </CardFooter>
-      </Card>
+      </div>
     );
 };
 
-// Skeleton Card Component (similar to profile page)
-const SkeletonCardSkeleton = ({ count = 1 }: { count?: number }) => (
-    <>
-      {[...Array(count)].map((_, index) => (
-        <Card key={index} className="overflow-hidden bg-card">
-          <Skeleton className="h-48 w-full" />
-          <CardHeader>
-            <Skeleton className="h-6 w-3/4 mb-2" />
-            <Skeleton className="h-4 w-1/2" />
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
-          </CardContent>
-          <CardFooter className="p-6 pt-0 flex justify-between items-center">
-            <Skeleton className="h-6 w-1/4" />
-            <Skeleton className="h-8 w-1/3" />
-          </CardFooter>
-        </Card>
-      ))}
-    </>
+
+// Skeleton for the Camp List
+const AdminCampListSkeleton = ({ count = 3 }: { count?: number }) => (
+    <div className="border rounded-md">
+        {[...Array(count)].map((_, index) => (
+            <div key={index} className="flex items-center justify-between p-4 border-b last:border-b-0">
+                <div className="flex-1 min-w-0 mr-4 space-y-1">
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-4 w-1/4" />
+                </div>
+                <div className="flex gap-2 items-center flex-shrink-0">
+                    <Skeleton className="h-8 w-8 rounded-md" />
+                    <Skeleton className="h-8 w-8 rounded-md" />
+                    <Skeleton className="h-8 w-8 rounded-md" />
+                </div>
+            </div>
+        ))}
+    </div>
 );
 
 
@@ -312,21 +299,19 @@ export default function AdminPage() {
                      <div>
                          <h2 className="text-2xl font-bold mb-6">My Created Camps</h2>
                          {campsLoading ? (
-                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                 <SkeletonCardSkeleton count={adminCamps.length > 0 ? adminCamps.length : 3} />
-                             </div>
+                            <AdminCampListSkeleton count={adminCamps.length > 0 ? adminCamps.length : 3} />
                          ) : adminCamps.length > 0 ? (
-                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                 {adminCamps.map((camp) => (
-                                    <CampCard
+                            <div className="border rounded-md"> {/* Container for the list */}
+                                {adminCamps.map((camp) => (
+                                    <AdminCampListItem
                                         key={camp.id}
                                         camp={camp}
                                         isOwner={true} // Admin is the owner
                                         onDeleteClick={handleDeleteCamp}
                                         deletingCampId={deletingCampId}
                                     />
-                                 ))}
-                             </div>
+                                ))}
+                            </div>
                          ) : (
                              <Card className="text-center py-12">
                                  <CardContent>
@@ -346,4 +331,3 @@ export default function AdminPage() {
         </div>
     );
 }
-
