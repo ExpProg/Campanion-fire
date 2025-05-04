@@ -8,10 +8,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import Image from 'next/image';
-import { ArrowLeft, CalendarDays, MapPin, DollarSign } from 'lucide-react';
+import { ArrowLeft, CalendarDays, MapPin, DollarSign, Building } from 'lucide-react'; // Added Building
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
-import { doc, getDoc, Timestamp } from 'firebase/firestore'; // Import Timestamp
+import { doc, getDoc, Timestamp, getDocFromServer } from 'firebase/firestore'; // Import Timestamp, getDocFromServer for potential organizer fetch
 import { db } from '@/config/firebase';
 import { format } from 'date-fns'; // Import format for date display if needed
 import Header from '@/components/layout/Header'; // Import Header component
@@ -27,12 +27,21 @@ interface Camp {
   location: string;
   imageUrl: string;
   price: number;
-  organizerName?: string; // This might come from a related document or be denormalized
-  organizerEmail?: string; // Assuming this is stored in the camp document
+  organizerId: string; // Add organizerId
+  organizerName?: string; // Denormalized organizer name from Firestore
+  organizerLink?: string; // Add organizer link if available
   contactEmail?: string; // Might be the same as organizerEmail or a separate field
   activities?: string[];
   // Add any other fields present in your Firestore document
 }
+
+// Organizer Data Interface (Only needed if fetching organizer separately)
+interface Organizer {
+    id: string;
+    name: string;
+    link?: string;
+}
+
 
 // Function to fetch camp details from Firestore
 async function fetchCampDetailsFromFirestore(id: string): Promise<Camp | null> {
@@ -60,6 +69,33 @@ async function fetchCampDetailsFromFirestore(id: string): Promise<Camp | null> {
       }
       // --- End Date Handling ---
 
+      // --- Organizer Handling ---
+      let organizerName = data.organizerName || 'Campanion Partner'; // Use denormalized name if available
+      let organizerLink: string | undefined;
+
+      // Optional: Fetch organizer details if name is missing or link is needed
+      // This adds an extra read, consider if denormalization is sufficient
+      // if (!organizerName || needOrganizerLink) {
+      //    if (data.organizerId) {
+      //      try {
+      //        const organizerDocRef = doc(db, 'organizers', data.organizerId);
+      //        // Use getDocFromServer for potentially fresher data if needed, or just getDoc
+      //        const organizerSnap = await getDoc(organizerDocRef);
+      //        if (organizerSnap.exists()) {
+      //          const orgData = organizerSnap.data();
+      //          organizerName = orgData.name || organizerName; // Update name if found
+      //          organizerLink = orgData.link; // Get the link
+      //        }
+      //      } catch (orgError) {
+      //        console.error("Error fetching organizer details:", orgError);
+      //      }
+      //    }
+      // }
+      // For now, we rely on the denormalized `organizerName` stored in the camp document.
+      // If the organizer document itself contains a `link`, we'd need to fetch it separately if required.
+      // Let's assume `organizerLink` might also be denormalized in the camp doc for simplicity here.
+      organizerLink = data.organizerLink; // Assuming denormalized link
+
 
       // Construct the Camp object, mapping Firestore fields to the interface
       const camp: Camp = {
@@ -72,9 +108,10 @@ async function fetchCampDetailsFromFirestore(id: string): Promise<Camp | null> {
         location: data.location || 'Location not specified',
         imageUrl: data.imageUrl || 'https://picsum.photos/seed/placeholder/800/500', // Fallback image
         price: data.price || 0,
-        organizerName: data.organizerName || 'Campanion Partner', // Example: if you store this
-        organizerEmail: data.organizerEmail || '',
-        contactEmail: data.contactEmail || data.organizerEmail || 'Not specified', // Use organizer email as fallback
+        organizerId: data.organizerId || '', // Get organizerId
+        organizerName: organizerName, // Use the determined organizer name
+        organizerLink: organizerLink, // Use the fetched or denormalized link
+        contactEmail: data.contactEmail || 'Not specified', // Use specific contact email if available
         activities: data.activities || [], // Assuming activities is an array of strings
       };
       return camp;
@@ -151,15 +188,17 @@ export default function CampDetailsPage() {
                      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                          <div className="md:col-span-2 space-y-4">
                              <Skeleton className="h-10 w-3/4" /> {/* Title placeholder */}
-                             <Skeleton className="h-6 w-1/2" /> {/* Subtitle placeholder */}
+                             <Skeleton className="h-6 w-1/2" /> {/* Organizer placeholder */}
                              <Skeleton className="h-4 w-full" />
                              <Skeleton className="h-4 w-full" />
-                             <Skeleton className="h-4 w-5/6" />
+                             <Skeleton className="h-4 w-5/6" /> {/* Description placeholder */}
                          </div>
                          <div className="space-y-4">
+                            {/* Info block skeleton */}
                              <Skeleton className="h-8 w-full" />
                              <Skeleton className="h-8 w-full" />
-                             <Skeleton className="h-10 w-full" /> {/* Button placeholder */}
+                             <Skeleton className="h-8 w-full" />
+                             <Skeleton className="h-10 w-full mt-4" /> {/* Button placeholder */}
                          </div>
                      </div>
                  </div>
@@ -193,7 +232,7 @@ export default function CampDetailsPage() {
   }
 
   // Camp data is available
-  const displayContactEmail = camp.contactEmail || camp.organizerEmail || 'Not specified';
+  const displayContactEmail = camp.contactEmail || 'Not specified';
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -222,9 +261,16 @@ export default function CampDetailsPage() {
                       <div className="md:col-span-2 p-6 md:p-8">
                           <CardHeader className="px-0 pt-0 pb-4">
                               <CardTitle className="text-3xl md:text-4xl font-bold mb-2">{camp.name}</CardTitle>
-                              {/* Display organizer name if available, otherwise fallback */}
-                              <CardDescription className="text-lg text-muted-foreground">
-                                  Organized by {camp.organizerName || (camp.organizerEmail ? `Partner (${camp.organizerEmail})` : 'Campanion Partner')}
+                              {/* Display organizer name, optionally link if link exists */}
+                              <CardDescription className="text-lg text-muted-foreground flex items-center">
+                                <Building className="h-4 w-4 mr-2 text-muted-foreground" />
+                                Organized by {camp.organizerLink ? (
+                                    <a href={camp.organizerLink} target="_blank" rel="noopener noreferrer" className="ml-1 text-primary hover:underline">
+                                        {camp.organizerName}
+                                    </a>
+                                ) : (
+                                    <span className="ml-1">{camp.organizerName}</span>
+                                )}
                               </CardDescription>
                           </CardHeader>
                           <CardContent className="px-0">

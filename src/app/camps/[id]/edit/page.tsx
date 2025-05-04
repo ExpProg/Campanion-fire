@@ -7,7 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, Timestamp, collection, getDocs } from 'firebase/firestore'; // Added collection, getDocs
 import { db } from '@/config/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CalendarIcon } from 'lucide-react';
+import { ArrowLeft, CalendarIcon, Building } from 'lucide-react'; // Added Building icon
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -25,10 +25,24 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Header from '@/components/layout/Header';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"; // Import Select component
+
+// Organizer Interface
+interface Organizer {
+    id: string;
+    name: string;
+}
 
 // Zod schema for camp editing form validation (similar to creation)
 const editCampSchema = z.object({
   name: z.string().min(3, { message: 'Camp name must be at least 3 characters.' }),
+  organizerId: z.string({ required_error: 'Organizer is required.' }).min(1, { message: 'Please select an organizer.' }), // Added organizerId
   description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
   startDate: z.date({ required_error: 'Start date is required.' }),
   endDate: z.date({ required_error: 'End date is required.' }),
@@ -46,6 +60,8 @@ type EditCampFormValues = z.infer<typeof editCampSchema>;
 interface CampData {
   id: string;
   name: string;
+  organizerId: string; // Ensure organizerId is present
+  organizerName?: string; // Add organizerName if available
   description: string;
   startDate: Timestamp;
   endDate: Timestamp;
@@ -54,7 +70,7 @@ interface CampData {
   price: number;
   imageUrl: string;
   activities: string[];
-  organizerId: string;
+  // Keep organizerId from original camp data
 }
 
 // Date Picker Component (reusable)
@@ -112,7 +128,12 @@ function DatePickerField({ field, label, disabled, isAdmin }: {
 }
 
 // Edit Camp Form Component
-function EditCampForm({ campData, campId }: { campData: CampData, campId: string }) {
+function EditCampForm({ campData, campId, organizers, organizersLoading }: {
+    campData: CampData;
+    campId: string;
+    organizers: Organizer[];
+    organizersLoading: boolean;
+}) {
     const { user, isAdmin } = useAuth(); // Get user and isAdmin status
     const router = useRouter();
     const { toast } = useToast();
@@ -122,6 +143,7 @@ function EditCampForm({ campData, campId }: { campData: CampData, campId: string
         resolver: zodResolver(editCampSchema),
         defaultValues: {
             name: campData.name || '',
+            organizerId: campData.organizerId || '', // Populate organizerId
             description: campData.description || '',
             // Convert Firestore Timestamps back to JS Date objects for the form
             startDate: campData.startDate?.toDate() || undefined,
@@ -137,14 +159,16 @@ function EditCampForm({ campData, campId }: { campData: CampData, campId: string
     const startDateValue = form.watch('startDate');
 
     const onSubmit = async (values: EditCampFormValues) => {
-        if (!user?.uid || user.uid !== campData.organizerId) {
-            toast({
-                title: 'Error',
-                description: 'You do not have permission to edit this camp.',
+        // Permission check should happen in the parent component before rendering this form
+        if (!isAdmin) {
+             toast({
+                title: 'Permission Denied',
+                description: 'Only administrators can edit camps.',
                 variant: 'destructive',
             });
             return;
         }
+
 
         // Additional check for non-admins trying to set past dates (though UI should prevent this)
         const today = new Date();
@@ -169,8 +193,14 @@ function EditCampForm({ campData, campId }: { campData: CampData, campId: string
             const formattedEndDate = format(values.endDate, "MMM d, yyyy");
             const datesString = `${formattedStartDate} - ${formattedEndDate}`;
 
+             // Find the selected organizer's name
+            const selectedOrganizer = organizers.find(org => org.id === values.organizerId);
+
             const updatedData = {
                 name: values.name,
+                organizerId: values.organizerId, // Update organizerId
+                organizerName: selectedOrganizer?.name || 'Unknown Organizer', // Update denormalized name
+                // organizerEmail: selectedOrganizer?.email || '', // Update if needed
                 description: values.description,
                 startDate: Timestamp.fromDate(values.startDate),
                 endDate: Timestamp.fromDate(values.endDate),
@@ -179,7 +209,7 @@ function EditCampForm({ campData, campId }: { campData: CampData, campId: string
                 price: values.price,
                 imageUrl: values.imageUrl || `https://picsum.photos/seed/${values.name.replace(/\s+/g, '-')}/600/400`, // Fallback logic
                 activities: activitiesArray,
-                // organizerId and createdAt remain unchanged
+                // createdAt remain unchanged
             };
 
             const campDocRef = doc(db, 'camps', campId);
@@ -189,7 +219,7 @@ function EditCampForm({ campData, campId }: { campData: CampData, campId: string
                 title: 'Camp Updated Successfully!',
                 description: `Your camp "${values.name}" has been updated.`,
             });
-            router.push('/main'); // Redirect to main page after update
+            router.push('/admin'); // Redirect to admin page after update
 
         } catch (error) {
             console.error('Error updating camp in Firestore:', error);
@@ -219,6 +249,41 @@ function EditCampForm({ campData, campId }: { campData: CampData, campId: string
                         </FormItem>
                     )}
                 />
+
+                 <FormField
+                    control={form.control}
+                    name="organizerId"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Organizer</FormLabel>
+                        <Select
+                            onValueChange={field.onChange}
+                            value={field.value} // Use value instead of defaultValue for controlled component
+                            disabled={isLoading || organizersLoading}
+                        >
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder={organizersLoading ? "Loading organizers..." : "Select an organizer"} />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            {!organizersLoading && organizers.map((organizer) => (
+                                <SelectItem key={organizer.id} value={organizer.id}>
+                                    <div className="flex items-center">
+                                        <Building className="mr-2 h-4 w-4 text-muted-foreground" />
+                                        {organizer.name}
+                                    </div>
+                                </SelectItem>
+                            ))}
+                            {!organizersLoading && organizers.length === 0 && (
+                                <div className="p-4 text-sm text-muted-foreground">No organizers found.</div>
+                             )}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                 />
 
                 <FormField
                     control={form.control}
@@ -320,7 +385,7 @@ function EditCampForm({ campData, campId }: { campData: CampData, campId: string
                     )}
                 />
 
-                <Button type="submit" className="mt-6" disabled={isLoading}>
+                <Button type="submit" className="mt-6" disabled={isLoading || organizersLoading || organizers.length === 0}>
                    {isLoading ? 'Saving Changes...' : 'Save Changes'}
                 </Button>
             </form>
@@ -330,7 +395,7 @@ function EditCampForm({ campData, campId }: { campData: CampData, campId: string
 
 // Main Page Component
 export default function EditCampPage() {
-    const { user, loading: authLoading } = useAuth();
+    const { user, isAdmin, loading: authLoading } = useAuth(); // Get isAdmin from context
     const router = useRouter();
     const params = useParams();
     const campId = params.id as string;
@@ -339,14 +404,17 @@ export default function EditCampPage() {
     const [campData, setCampData] = useState<CampData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [organizers, setOrganizers] = useState<Organizer[]>([]);
+    const [organizersLoading, setOrganizersLoading] = useState(true);
 
     useEffect(() => {
-        if (!authLoading && !user) {
-            router.push('/login'); // Redirect if not logged in
+        // Redirect if not logged in or not admin after auth check
+        if (!authLoading && (!user || !isAdmin)) {
+            router.push('/main'); // Redirect non-admins or logged-out users
             return;
         }
 
-        if (campId && user) { // Fetch only if ID and user exist
+        if (campId && user && isAdmin) { // Fetch only if ID, user, and admin status are valid
             setLoading(true);
             setError(null);
             const campDocRef = doc(db, 'camps', campId);
@@ -354,17 +422,12 @@ export default function EditCampPage() {
                 .then(docSnap => {
                     if (docSnap.exists()) {
                         const data = docSnap.data() as Omit<CampData, 'id'>;
-                        if (data.organizerId === user.uid) { // Check ownership
-                            setCampData({ id: docSnap.id, ...data });
-                        } else {
-                            setError('You do not have permission to edit this camp.');
-                            toast({ title: 'Permission Denied', description: 'You can only edit camps you created.', variant: 'destructive' });
-                            router.push('/main'); // Redirect if not owner
-                        }
+                        // Admin check is already done, no need to check owner here
+                        setCampData({ id: docSnap.id, ...data });
                     } else {
                         setError("Camp not found.");
                         toast({ title: 'Error', description: 'Camp not found.', variant: 'destructive' });
-                        router.push('/main'); // Redirect if camp doesn't exist
+                        router.push('/admin'); // Redirect if camp doesn't exist
                     }
                 })
                 .catch(fetchError => {
@@ -375,15 +438,43 @@ export default function EditCampPage() {
                 .finally(() => {
                     setLoading(false);
                 });
+
+             // Fetch organizers regardless of camp fetch status (needed for the dropdown)
+            fetchOrganizers();
+
         } else if (!campId) {
             setError("Camp ID is missing.");
             setLoading(false);
-            router.push('/main'); // Redirect if no ID
+            router.push('/admin'); // Redirect if no ID
+        } else if (!isAdmin && !authLoading) {
+            // This case should be caught by the initial redirect, but as a fallback
+            setError('You do not have permission to edit this camp.');
+            setLoading(false);
+            router.push('/main');
         }
-    }, [campId, user, authLoading, router, toast]);
+    }, [campId, user, isAdmin, authLoading, router, toast]);
+
+     // Function to fetch organizers
+    const fetchOrganizers = async () => {
+        setOrganizersLoading(true);
+        try {
+            const organizersCollectionRef = collection(db, 'organizers');
+            const querySnapshot = await getDocs(organizersCollectionRef);
+            const fetchedOrganizers = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                name: doc.data().name as string // Only fetch needed fields
+            })).sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically by name
+            setOrganizers(fetchedOrganizers);
+        } catch (error) {
+            console.error("Error fetching organizers:", error);
+            toast({ title: 'Error', description: 'Could not load organizers for selection.', variant: 'destructive' });
+        } finally {
+            setOrganizersLoading(false);
+        }
+    };
 
     // Loading state skeleton
-    if (loading || authLoading || (!user && !authLoading)) {
+    if (loading || authLoading || organizersLoading || (!user && !authLoading)) { // Include organizersLoading
         return (
              <div className="flex flex-col min-h-screen">
                  {/* Header Skeleton */}
@@ -404,19 +495,20 @@ export default function EditCampPage() {
                                  <Skeleton className="h-4 w-3/4" />
                              </CardHeader>
                              <CardContent>
-                                 <Skeleton className="h-10 w-full mb-4" />
-                                 <Skeleton className="h-20 w-full mb-4" />
+                                 <Skeleton className="h-10 w-full mb-4" /> {/* Camp Name */}
+                                 <Skeleton className="h-10 w-full mb-4" /> {/* Organizer Dropdown */}
+                                 <Skeleton className="h-20 w-full mb-4" /> {/* Description */}
                                  <div className="grid grid-cols-2 gap-4 mb-4">
-                                     <Skeleton className="h-10 w-full" />
-                                     <Skeleton className="h-10 w-full" />
+                                     <Skeleton className="h-10 w-full" /> {/* Start Date */}
+                                     <Skeleton className="h-10 w-full" /> {/* End Date */}
                                  </div>
                                  <div className="grid grid-cols-2 gap-4 mb-4">
-                                     <Skeleton className="h-10 w-full" />
-                                     <Skeleton className="h-10 w-full" />
+                                     <Skeleton className="h-10 w-full" /> {/* Location */}
+                                     <Skeleton className="h-10 w-full" /> {/* Price */}
                                  </div>
-                                 <Skeleton className="h-10 w-full mb-4" />
-                                 <Skeleton className="h-10 w-full mb-4" />
-                                 <Skeleton className="h-10 w-1/4 mt-6" />
+                                 <Skeleton className="h-10 w-full mb-4" /> {/* Image URL */}
+                                 <Skeleton className="h-10 w-full mb-4" /> {/* Activities */}
+                                 <Skeleton className="h-10 w-1/4 mt-6" /> {/* Submit Button */}
                              </CardContent>
                          </Card>
                      </div>
@@ -436,9 +528,10 @@ export default function EditCampPage() {
                 <Header />
                 <main className="flex-1 flex items-center justify-center p-4">
                     <div className="container mx-auto px-4 py-12 text-center">
-                        <Link href="/main" className="inline-flex items-center text-primary hover:underline mb-4" prefetch={false}>
+                         {/* Link back to admin panel if error occurs here */}
+                        <Link href="/admin" className="inline-flex items-center text-primary hover:underline mb-4" prefetch={false}>
                             <ArrowLeft className="mr-2 h-4 w-4" />
-                            Back to Main
+                            Back to Admin Panel
                         </Link>
                         <p className="text-xl text-destructive">{error}</p>
                     </div>
@@ -456,9 +549,10 @@ export default function EditCampPage() {
             <Header />
             <main className="flex-1 p-4 md:p-8 lg:p-12">
                 <div className="container mx-auto px-4 py-8 md:py-12 max-w-4xl">
-                    <Link href="/main" className="inline-flex items-center text-primary hover:underline mb-6" prefetch={false}>
+                    {/* Link back to admin panel */}
+                    <Link href="/admin" className="inline-flex items-center text-primary hover:underline mb-6" prefetch={false}>
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Main
+                         Back to Admin Panel
                     </Link>
                     <Card className="shadow-lg">
                         <CardHeader>
@@ -466,7 +560,12 @@ export default function EditCampPage() {
                             <CardDescription>Update the details for your camp: {campData?.name}</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {campData && <EditCampForm campData={campData} campId={campId} />}
+                            {campData && <EditCampForm
+                                            campData={campData}
+                                            campId={campId}
+                                            organizers={organizers}
+                                            organizersLoading={organizersLoading}
+                                          />}
                         </CardContent>
                     </Card>
                 </div>

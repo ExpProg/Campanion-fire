@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -129,7 +130,12 @@ const SelectItem = React.forwardRef<
       </SelectPrimitive.ItemIndicator>
     </span>
 
-    <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+    {/* Wrap children in ItemText only if it's not already a complex element */}
+     {typeof children === 'string' || typeof children === 'number' ? (
+        <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+     ) : (
+        children // Render complex children directly (like the div with icon)
+     )}
   </SelectPrimitive.Item>
 ))
 SelectItem.displayName = SelectPrimitive.Item.displayName
