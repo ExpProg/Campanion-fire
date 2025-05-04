@@ -186,12 +186,14 @@ export default function Header() {
              {/* Show Login/Register buttons if user is not logged in - Adjust if needed on specific pages */}
               <Button variant="ghost" asChild size="sm"> {/* Added size=sm */}
                   <Link href="/login" prefetch={false}>
-                      Login
+                      {/* Wrap text node in a span */}
+                      <span>Login</span>
                   </Link>
               </Button>
               <Button asChild size="sm"> {/* Added size=sm */}
                   <Link href="/register" prefetch={false}>
-                      Register
+                      {/* Wrap text node in a span */}
+                      <span>Register</span>
                   </Link>
               </Button>
           </>
