@@ -60,8 +60,9 @@ interface Camp {
   location: string;
   imageUrl: string;
   price: number;
-  organizerId?: string;
-  organizerEmail?: string;
+  organizerId?: string; // Keep this, it links to the organizers collection
+  creatorId?: string; // ID of the admin who created the camp
+  organizerEmail?: string; // May no longer be relevant if using organizer collection
   createdAt?: Timestamp;
   activities?: string[];
 }
@@ -147,9 +148,9 @@ const AdminPageSkeleton = () => (
 );
 
 // Reusable Camp List Item Component for Admin Panel
-const AdminCampListItem = ({ camp, isOwner, onDeleteClick, deletingCampId, status }: {
+const AdminCampListItem = ({ camp, isCreator, onDeleteClick, deletingCampId, status }: {
     camp: Camp;
-    isOwner: boolean;
+    isCreator: boolean; // Changed from isOwner to isCreator
     onDeleteClick: (campId: string) => void;
     deletingCampId: string | null;
     status: 'Active' | 'Past';
@@ -188,7 +189,7 @@ const AdminCampListItem = ({ camp, isOwner, onDeleteClick, deletingCampId, statu
                     <span className="sr-only">View</span>
                 </Link>
               </Button>
-              {isOwner && (
+              {isCreator && ( // Check if the logged-in user is the creator
                   <>
                       <Button size="sm" asChild variant="ghost" aria-label={`Edit ${camp.name}`}>
                            <Link href={`/camps/${camp.id}/edit`} prefetch={false}>
@@ -616,7 +617,8 @@ export default function AdminPage() {
                 id: doc.id,
                 ...doc.data() as Omit<Camp, 'id'>
             }))
-            .filter(camp => camp.organizerId === adminId);
+            // Correctly filter by the creatorId field
+            .filter(camp => camp.creatorId === adminId);
             setAllAdminCamps(fetchedCamps);
         } catch (error) {
             console.error("Error fetching admin's created camps:", error);
@@ -666,7 +668,8 @@ export default function AdminPage() {
     const handleDeleteCamp = async (campId: string) => {
         if (!campId || !user || !isAdmin) return;
         const campToDelete = allAdminCamps.find(camp => camp.id === campId);
-        if (!campToDelete || campToDelete.organizerId !== user.uid) {
+        // Correctly check if the logged-in user is the creator
+        if (!campToDelete || campToDelete.creatorId !== user.uid) {
            toast({ title: 'Permission Denied', description: 'Cannot delete this camp.', variant: 'destructive' });
            return;
         }
@@ -861,7 +864,7 @@ export default function AdminPage() {
                                     <AdminCampListItem
                                         key={camp.id}
                                         camp={camp}
-                                        isOwner={true}
+                                        isCreator={camp.creatorId === user.uid} // Pass whether the current user is the creator
                                         onDeleteClick={handleDeleteCamp}
                                         deletingCampId={deletingCampId}
                                         status={getCampStatus(camp)}
@@ -893,4 +896,3 @@ export default function AdminPage() {
         </div>
     );
 }
-
