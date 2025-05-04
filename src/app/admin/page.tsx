@@ -11,9 +11,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/layout/Header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, CalendarCheck2, Check, PlusCircle, Users, FileText, Archive, AlertTriangle, CalendarClock } from 'lucide-react'; // Added CalendarClock
+import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, CalendarCheck2, Check, PlusCircle, Users, FileText, Archive, AlertTriangle, CalendarClock, ArchiveRestore } from 'lucide-react'; // Added CalendarClock, ArchiveRestore
 import Link from 'next/link';
-import { collection, getDocs, deleteDoc, doc, Timestamp, addDoc, updateDoc } from 'firebase/firestore'; // Added addDoc, deleteDoc, updateDoc
+import { collection, getDocs, deleteDoc, doc, Timestamp, addDoc, updateDoc, writeBatch } from 'firebase/firestore'; // Added addDoc, deleteDoc, updateDoc, writeBatch
 import { db } from '@/config/firebase';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -163,6 +163,7 @@ const AdminPageSkeleton = () => (
                  {/* Problematic Dates Section Skeleton */}
                  <div className="mb-10">
                     <Skeleton className="h-8 w-64 mb-4" /> {/* Section title */}
+                    <Skeleton className="h-10 w-48 mb-4" /> {/* Button skeleton */}
                     <AdminCampListSkeleton count={1} />
                  </div>
             </div>
@@ -630,6 +631,7 @@ export default function AdminPage() {
     const [deletingOrganizerId, setDeletingOrganizerId] = useState<string | null>(null); // For tracking organizer deletion
     const [isEditOrganizerOpen, setIsEditOrganizerOpen] = useState(false); // State for edit dialog
     const [organizerToEdit, setOrganizerToEdit] = useState<Organizer | null>(null); // State to hold organizer being edited
+    const [isArchiving, setIsArchiving] = useState(false); // State for archiving process
 
 
     useEffect(() => {
@@ -782,6 +784,36 @@ export default function AdminPage() {
     const handleEditOrganizerClick = (organizer: Organizer) => {
         setOrganizerToEdit(organizer);
         setIsEditOrganizerOpen(true);
+    };
+
+    // Function to archive all started active camps
+    const handleArchiveAllStarted = async () => {
+        if (!isAdmin || startedActiveCamps.length === 0) return;
+        setIsArchiving(true);
+        try {
+            const batch = writeBatch(db);
+            startedActiveCamps.forEach(camp => {
+                 if (camp.creatorId === user?.uid) { // Ensure admin owns the camp
+                    const campRef = doc(db, 'camps', camp.id);
+                    batch.update(campRef, { status: 'archive' });
+                 }
+            });
+            await batch.commit();
+
+            // Refresh local state
+            fetchAdminCamps(user.uid); // Re-fetch camps to update the UI
+
+            toast({
+                title: 'Camps Archived',
+                description: `${startedActiveCamps.length} started active camp(s) have been moved to archive.`
+            });
+
+        } catch (error) {
+            console.error("Error archiving started camps:", error);
+            toast({ title: 'Archiving Failed', description: 'Could not archive the camps.', variant: 'destructive' });
+        } finally {
+            setIsArchiving(false);
+        }
     };
 
 
@@ -980,9 +1012,35 @@ export default function AdminPage() {
 
                      {/* Section for Active Camps that have started */}
                      <div className="mb-10"> {/* Changed mb-12 to mb-10 */}
-                          <h2 className="text-2xl font-bold flex items-center gap-2 mb-4 text-yellow-700 dark:text-yellow-500">
-                              <CalendarClock className="h-6 w-6" /> Started Active Camps
-                          </h2>
+                          <div className="flex justify-between items-center mb-4">
+                             <h2 className="text-2xl font-bold flex items-center gap-2 text-yellow-700 dark:text-yellow-500">
+                                <CalendarClock className="h-6 w-6" /> Started Active Camps
+                             </h2>
+                             {startedActiveCamps.length > 0 && ( // Show button only if there are camps to archive
+                                 <AlertDialog>
+                                     <AlertDialogTrigger asChild>
+                                         <Button variant="destructive" size="sm" disabled={isArchiving}>
+                                             <Archive className="mr-2 h-4 w-4" />
+                                             {isArchiving ? 'Archiving...' : 'Archive All Started'}
+                                         </Button>
+                                     </AlertDialogTrigger>
+                                     <AlertDialogContent>
+                                         <AlertDialogHeader>
+                                             <AlertDialogTitle>Confirm Archiving</AlertDialogTitle>
+                                             <AlertDialogDescription>
+                                                 Are you sure you want to archive all {startedActiveCamps.length} started active camp(s)? This will change their status to 'Archived'.
+                                             </AlertDialogDescription>
+                                         </AlertDialogHeader>
+                                         <AlertDialogFooter>
+                                             <AlertDialogCancel disabled={isArchiving}>Cancel</AlertDialogCancel>
+                                             <AlertDialogAction onClick={handleArchiveAllStarted} disabled={isArchiving} className="bg-destructive hover:bg-destructive/90">
+                                                Archive Camps
+                                             </AlertDialogAction>
+                                         </AlertDialogFooter>
+                                     </AlertDialogContent>
+                                 </AlertDialog>
+                             )}
+                          </div>
                           <p className="text-sm text-muted-foreground mb-4">
                             These camps are marked 'active' and their start date is in the past or today. Review if needed.
                           </p>
