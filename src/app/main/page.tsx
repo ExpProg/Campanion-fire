@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -225,55 +224,52 @@ export default function MainPage() { // Renamed from DashboardPage
     );
 
 
-  if (authLoading || firestoreLoading) { // Show skeleton if auth is loading OR firestore data is loading
-    return (
-       <div className="flex flex-col min-h-screen">
-           {/* Use a simpler Header skeleton or just the header structure */}
-           <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background z-10">
-               <Skeleton className="h-6 w-6 mr-2" /> {/* Icon Skeleton */}
-               <Skeleton className="h-6 w-32" />     {/* Title Skeleton */}
-               <div className="ml-auto flex gap-4 sm:gap-6 items-center">
-                   <Skeleton className="h-8 w-20" /> {/* Button Skeleton */}
-               </div>
-           </header>
-           <main className="flex-1 p-4 md:p-8 lg:p-12">
-                {/* Banner Skeleton */}
-                <BannerSkeleton />
-                {/* Camps Skeleton */}
-               <Skeleton className="h-8 w-1/3 mb-8" />
-               <SkeletonCard count={6} /> {/* Show more skeletons initially */}
-           </main>
-           <footer className="py-6 px-4 md:px-6 border-t">
-               <Skeleton className="h-4 w-1/4" />
-           </footer>
-        </div>
-    );
-  }
+  // Show header skeleton only if auth is loading
+  const HeaderSkeleton = () => (
+      <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background z-10">
+          <Skeleton className="h-6 w-6 mr-2" /> {/* Icon Skeleton */}
+          <Skeleton className="h-6 w-32" />     {/* Title Skeleton */}
+          <div className="ml-auto flex gap-4 sm:gap-6 items-center">
+              <Skeleton className="h-8 w-20" /> {/* Button Skeleton */}
+          </div>
+      </header>
+  );
+
+  const FooterSkeleton = () => (
+       <footer className="py-6 px-4 md:px-6 border-t">
+           <Skeleton className="h-4 w-1/4" />
+       </footer>
+  );
 
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <Header /> {/* Use the reusable Header component */}
+      {/* Conditionally render header or skeleton */}
+      {authLoading ? <HeaderSkeleton /> : <Header />}
 
       <main className="flex-1 p-4 md:p-8 lg:p-12"> {/* Reduced top-level space-y-12 */}
 
-         {/* Banners Section */}
+         {/* Banners Section - Show skeleton if firestore is loading */}
          <div className="mb-12"> {/* Margin bottom to separate from camps */}
-             <Banner
-                 title="Find Your Perfect Camp Experience" // Changed title
-                 description="Explore a wide variety of camps, from outdoor adventures to creative workshops, and book your next adventure." // Changed description
-                 imageUrl="https://picsum.photos/seed/banner-discover/1200/400" // Changed seed for potentially different image
-                 imageAlt="Children enjoying activities at a summer camp" // More descriptive alt text
-                 imageHint="camp discover explore fun" // Updated hints
-             />
+            {firestoreLoading ? <BannerSkeleton /> : (
+                 <Banner
+                     title="Find Your Perfect Camp Experience" // Changed title
+                     description="Explore a wide variety of camps, from outdoor adventures to creative workshops, and book your next adventure." // Changed description
+                     imageUrl="https://picsum.photos/seed/banner-discover/1200/400" // Changed seed for potentially different image
+                     imageAlt="Children enjoying activities at a summer camp" // More descriptive alt text
+                     imageHint="camp discover explore fun" // Updated hints
+                 />
+            )}
          </div>
 
 
         {/* Section for All Available Firestore Camps */}
         <div id="available-camps"> {/* Added ID for potential linking */}
           <h2 className="text-2xl font-bold mb-6 text-foreground">Available Camps</h2>
-          {/* Loading state handled above, now render based on fetched data */}
-          {firestoreCamps.length > 0 ? (
+          {/* Show skeleton if firestore is loading */}
+          {firestoreLoading ? (
+             <SkeletonCard count={6} />
+          ) : firestoreCamps.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              {firestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} />)}
            </div>
@@ -294,9 +290,12 @@ export default function MainPage() { // Renamed from DashboardPage
 
       </main>
 
-      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t mt-auto">
-        <p className="text-xs text-muted-foreground">&copy; 2024 Campanion. All rights reserved.</p>
-      </footer>
+        {/* Conditionally render footer or skeleton */}
+       {authLoading ? <FooterSkeleton /> : (
+           <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t mt-auto">
+                <p className="text-xs text-muted-foreground">&copy; 2024 Campanion. All rights reserved.</p>
+           </footer>
+        )}
     </div>
   );
 }
