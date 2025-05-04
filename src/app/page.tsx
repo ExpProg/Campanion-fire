@@ -2,113 +2,18 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react'; // Added useEffect, useState
+import React, { useEffect } from 'react'; // Removed useState as camps are no longer fetched here
 import Link from 'next/link';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Tent, Search, ListChecks, Sparkles, Building } from 'lucide-react'; // Added Building
+import { Tent } from 'lucide-react'; // Removed unused icons: Search, ListChecks, Sparkles, Building
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/layout/Header';
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from '@/lib/utils';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'; // Import CardDescription
-import { collection, getDocs, Timestamp, query, where } from 'firebase/firestore'; // Added Firestore imports
-import { db } from '@/config/firebase'; // Added db import
-import { useToast } from '@/hooks/use-toast'; // Added useToast import
-import Image from 'next/image'; // Added Image import
+// Removed unused Card components and Firestore imports
 
-// Camp Data Interface (ensure consistency)
-interface Camp {
-  id: string;
-  name: string;
-  description: string;
-  dates: string; // Pre-formatted string like "Jul 10 - Jul 20, 2024"
-  startDate?: Timestamp; // Stored as Timestamp
-  endDate?: Timestamp;   // Stored as Timestamp
-  location: string;
-  imageUrl: string;
-  price: number;
-  status: 'draft' | 'active' | 'archive'; // Added 'archive' status
-  organizerId?: string; // Link to the organizers collection
-  organizerName?: string; // Denormalized organizer name
-  organizerLink?: string; // Denormalized organizer link
-  creatorId?: string; // ID of the user who created the camp
-  createdAt?: Timestamp;
-  activities?: string[];
-}
-
-// Helper component for rendering camp cards (similar to main page)
-const LandingCampCard = ({ camp }: { camp: Camp }) => {
-    const organizerDisplay = camp.organizerName || 'Campanion Partner'; // Fallback
-    const formattedPrice = camp.price.toLocaleString('ru-RU'); // Format price with spaces
-
-    return (
-      <Card key={camp.id} className="overflow-hidden flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300 bg-card">
-        <div className="relative w-full h-48">
-          <Image
-            src={camp.imageUrl || 'https://picsum.photos/seed/placeholder/600/400'}
-            alt={camp.name}
-            fill
-            style={{ objectFit: 'cover' }}
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            data-ai-hint="camp nature adventure"
-          />
-        </div>
-        <CardHeader>
-          <CardTitle>{camp.name}</CardTitle>
-          <CardDescription>{camp.location} | {camp.dates}</CardDescription>
-          {/* Display Organizer Info */}
-          <CardDescription className="flex items-center pt-1">
-            <Building className="h-4 w-4 mr-1 text-muted-foreground" />
-             {camp.organizerLink ? (
-                <a href={camp.organizerLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline truncate">
-                    {organizerDisplay}
-                </a>
-            ) : (
-                <span className="text-sm text-muted-foreground truncate">{organizerDisplay}</span>
-            )}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex-grow">
-          <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{camp.description}</p>
-        </CardContent>
-        <div className="p-6 pt-0 flex justify-between items-center gap-2">
-          <span className="text-lg font-semibold text-primary">{formattedPrice} ₽</span>
-           {/* Link to details, maybe replace with login prompt later */}
-          <Button size="sm" asChild variant="outline">
-            <Link href={`/camps/${camp.id}`} prefetch={false}>
-                View Details
-            </Link>
-          </Button>
-        </div>
-      </Card>
-    );
-  };
-
-  // Helper component for rendering skeleton cards
-  const SkeletonCampCard = ({ count = 3 }: { count?: number }) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {[...Array(count)].map((_, index) => (
-        <Card key={index} className="overflow-hidden bg-card">
-          <Skeleton className="h-48 w-full" />
-          <CardHeader>
-            <Skeleton className="h-6 w-3/4 mb-2" />
-            <Skeleton className="h-4 w-1/2" />
-            <Skeleton className="h-4 w-2/5 mt-1" /> {/* Organizer placeholder */}
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
-          </CardContent>
-          <div className="p-6 pt-0 flex justify-between items-center">
-            <Skeleton className="h-6 w-1/4" />
-            <Skeleton className="h-8 w-1/3" /> {/* Adjusted width */}
-          </div>
-        </Card>
-      ))}
-    </div>
-  );
+// Removed Camp interface and CampCard/SkeletonCampCard components as they are no longer needed here
 
 export default function LandingPage() {
   const { user, loading } = useAuth();
@@ -118,7 +23,7 @@ export default function LandingPage() {
   // const [firestoreCamps, setFirestoreCamps] = useState<Camp[]>([]);
   // const [campsLoading, setCampsLoading] = useState(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Redirect if user is logged in
     if (!loading && user) {
       router.push('/main');
@@ -193,9 +98,9 @@ export default function LandingPage() {
                  >
                     Get Started
                  </Link>
-                 {/* Updated Explore Camps button link */}
+                 {/* Updated Explore Camps button link to /camps */}
                  <Link
-                     href="/main" // Link directly to the main page where camps are listed
+                     href="/camps" // Link to the new public camps listing page
                      prefetch={false}
                      className={cn(buttonVariants({ variant: 'secondary', size: 'lg' }))}
                  >
@@ -223,4 +128,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
