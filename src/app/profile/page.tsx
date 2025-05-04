@@ -197,13 +197,13 @@ const SkeletonCard = ({ count = 1 }: { count?: number }) => (
 
 
 export default function ProfilePage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isAdmin } = useAuth(); // Get isAdmin from AuthContext
   const router = useRouter();
   const { toast } = useToast();
   const [profileLoading, setProfileLoading] = useState(true);
   const [campsLoading, setCampsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false); // State for admin status
+  // Removed local isAdmin state, using context version
   const [myCreatedCamps, setMyCreatedCamps] = useState<Camp[]>([]);
   const [bookedCamps, setBookedCamps] = useState<Camp[]>([]); // Placeholder for booked camps
   const [deletingCampId, setDeletingCampId] = useState<string | null>(null);
@@ -242,9 +242,10 @@ export default function ProfilePage() {
                   organizerName: profileData.organizerName || '',
                   websiteUrl: profileData.websiteUrl || '',
               });
-              setIsAdmin(profileData.isAdmin || false); // Set admin status from profile
+              // isAdmin state is handled by AuthContext, no need to set locally
           } else {
               console.log("No profile document found for user.");
+               // Create initial profile if it doesn't exist
                const initialProfileData: UserProfile = {
                    email: user.email!,
                    createdAt: Timestamp.now(),
@@ -252,15 +253,14 @@ export default function ProfilePage() {
                    phoneNumber: '',
                    organizerName: '',
                    websiteUrl: '',
-                   isAdmin: false, // Default isAdmin to false
+                   isAdmin: false, // Default isAdmin to false for new users
                };
-               setDoc(userDocRef, initialProfileData).catch(err => console.error("Failed to create initial profile:", err));
-               setIsAdmin(false); // Set admin status to false for new profile
+               setDoc(userDocRef, initialProfileData)
+                 .catch(err => console.error("Failed to create initial profile:", err));
           }
       }).catch(error => {
           console.error("Error fetching profile data:", error);
           toast({ title: 'Error', description: 'Could not load profile data.', variant: 'destructive' });
-          setIsAdmin(false); // Ensure isAdmin is false on error
       }).finally(() => {
           setProfileLoading(false);
       });
@@ -305,18 +305,20 @@ export default function ProfilePage() {
    const fetchMyBookedCamps = async (userId: string) => {
     try {
         // Simulate fetching booked camp IDs (replace with actual Firestore query)
-        const bookedCampIds: string[] = []; // Replace with actual data
+        // Example: Fetch a 'bookings' collection where userId matches
+        const bookedCampIds: string[] = []; // Replace with actual data fetching logic
 
         if (bookedCampIds.length === 0) {
             setBookedCamps([]);
-            return;
+            return; // Exit early if no booked camps
         }
 
+        // Fetch details for each booked camp
         const campPromises = bookedCampIds.map(campId => getDoc(doc(db, 'camps', campId)));
         const campSnapshots = await Promise.all(campPromises);
 
         const fetchedBookedCamps = campSnapshots
-            .filter(snap => snap.exists())
+            .filter(snap => snap.exists()) // Ensure the camp document exists
             .map(snap => ({
                 id: snap.id,
                 ...snap.data() as Omit<Camp, 'id'>
@@ -334,7 +336,7 @@ export default function ProfilePage() {
         });
          setBookedCamps([]); // Ensure it's empty on error
     } finally {
-        setCampsLoading(false); // Set loading false after both fetches are complete
+        setCampsLoading(false); // Set loading false after both fetches (created & booked) are complete
     }
 };
 
@@ -385,12 +387,12 @@ export default function ProfilePage() {
     try {
         const userDocRef = doc(db, 'users', user.uid);
         const cleanedPhoneNumber = values.phoneNumber
-            ? '+' + (values.phoneNumber.replace(/[^\d]/g, '') || '').slice(1)
+            ? '+' + (values.phoneNumber.replace(/[^\d]/g, '') || '').slice(1) // Ensure '+' and clean non-digits
             : '';
 
 
         if (cleanedPhoneNumber && !/^\+7\d{10}$/.test(cleanedPhoneNumber)) {
-             toast({ title: 'Invalid Phone Number', description: 'Please enter a valid Russian phone number.', variant: 'destructive' });
+             toast({ title: 'Invalid Phone Number', description: 'Please enter a valid Russian phone number (+7 followed by 10 digits).', variant: 'destructive' });
              setIsSaving(false);
              return;
         }
@@ -401,7 +403,7 @@ export default function ProfilePage() {
             phoneNumber: cleanedPhoneNumber,
             organizerName: values.organizerName || '',
             websiteUrl: values.websiteUrl || '',
-            // isAdmin is not editable via this form, fetched separately
+            // isAdmin is not editable via this form, it's fetched and displayed
         };
 
         // Use setDoc with merge: true to update or create the document
@@ -493,6 +495,7 @@ export default function ProfilePage() {
                         <Card className="shadow-lg bg-card text-card-foreground">
                             <CardHeader className="items-center text-center">
                                 <Avatar className="h-24 w-24 mb-4 border-2 border-primary">
+                                    {/* AvatarImage can be added later if photoURL is available */}
                                     <AvatarFallback className="text-4xl">
                                         {getInitials(user?.email)}
                                     </AvatarFallback>
@@ -501,7 +504,7 @@ export default function ProfilePage() {
                                 <CardDescription>
                                    Manage your profile and events
                                 </CardDescription>
-                                {isAdmin && (
+                                {isAdmin && ( // Conditionally render the admin badge
                                     <Badge variant="default" className="mt-2 bg-primary text-primary-foreground">
                                         <ShieldCheck className="mr-1 h-4 w-4" /> Administrator
                                     </Badge>
