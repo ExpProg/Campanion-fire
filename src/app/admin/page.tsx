@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/layout/Header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, History, CalendarCheck2 } from 'lucide-react'; // Changed Clock to History, CheckCircle to CalendarCheck2
+import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, History, CalendarCheck2 } from 'lucide-react';
 import Link from 'next/link';
 import { collection, getDocs, deleteDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
@@ -27,8 +27,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge'; // Import Badge
-import { cn } from '@/lib/utils'; // Import cn for conditional classes
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"; // Import RadioGroup
+import { Label } from "@/components/ui/label"; // Import Label
 
 // Camp Data Interface - consistent with other pages
 interface Camp {
@@ -46,6 +48,18 @@ interface Camp {
   createdAt?: Timestamp;
   activities?: string[];
 }
+
+// Define the possible filter values
+type CampStatusFilter = 'all' | 'active' | 'past';
+
+// Helper function to determine camp status
+const getCampStatus = (camp: Camp): 'Active' | 'Past' => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Set to the beginning of today for comparison
+  const endDate = camp.endDate?.toDate();
+  return endDate && endDate >= today ? 'Active' : 'Past';
+};
+
 
 // Skeleton for the admin page while loading/checking auth
 const AdminPageSkeleton = () => (
@@ -72,12 +86,13 @@ const AdminPageSkeleton = () => (
                  </Card>
                  {/* Camps List Skeleton */}
                  <div className="mb-10">
-                    <Skeleton className="h-8 w-48 mb-6" /> {/* Section title */}
-                    <AdminCampListSkeleton count={2} />
-                 </div>
-                 <div>
-                    <Skeleton className="h-8 w-48 mb-6" /> {/* Section title */}
-                    <AdminCampListSkeleton count={1} />
+                    <Skeleton className="h-8 w-48 mb-4" /> {/* Section title */}
+                    <div className="flex space-x-4 mb-6"> {/* Filter Skeleton */}
+                       <Skeleton className="h-6 w-16" />
+                       <Skeleton className="h-6 w-16" />
+                       <Skeleton className="h-6 w-16" />
+                    </div>
+                    <AdminCampListSkeleton count={3} />
                  </div>
             </div>
         </main>
@@ -99,10 +114,7 @@ const AdminCampListItem = ({ camp, isOwner, onDeleteClick, deletingCampId, statu
     const badgeClasses = cn(
         'flex-shrink-0 transition-colors pointer-events-none', // Added pointer-events-none to disable hover interactions
         {
-            // Apply the requested yellow background #FFD54F (using Tailwind's yellow-400) and contrasting text
-            // Removed hover classes
-            'bg-yellow-400 text-yellow-950 dark:bg-yellow-500 dark:text-yellow-950 border-transparent': status === 'Active',
-            // Use default variant classes for 'Past' status - hover handled by variant
+            'bg-[#FFD54F] text-yellow-950 dark:bg-[#FFD54F] dark:text-yellow-950 border-transparent': status === 'Active',
             '': status === 'Past'
         }
     );
@@ -203,6 +215,7 @@ export default function AdminPage() {
     const [allAdminCamps, setAllAdminCamps] = useState<Camp[]>([]);
     const [campsLoading, setCampsLoading] = useState(true);
     const [deletingCampId, setDeletingCampId] = useState<string | null>(null);
+    const [filterStatus, setFilterStatus] = useState<CampStatusFilter>('all'); // State for filter
 
 
     useEffect(() => {
@@ -248,28 +261,17 @@ export default function AdminPage() {
         }
     };
 
-    // Separate camps into active and past using useMemo
-    const { activeCamps, pastCamps } = useMemo(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Set to the beginning of today for comparison
-
-        const active: Camp[] = [];
-        const past: Camp[] = [];
-
-        allAdminCamps.forEach(camp => {
-            const endDate = camp.endDate?.toDate();
-            if (endDate && endDate >= today) {
-                active.push(camp);
-            } else {
-                past.push(camp); // Includes camps with missing or past end dates
-            }
+    // Filter camps based on the selected status using useMemo
+    const filteredCamps = useMemo(() => {
+        if (filterStatus === 'all') {
+            return allAdminCamps;
+        }
+        return allAdminCamps.filter(camp => {
+            const status = getCampStatus(camp);
+            return filterStatus === 'active' ? status === 'Active' : status === 'Past';
         });
-        // Optional: Sort each list further if needed (e.g., by start date)
-        // active.sort(...);
-        // past.sort(...);
+    }, [allAdminCamps, filterStatus]);
 
-        return { activeCamps: active, pastCamps: past };
-    }, [allAdminCamps]);
 
     // Function to handle camp deletion
     const handleDeleteCamp = async (campId: string) => {
@@ -283,7 +285,7 @@ export default function AdminPage() {
         setDeletingCampId(campId);
         try {
         await deleteDoc(doc(db, 'camps', campId));
-        // Update the main list, memoized lists will update automatically
+        // Update the main list, memoized list will update automatically
         setAllAdminCamps(prev => prev.filter(camp => camp.id !== campId));
         toast({ title: 'Camp Deleted', description: 'The camp has been successfully removed.' });
         } catch (error) {
@@ -350,72 +352,66 @@ export default function AdminPage() {
                         </CardContent>
                     </Card>
 
-                     {/* Section for Admin's Created Camps */}
-                    <div className="mb-10"> {/* Active Camps Section */}
-                         <h2 className="text-2xl font-bold mb-6">My Active Camps</h2>
+                     {/* Section for Admin's Created Camps with Filtering */}
+                    <div className="mb-10">
+                         <h2 className="text-2xl font-bold mb-4">My Created Camps</h2>
+
+                         {/* Filter Controls */}
+                         <RadioGroup
+                            defaultValue="all"
+                            onValueChange={(value) => setFilterStatus(value as CampStatusFilter)}
+                            className="flex space-x-4 mb-6"
+                         >
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="all" id="r-all" />
+                                <Label htmlFor="r-all">All</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="active" id="r-active" />
+                                <Label htmlFor="r-active">Active</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="past" id="r-past" />
+                                <Label htmlFor="r-past">Past</Label>
+                            </div>
+                         </RadioGroup>
+
+
+                         {/* Camp List */}
                          {campsLoading ? (
-                            <AdminCampListSkeleton count={activeCamps.length > 0 ? activeCamps.length : 1} />
-                         ) : activeCamps.length > 0 ? (
+                            <AdminCampListSkeleton count={3} />
+                         ) : filteredCamps.length > 0 ? (
                             <div className="border rounded-md">
-                                {activeCamps.map((camp) => (
+                                {filteredCamps.map((camp) => (
                                     <AdminCampListItem
                                         key={camp.id}
                                         camp={camp}
                                         isOwner={true}
                                         onDeleteClick={handleDeleteCamp}
                                         deletingCampId={deletingCampId}
-                                        status="Active"
+                                        status={getCampStatus(camp)} // Determine status for each item
                                     />
                                 ))}
                             </div>
                          ) : (
                              <Card className="text-center py-12 border-dashed">
                                  <CardContent>
-                                     <p className="text-muted-foreground">No active camps found.</p>
+                                     <p className="text-muted-foreground">
+                                        {filterStatus === 'all' ? "You haven't created any camps yet." :
+                                         filterStatus === 'active' ? "No active camps found." :
+                                         "No past camps found."}
+                                     </p>
+                                     {filterStatus === 'all' && allAdminCamps.length === 0 && (
+                                         <Button asChild className="mt-4">
+                                             <Link href="/camps/new">Create Your First Camp</Link>
+                                         </Button>
+                                     )}
                                  </CardContent>
                              </Card>
                          )}
                     </div>
 
-                    <Separator className="my-12" />
-
-                     <div > {/* Past Camps Section */}
-                         <h2 className="text-2xl font-bold mb-6">My Past Camps</h2>
-                          {campsLoading ? (
-                            <AdminCampListSkeleton count={pastCamps.length > 0 ? pastCamps.length : 1} />
-                         ) : pastCamps.length > 0 ? (
-                            <div className="border rounded-md">
-                                {pastCamps.map((camp) => (
-                                     <AdminCampListItem
-                                        key={camp.id}
-                                        camp={camp}
-                                        isOwner={true}
-                                        onDeleteClick={handleDeleteCamp}
-                                        deletingCampId={deletingCampId}
-                                        status="Past"
-                                    />
-                                ))}
-                            </div>
-                         ) : (
-                             <Card className="text-center py-12 border-dashed">
-                                 <CardContent>
-                                     <p className="text-muted-foreground">No past camps found.</p>
-                                 </CardContent>
-                             </Card>
-                         )}
-                    </div>
-
-                    {/* Message if no camps at all */}
-                     {!campsLoading && allAdminCamps.length === 0 && (
-                         <Card className="text-center py-12 mt-12">
-                             <CardContent>
-                                 <p className="text-muted-foreground mb-4">You haven't created any camps yet.</p>
-                                 <Button asChild>
-                                     <Link href="/camps/new">Create Your First Camp</Link>
-                                 </Button>
-                             </CardContent>
-                         </Card>
-                     )}
+                    {/* Removed Past Camps Section and Separator */}
 
                 </div>
             </main>
