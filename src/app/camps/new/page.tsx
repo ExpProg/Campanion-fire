@@ -56,6 +56,26 @@ const createCampSchema = z.object({
 
 type CreateCampFormValues = z.infer<typeof createCampSchema>;
 
+// Camp Data Interface including creatorId and creationMode
+interface CampFirestoreData {
+  name: string;
+  description: string;
+  organizerId: string;
+  organizerName: string;
+  organizerLink: string;
+  creatorId: string; // ID of the user who created the camp
+  creationMode: 'admin' | 'user'; // Mode based on creator's admin status
+  startDate: Timestamp;
+  endDate: Timestamp;
+  dates: string;
+  location: string;
+  price: number;
+  imageUrl: string;
+  activities: string[];
+  createdAt: Timestamp;
+}
+
+
 // Date Picker Component (simplified version)
 function DatePickerField({ field, label, disabled, isAdmin }: {
     field: any;
@@ -135,7 +155,17 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
     });
 
     const onSubmit = async (values: CreateCampFormValues) => {
-        if (!user?.uid || !isAdmin) { // Check if user is admin
+        if (!user?.uid) { // Basic check for logged-in user
+            toast({
+                title: 'Authentication Required',
+                description: 'You must be logged in to create a camp.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        // Check if the user is an admin (required to create camps based on previous logic)
+        if (!isAdmin) {
             toast({
                 title: 'Permission Denied',
                 description: 'Only administrators can create camps.',
@@ -143,6 +173,7 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
             });
             return;
         }
+
 
         // Additional check for non-admins trying to create past camps (though UI should prevent this)
         const today = new Date();
@@ -173,14 +204,18 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
             const organizerName = selectedOrganizer?.name || 'Unknown Organizer';
             const organizerLink = selectedOrganizer?.link || '';
 
-            const campData = {
+            // Determine creation mode based on isAdmin status
+            const creationMode: 'admin' | 'user' = isAdmin ? 'admin' : 'user';
+
+            // Updated campData structure
+            const campData: CampFirestoreData = {
                 name: values.name,
                 description: values.description,
                 organizerId: values.organizerId, // Store the selected organizer ID
                 organizerName: organizerName, // Denormalize name
                 organizerLink: organizerLink, // Denormalize link
-                // organizerEmail: user.email, // This might not be the organizer's contact email
-                creatorId: user.uid, // Keep track of the admin who created it
+                creatorId: user.uid, // Add the creator's UID
+                creationMode: creationMode, // Add the creation mode ('admin' or 'user')
                 startDate: Timestamp.fromDate(values.startDate), // Store as Timestamp
                 endDate: Timestamp.fromDate(values.endDate),     // Store as Timestamp
                 dates: datesString, // Store formatted string for easy display
@@ -523,3 +558,4 @@ export default function CreateCampPage() {
     </div>
   );
 }
+

@@ -55,6 +55,7 @@ const editCampSchema = z.object({
 
 type EditCampFormValues = z.infer<typeof editCampSchema>;
 
+// CampData Interface including creatorId and creationMode
 interface CampData {
   id: string;
   name: string;
@@ -69,7 +70,8 @@ interface CampData {
   price: number;
   imageUrl: string;
   activities: string[];
-  creatorId?: string; // Keep track of who created it
+  creatorId: string; // Added creatorId
+  creationMode: 'admin' | 'user'; // Added creationMode
   // Keep organizerId from original camp data
 }
 
@@ -159,16 +161,16 @@ function EditCampForm({ campData, campId, organizers, organizersLoading }: {
     const startDateValue = form.watch('startDate');
 
     const onSubmit = async (values: EditCampFormValues) => {
-        // Permission check should happen in the parent component before rendering this form
-        if (!isAdmin || !user) {
+        // Permission check: Ensure user is logged in and is the creator of the camp
+        // Note: Only admins can reach this page due to routing rules, but double-check creatorId
+        if (!user || campData.creatorId !== user.uid) {
              toast({
                 title: 'Permission Denied',
-                description: 'Only administrators can edit camps.',
+                description: 'You do not have permission to edit this camp.',
                 variant: 'destructive',
             });
             return;
         }
-
 
         // Additional check for non-admins trying to set past dates (though UI should prevent this)
         const today = new Date();
@@ -198,12 +200,14 @@ function EditCampForm({ campData, campId, organizers, organizersLoading }: {
             const organizerName = selectedOrganizer?.name || 'Unknown Organizer';
             const organizerLink = selectedOrganizer?.link || '';
 
+            // Construct updated data, keeping creatorId and creationMode unchanged
             const updatedData = {
                 name: values.name,
                 organizerId: values.organizerId, // Update organizer ID
                 organizerName: organizerName, // Update denormalized name
                 organizerLink: organizerLink, // Update denormalized link
-                // creatorId should not change
+                creatorId: campData.creatorId, // Keep original creatorId
+                creationMode: campData.creationMode, // Keep original creationMode
                 description: values.description,
                 startDate: Timestamp.fromDate(values.startDate),
                 endDate: Timestamp.fromDate(values.endDate),
@@ -212,7 +216,7 @@ function EditCampForm({ campData, campId, organizers, organizersLoading }: {
                 price: values.price,
                 imageUrl: values.imageUrl || `https://picsum.photos/seed/${values.name.replace(/\s+/g, '-')}/600/400`, // Fallback logic
                 activities: activitiesArray,
-                // createdAt remain unchanged
+                // createdAt remains unchanged
             };
 
             const campDocRef = doc(db, 'camps', campId);
@@ -444,15 +448,19 @@ export default function EditCampPage() {
                     if (docSnap.exists()) {
                         const data = docSnap.data() as Omit<CampData, 'id'>;
                         // **Permission Check:** Ensure the logged-in admin is the CREATOR of this camp
-                        // Using creatorId if available, otherwise fallback to organizerId (legacy)
-                        const creator = data.creatorId || data.organizerId;
-                        if (creator !== user.uid) {
+                        if (data.creatorId !== user.uid) {
                             setError("Permission Denied. You can only edit camps you created.");
                             toast({ title: 'Permission Denied', description: 'You did not create this camp.', variant: 'destructive' });
                             router.push('/admin');
                             return;
                         }
-                        setCampData({ id: docSnap.id, ...data });
+                        // Add default values for potentially missing creatorId/creationMode
+                        setCampData({
+                            id: docSnap.id,
+                            ...data,
+                            creatorId: data.creatorId || user.uid, // Fallback just in case
+                            creationMode: data.creationMode || 'admin', // Fallback just in case
+                         });
                     } else {
                         setError("Camp not found.");
                         toast({ title: 'Error', description: 'Camp not found.', variant: 'destructive' });
@@ -612,3 +620,4 @@ export default function EditCampPage() {
         </div>
     );
 }
+

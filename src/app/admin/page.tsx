@@ -49,7 +49,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'; // Import Avatar components
 
-// Camp Data Interface
+// Camp Data Interface including creatorId and creationMode
 interface Camp {
   id: string;
   name: string;
@@ -60,9 +60,10 @@ interface Camp {
   location: string;
   imageUrl: string;
   price: number;
-  organizerId?: string; // Keep this, it links to the organizers collection
-  creatorId?: string; // ID of the admin who created the camp
-  organizerEmail?: string; // May no longer be relevant if using organizer collection
+  organizerId?: string; // Link to the organizers collection
+  creatorId: string; // ID of the admin who created the camp
+  creationMode: 'admin' | 'user'; // Added creationMode
+  organizerEmail?: string; // May no longer be relevant
   createdAt?: Timestamp;
   activities?: string[];
 }
@@ -150,7 +151,7 @@ const AdminPageSkeleton = () => (
 // Reusable Camp List Item Component for Admin Panel
 const AdminCampListItem = ({ camp, isCreator, onDeleteClick, deletingCampId, status }: {
     camp: Camp;
-    isCreator: boolean; // Changed from isOwner to isCreator
+    isCreator: boolean; // Check if the logged-in user is the creator
     onDeleteClick: (campId: string) => void;
     deletingCampId: string | null;
     status: 'Active' | 'Past';
@@ -279,7 +280,6 @@ const AdminOrganizerListItem = ({ organizer, onEditClick, onDeleteClick, deletin
      // Placeholder for edit functionality - opens a dialog/modal
      const handleEdit = () => {
          onEditClick(organizer); // Pass the organizer data to the handler
-         // console.log("Edit button clicked for organizer:", organizer.id); // Log removed, handled by opening dialog
      };
 
     return (
@@ -303,7 +303,6 @@ const AdminOrganizerListItem = ({ organizer, onEditClick, onDeleteClick, deletin
 
             {/* Action Buttons */}
             <div className="flex gap-2 items-center flex-shrink-0">
-                 {/* Enabled the edit button */}
                  <Button size="icon" variant="ghost" onClick={handleEdit} aria-label={`Edit ${organizer.name}`}>
                      <Pencil className="h-4 w-4" />
                      <span className="sr-only">Edit</span>
@@ -896,3 +895,4 @@ export default function AdminPage() {
         </div>
     );
 }
+

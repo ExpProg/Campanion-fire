@@ -41,7 +41,7 @@ import { Badge } from '@/components/ui/badge'; // Import Badge
 
 // Basic regex for phone validation: allows optional +, digits, spaces, hyphens. Adjust as needed.
 // Allows optional leading +, requires at least 7 digits, allows spaces and hyphens.
-// Updated regex to match the mask format +7 xxx xxx-xx-xx more closely.
+// Updated regex to match the format +7 xxx xxx-xx-xx more closely.
 // It expects +7 followed by 10 digits, possibly separated by spaces or hyphens.
 const phoneRegex = /^\+7[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}$/;
 
@@ -78,7 +78,7 @@ interface UserProfile {
     isAdmin?: boolean; // Added isAdmin field
 }
 
-// Interface for Camp data (matching structure used elsewhere)
+// Interface for Camp data (matching structure used elsewhere) including creatorId and creationMode
 interface Camp {
   id: string;
   name: string;
@@ -89,8 +89,10 @@ interface Camp {
   location: string;
   imageUrl: string;
   price: number;
-  organizerId?: string;
-  organizerEmail?: string;
+  organizerId?: string; // Link to the organizers collection
+  creatorId: string; // ID of the user who created the camp
+  creationMode: 'admin' | 'user'; // Added creationMode
+  organizerEmail?: string; // May no longer be relevant
   createdAt?: Timestamp;
   activities?: string[];
 }
@@ -132,40 +134,6 @@ const CampCard = ({ camp, isOwner, onDeleteClick, deletingCampId }: {
               </Link>
               </Button>
               {/* REMOVED Edit and Delete buttons - manage from admin panel */}
-              {/*
-              {isOwner && (
-                  <>
-                      <Button size="sm" asChild variant="ghost">
-                          <Link href={`/camps/${camp.id}/edit`} prefetch={false} aria-label={`Edit ${camp.name}`}>
-                               <span className="flex items-center">
-                                  <Pencil className="h-4 w-4" />
-                                  <span className="sr-only">Edit</span>
-                               </span>
-                          </Link>
-                      </Button>
-                      <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={deletingCampId === camp.id} aria-label={`Delete ${camp.name}`}>
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Delete</span>
-                          </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                          <AlertDialogHeader>
-                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete the camp "{camp.name}".
-                          </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => onDeleteClick(camp.id)} className="bg-destructive hover:bg-destructive/90">Delete Camp</AlertDialogAction>
-                          </AlertDialogFooter>
-                      </AlertDialogContent>
-                      </AlertDialog>
-                  </>
-              )}
-               */}
           </div>
           </div>
       </Card>
@@ -205,11 +173,8 @@ export default function ProfilePage() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [campsLoading, setCampsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  // Removed local isAdmin state, using context version
   const [myCreatedCamps, setMyCreatedCamps] = useState<Camp[]>([]);
   const [bookedCamps, setBookedCamps] = useState<Camp[]>([]); // Placeholder for booked camps
-  // Removed deletingCampId state as deletion is moved to admin panel
-  // const [deletingCampId, setDeletingCampId] = useState<string | null>(null);
 
 
   const form = useForm<ProfileFormValues>({
@@ -245,7 +210,6 @@ export default function ProfilePage() {
                   organizerName: profileData.organizerName || '',
                   websiteUrl: profileData.websiteUrl || '',
               });
-              // isAdmin state is handled by AuthContext, no need to set locally
           } else {
               console.log("No profile document found for user.");
                // Create initial profile if it doesn't exist
@@ -273,9 +237,7 @@ export default function ProfilePage() {
         fetchMyCreatedCamps(user.uid);
       } else {
         setMyCreatedCamps([]); // Non-admins have no created camps shown here
-        // Loading state will be set by booked camps fetch
       }
-
 
       // Fetch Booked Camps Data (Placeholder) - Assuming all users can book
       fetchMyBookedCamps(user.uid); // This will handle setting campsLoading to false
@@ -294,7 +256,8 @@ export default function ProfilePage() {
         id: doc.id,
         ...doc.data() as Omit<Camp, 'id'>
       }))
-      .filter(camp => camp.organizerId === userId) // Filter for user's camps
+      // Correctly filter by creatorId
+      .filter(camp => camp.creatorId === userId)
       .sort((a, b) => (b.createdAt?.toDate() ?? new Date(0)).getTime() - (a.createdAt?.toDate() ?? new Date(0)).getTime()); // Sort newest first
 
       setMyCreatedCamps(fetchedCamps);
@@ -355,15 +318,6 @@ export default function ProfilePage() {
         setCampsLoading(false);
     }
 };
-
-
-  // Removed handleDeleteCamp function as it's moved to admin panel
-  /*
-  const handleDeleteCamp = async (campId: string) => {
-    // ... (deletion logic removed)
-  };
-  */
-
 
   const handleLogout = async () => {
     try {
@@ -677,3 +631,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+
