@@ -205,6 +205,7 @@ export default function CampDetailsPage() {
 
   // Camp data is available
   // const displayContactEmail = camp.contactEmail || 'Not specified'; // Removed contactEmail
+  const organizerDisplay = camp.organizerName || 'Campanion Partner'; // Fallback
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -238,10 +239,10 @@ export default function CampDetailsPage() {
                                 <Building className="h-4 w-4 mr-2 text-muted-foreground" />
                                 Organized by {camp.organizerLink ? (
                                     <a href={camp.organizerLink} target="_blank" rel="noopener noreferrer" className="ml-1 text-primary hover:underline">
-                                        {camp.organizerName}
+                                        {organizerDisplay}
                                     </a>
                                 ) : (
-                                    <span className="ml-1">{camp.organizerName}</span>
+                                    <span className="ml-1">{organizerDisplay}</span>
                                 )}
                               </CardDescription>
                           </CardHeader>
@@ -308,3 +309,4 @@ export default function CampDetailsPage() {
     </div>
   );
 }
+

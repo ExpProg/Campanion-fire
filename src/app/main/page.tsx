@@ -9,7 +9,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import Image from 'next/image';
 import { collection, getDocs, deleteDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
-import { Trash2, Pencil, PlusCircle } from 'lucide-react'; // Keep Pencil/Trash2 imports for now, just remove usage
+import { Building, PlusCircle } from 'lucide-react'; // Removed Pencil/Trash2, Added Building
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
@@ -39,6 +39,8 @@ interface Camp {
   imageUrl: string;
   price: number;
   organizerId?: string; // Crucial for checking ownership
+  organizerName?: string; // Denormalized organizer name
+  organizerLink?: string; // Denormalized organizer link
   organizerEmail?: string;
   createdAt?: Timestamp;
   activities?: string[];
@@ -146,6 +148,7 @@ export default function MainPage() { // Renamed from DashboardPage
   const CampCard = ({ camp }: { camp: Camp }) => {
     // No need to check ownership here as edit/delete are removed
     // const isOwner = camp.organizerId === user?.uid;
+    const organizerDisplay = camp.organizerName || 'Campanion Partner'; // Fallback
 
     return (
       <Card key={camp.id} className="overflow-hidden flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300 bg-card">
@@ -162,6 +165,17 @@ export default function MainPage() { // Renamed from DashboardPage
         <CardHeader>
           <CardTitle>{camp.name}</CardTitle>
           <CardDescription>{camp.location} | {camp.dates}</CardDescription>
+          {/* Display Organizer Info */}
+          <CardDescription className="flex items-center pt-1">
+            <Building className="h-4 w-4 mr-1 text-muted-foreground" />
+             {camp.organizerLink ? (
+                <a href={camp.organizerLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline truncate">
+                    {organizerDisplay}
+                </a>
+            ) : (
+                <span className="text-sm text-muted-foreground truncate">{organizerDisplay}</span>
+            )}
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex-grow">
           <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{camp.description}</p>
@@ -175,52 +189,6 @@ export default function MainPage() { // Renamed from DashboardPage
               </Link>
             </Button>
             {/* REMOVED Edit and Delete buttons */}
-            {/*
-            {isOwner && (
-              <>
-                <Button size="sm" asChild variant="ghost">
-                    <Link href={`/camps/${camp.id}/edit`} prefetch={false} aria-label={`Edit ${camp.name}`}>
-                       <span className="flex items-center">
-                           <Pencil className="h-4 w-4" />
-                           <span className="sr-only">Edit</span>
-                       </span>
-                    </Link>
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:bg-destructive/10"
-                      disabled={deletingCampId === camp.id}
-                      aria-label={`Delete ${camp.name}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Delete</span>
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete the camp
-                        <span className="font-medium"> "{camp.name}"</span> from the database.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => handleDeleteCamp(camp.id)}
-                        className="bg-destructive hover:bg-destructive/90"
-                      >
-                        Delete Camp
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </>
-            )}
-            */}
           </div>
         </div>
       </Card>
@@ -236,6 +204,7 @@ export default function MainPage() { // Renamed from DashboardPage
           <CardHeader>
             <Skeleton className="h-6 w-3/4 mb-2" />
             <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-4 w-2/5 mt-1" /> {/* Organizer placeholder */}
           </CardHeader>
           <CardContent className="space-y-2">
             <Skeleton className="h-4 w-full" />
