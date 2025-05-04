@@ -8,6 +8,7 @@ import { Tent } from 'lucide-react'; // Removed MountainSnow as it wasn't used
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/layout/Header'; // Import the Header component
+import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
 
 export default function LandingPage() {
   const { user, loading } = useAuth();
@@ -15,7 +16,7 @@ export default function LandingPage() {
 
   React.useEffect(() => {
     if (!loading && user) {
-      router.push('/dashboard');
+      router.push('/main'); // Redirect to main dashboard if logged in
     }
   }, [user, loading, router]);
 
@@ -78,9 +79,11 @@ export default function LandingPage() {
                     Get Started
                   </Link>
                 </Button>
+                {/* Fix: Ensure Button with asChild has a single React element child */}
                 <Button variant="secondary" size="lg" asChild>
-                   <Link href="#features" prefetch={false}> {/* Assuming a features section might be added later */}
-                     Learn More
+                   <Link href="#features" prefetch={false}>
+                     {/* Wrap text node in a span */}
+                     <span>Learn More</span>
                    </Link>
                 </Button>
               </div>
@@ -108,4 +111,4 @@ export default function LandingPage() {
 }
 
 // Need Skeleton component for loading state
-import { Skeleton } from "@/components/ui/skeleton";
+// import { Skeleton } from "@/components/ui/skeleton"; // Already imported above
