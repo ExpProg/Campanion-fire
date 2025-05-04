@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/layout/Header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, Clock, CheckCircle } from 'lucide-react'; // Added Clock, CheckCircle
+import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, History, CalendarCheck2 } from 'lucide-react'; // Changed Clock to History, CheckCircle to CalendarCheck2
 import Link from 'next/link';
 import { collection, getDocs, deleteDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
@@ -102,7 +102,8 @@ const AdminCampListItem = ({ camp, isOwner, onDeleteClick, deletingCampId, statu
              <div className="flex items-center gap-2 mb-1">
                  <p className="font-semibold truncate">{camp.name}</p>
                  <Badge variant={status === 'Active' ? 'default' : 'secondary'} className="flex-shrink-0">
-                    {status === 'Active' ? <CheckCircle className="h-3 w-3 mr-1" /> : <Clock className="h-3 w-3 mr-1" />}
+                    {/* Updated icons */}
+                    {status === 'Active' ? <CalendarCheck2 className="h-3 w-3 mr-1" /> : <History className="h-3 w-3 mr-1" />}
                     {status}
                  </Badge>
              </div>
