@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, History, CalendarCheck2, Check, PlusCircle, Users } from 'lucide-react'; // Added Check, PlusCircle, Users icons
 import Link from 'next/link';
-import { collection, getDocs, deleteDoc, doc, Timestamp, addDoc } from 'firebase/firestore'; // Added addDoc
+import { collection, getDocs, deleteDoc, doc, Timestamp, addDoc } from 'firebase/firestore'; // Added addDoc, deleteDoc
 import { db } from '@/config/firebase';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -269,14 +269,17 @@ const AdminOrganizerListSkeleton = ({ count = 2 }: { count?: number }) => (
 );
 
 // Reusable Organizer List Item Component
-const AdminOrganizerListItem = ({ organizer, onDeleteClick }: { // Simplified for now, add edit later if needed
+const AdminOrganizerListItem = ({ organizer, onEditClick, onDeleteClick, deletingOrganizerId }: {
     organizer: Organizer;
-    onDeleteClick: (organizerId: string) => void; // Placeholder for delete functionality
+    onEditClick: (organizer: Organizer) => void; // Pass full organizer for editing
+    onDeleteClick: (organizerId: string) => void;
+    deletingOrganizerId: string | null;
 }) => {
-     const handleDelete = () => {
-        // Implement confirmation dialog before actual deletion
-        console.warn("Delete functionality not fully implemented yet for organizer:", organizer.id);
-        // onDeleteClick(organizer.id);
+     // Placeholder for edit functionality - opens a dialog/modal
+     const handleEdit = () => {
+         onEditClick(organizer); // Pass the organizer data to the handler
+         console.log("Edit button clicked for organizer:", organizer.id);
+         // Later: Open an edit dialog here, pre-filled with organizer data
      };
 
     return (
@@ -298,15 +301,33 @@ const AdminOrganizerListItem = ({ organizer, onDeleteClick }: { // Simplified fo
                 </div>
             </div>
 
-            {/* Action Buttons (Placeholder for Delete/Edit) */}
+            {/* Action Buttons */}
             <div className="flex gap-2 items-center flex-shrink-0">
-                 {/* <Button size="icon" variant="ghost" aria-label={`Edit ${organizer.name}`} disabled>
+                 <Button size="icon" variant="ghost" onClick={handleEdit} aria-label={`Edit ${organizer.name}`} disabled> {/* Disable edit for now */}
                      <Pencil className="h-4 w-4" />
+                     <span className="sr-only">Edit</span>
                  </Button>
-                 <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={handleDelete} aria-label={`Delete ${organizer.name}`} disabled>
-                     <Trash2 className="h-4 w-4" />
-                 </Button> */}
-                 <span className="text-xs text-muted-foreground italic">(Actions coming soon)</span>
+                 <AlertDialog>
+                     <AlertDialogTrigger asChild>
+                         <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={deletingOrganizerId === organizer.id} aria-label={`Delete ${organizer.name}`}>
+                             <Trash2 className="h-4 w-4" />
+                             <span className="sr-only">Delete</span>
+                         </Button>
+                     </AlertDialogTrigger>
+                     <AlertDialogContent>
+                         <AlertDialogHeader>
+                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                             <AlertDialogDescription>
+                                 This action cannot be undone. This will permanently delete the organizer "{organizer.name}".
+                             </AlertDialogDescription>
+                         </AlertDialogHeader>
+                         <AlertDialogFooter>
+                             <AlertDialogCancel>Cancel</AlertDialogCancel>
+                             <AlertDialogAction onClick={() => onDeleteClick(organizer.id)} className="bg-destructive hover:bg-destructive/90">Delete Organizer</AlertDialogAction>
+                         </AlertDialogFooter>
+                     </AlertDialogContent>
+                 </AlertDialog>
+                 {/* Removed the "(Actions coming soon)" text */}
              </div>
         </div>
     );
@@ -416,6 +437,92 @@ const CreateOrganizerForm = ({ setOpen, refreshOrganizers }: { setOpen: (open: b
     );
 };
 
+// Placeholder Organizer Edit Form Component (Inside a Dialog) - NOT IMPLEMENTED YET
+const EditOrganizerForm = ({ organizer, setOpen, refreshOrganizers }: {
+    organizer: Organizer | null; // Organizer to edit, or null if not editing
+    setOpen: (open: boolean) => void;
+    refreshOrganizers: () => void;
+}) => {
+    const { toast } = useToast();
+    const [isSaving, setIsSaving] = useState(false);
+
+    const form = useForm<OrganizerFormValues>({
+        resolver: zodResolver(organizerSchema),
+        defaultValues: { // Populate with organizer data when available
+            name: organizer?.name || '',
+            link: organizer?.link || '',
+            description: organizer?.description || '',
+            avatarUrl: organizer?.avatarUrl || '',
+        },
+    });
+
+    // Reset form when organizer data changes (e.g., when dialog opens with new data)
+    useEffect(() => {
+        if (organizer) {
+            form.reset({
+                name: organizer.name,
+                link: organizer.link,
+                description: organizer.description,
+                avatarUrl: organizer.avatarUrl,
+            });
+        } else {
+            form.reset({ // Reset to defaults if no organizer (e.g., dialog closed)
+                name: '', link: '', description: '', avatarUrl: ''
+            });
+        }
+    }, [organizer, form]);
+
+    const onSubmit = async (values: OrganizerFormValues) => {
+        if (!organizer) {
+            toast({ title: 'Error', description: 'No organizer selected for editing.', variant: 'destructive' });
+            return;
+        }
+        setIsSaving(true);
+        console.warn(`Edit functionality for organizer ${organizer.id} not fully implemented yet.`);
+        // *** Implement Firestore update logic here ***
+        // Example:
+        // try {
+        //     const organizerRef = doc(db, 'organizers', organizer.id);
+        //     await updateDoc(organizerRef, { ...values }); // Update with new form values
+        //     toast({ title: 'Organizer Updated', description: `Organizer "${values.name}" updated.` });
+        //     setOpen(false);
+        //     refreshOrganizers();
+        // } catch (error) {
+        //     console.error("Error updating organizer:", error);
+        //     toast({ title: 'Update Failed', description: 'Could not update the organizer.', variant: 'destructive' });
+        // } finally {
+        //     setIsSaving(false);
+        // }
+
+        // Remove this simulation when Firestore update is implemented
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate save
+        toast({ title: 'Edit (Simulated)', description: `Organizer "${values.name}" edit action triggered (not saved).`, variant: 'default' });
+        setIsSaving(false);
+        setOpen(false); // Close dialog
+    };
+
+    return (
+         <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {/* Replicate FormFields from CreateOrganizerForm */}
+                 <FormField control={form.control} name="name" render={({ field }) => ( <FormItem> <FormLabel>Organizer Name</FormLabel> <FormControl> <Input {...field} disabled={isSaving} /> </FormControl> <FormMessage /> </FormItem> )} />
+                 <FormField control={form.control} name="link" render={({ field }) => ( <FormItem> <FormLabel>Website Link (Optional)</FormLabel> <FormControl> <Input {...field} disabled={isSaving} /> </FormControl> <FormMessage /> </FormItem> )} />
+                 <FormField control={form.control} name="description" render={({ field }) => ( <FormItem> <FormLabel>Description</FormLabel> <FormControl> <Textarea {...field} disabled={isSaving} /> </FormControl> <FormMessage /> </FormItem> )} />
+                 <FormField control={form.control} name="avatarUrl" render={({ field }) => ( <FormItem> <FormLabel>Avatar URL (Optional)</FormLabel> <FormControl> <Input {...field} disabled={isSaving} /> </FormControl> <FormMessage /> </FormItem> )} />
+
+                 <DialogFooter className="mt-6">
+                     <DialogClose asChild>
+                        <Button type="button" variant="outline" disabled={isSaving}>Cancel</Button>
+                     </DialogClose>
+                    <Button type="submit" disabled={isSaving}>
+                        {isSaving ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                 </DialogFooter>
+            </form>
+        </Form>
+    );
+};
+
 
 export default function AdminPage() {
     const { user, isAdmin, loading: authLoading } = useAuth();
@@ -428,6 +535,9 @@ export default function AdminPage() {
     const [organizers, setOrganizers] = useState<Organizer[]>([]);
     const [organizersLoading, setOrganizersLoading] = useState(true);
     const [isCreateOrganizerOpen, setIsCreateOrganizerOpen] = useState(false);
+    const [deletingOrganizerId, setDeletingOrganizerId] = useState<string | null>(null); // For tracking organizer deletion
+    const [isEditOrganizerOpen, setIsEditOrganizerOpen] = useState(false); // State for edit dialog
+    const [organizerToEdit, setOrganizerToEdit] = useState<Organizer | null>(null); // State to hold organizer being edited
 
 
     useEffect(() => {
@@ -526,10 +636,26 @@ export default function AdminPage() {
         }
     };
 
-    // Placeholder for organizer deletion
+    // Function to handle organizer deletion
     const handleDeleteOrganizer = async (organizerId: string) => {
-        console.warn(`Attempting to delete organizer ${organizerId} - NOT IMPLEMENTED`);
-        // Add deletion logic here with confirmation
+        if (!organizerId || !isAdmin) return;
+        setDeletingOrganizerId(organizerId);
+        try {
+            await deleteDoc(doc(db, 'organizers', organizerId));
+            setOrganizers(prev => prev.filter(org => org.id !== organizerId));
+            toast({ title: 'Organizer Deleted', description: 'The organizer has been removed.' });
+        } catch (error) {
+            console.error("Error deleting organizer:", error);
+            toast({ title: 'Deletion Failed', description: 'Could not delete the organizer.', variant: 'destructive' });
+        } finally {
+            setDeletingOrganizerId(null);
+        }
+    };
+
+    // Handler to open the edit organizer dialog
+    const handleEditOrganizerClick = (organizer: Organizer) => {
+        setOrganizerToEdit(organizer);
+        setIsEditOrganizerOpen(true);
     };
 
 
@@ -591,6 +717,7 @@ export default function AdminPage() {
                              <h2 className="text-2xl font-bold flex items-center gap-2">
                                 <Users className="h-6 w-6" /> Organizer Management
                              </h2>
+                              {/* Create Organizer Dialog */}
                               <Dialog open={isCreateOrganizerOpen} onOpenChange={setIsCreateOrganizerOpen}>
                                   <DialogTrigger asChild>
                                       <Button>
@@ -605,11 +732,11 @@ export default function AdminPage() {
                                           </DialogDescription>
                                       </DialogHeader>
                                       <CreateOrganizerForm setOpen={setIsCreateOrganizerOpen} refreshOrganizers={fetchOrganizers} />
-                                      {/* Footer is now inside the form */}
                                   </DialogContent>
                               </Dialog>
                          </div>
 
+                         {/* Organizer List */}
                          {organizersLoading ? (
                             <AdminOrganizerListSkeleton count={2}/>
                          ) : organizers.length > 0 ? (
@@ -618,7 +745,9 @@ export default function AdminPage() {
                                     <AdminOrganizerListItem
                                         key={org.id}
                                         organizer={org}
+                                        onEditClick={handleEditOrganizerClick}
                                         onDeleteClick={handleDeleteOrganizer}
+                                        deletingOrganizerId={deletingOrganizerId}
                                     />
                                 ))}
                             </div>
@@ -630,6 +759,25 @@ export default function AdminPage() {
                              </Card>
                          )}
                     </div>
+
+                     {/* Edit Organizer Dialog (Placeholder/Not fully implemented) */}
+                     <Dialog open={isEditOrganizerOpen} onOpenChange={setIsEditOrganizerOpen}>
+                         <DialogContent className="sm:max-w-[425px]">
+                             <DialogHeader>
+                                 <DialogTitle>Edit Organizer</DialogTitle>
+                                 <DialogDescription>
+                                     Update the details for {organizerToEdit?.name || 'the organizer'}. <span className="italic text-xs">(Edit save not implemented)</span>
+                                 </DialogDescription>
+                             </DialogHeader>
+                             {/* Pass organizer data and handlers */}
+                             <EditOrganizerForm
+                                organizer={organizerToEdit}
+                                setOpen={setIsEditOrganizerOpen}
+                                refreshOrganizers={fetchOrganizers}
+                             />
+                         </DialogContent>
+                     </Dialog>
+
 
                     <Separator className="my-12"/>
 
