@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState } from 'react'; // Added useEffect, useState
@@ -112,9 +113,10 @@ const LandingCampCard = ({ camp }: { camp: Camp }) => {
 export default function LandingPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const { toast } = useToast(); // Get toast function
-  const [firestoreCamps, setFirestoreCamps] = useState<Camp[]>([]);
-  const [campsLoading, setCampsLoading] = useState(true); // State for camps loading
+  // Removed unused toast import and state related to camps
+  // const { toast } = useToast();
+  // const [firestoreCamps, setFirestoreCamps] = useState<Camp[]>([]);
+  // const [campsLoading, setCampsLoading] = useState(true);
 
   React.useEffect(() => {
     // Redirect if user is logged in
@@ -123,49 +125,10 @@ export default function LandingPage() {
     }
   }, [user, loading, router]);
 
-   // Fetch Firestore camps (active only) - runs regardless of login status
-   useEffect(() => {
-    // Only fetch if user is not logged in or auth is still loading (to avoid duplicate fetch)
-    // We fetch here specifically for the landing page context.
-    if (!user || loading) {
-        setCampsLoading(true);
-        const fetchCamps = async () => {
-            try {
-                const campsCollectionRef = collection(db, 'camps');
-                const q = query(
-                    campsCollectionRef,
-                    where('status', '==', 'active') // Only fetch 'active' camps
-                );
-                const querySnapshot = await getDocs(q);
-                const fetchedCamps = querySnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data() as Omit<Camp, 'id'>
-                }))
-                .sort((a, b) => (b.createdAt?.toDate() ?? new Date(0)).getTime() - (a.createdAt?.toDate() ?? new Date(0)).getTime()); // Sort newest first
+   // Removed useEffect related to fetching camps for landing page
 
-                setFirestoreCamps(fetchedCamps);
-            } catch (error) {
-                console.error("Error fetching camps for landing page:", error);
-                toast({
-                    title: 'Error fetching camps',
-                    description: 'Could not load available camps.',
-                    variant: 'destructive',
-                });
-                setFirestoreCamps([]); // Set empty on error
-            } finally {
-                setCampsLoading(false);
-            }
-        };
-        fetchCamps();
-    } else {
-        // If user is logged in, we don't need to load camps here (they are redirected)
-        setCampsLoading(false);
-        setFirestoreCamps([]);
-    }
-   }, [user, loading, toast]); // Depend on user and loading state
-
-  // Show loading skeleton if auth is loading OR if camps are loading (for unauth users)
-  if (loading || (campsLoading && !user)) {
+  // Show loading skeleton if auth is loading
+  if (loading) {
      return (
          <div className="flex flex-col min-h-screen">
              {/* Header Skeleton */}
@@ -191,13 +154,7 @@ export default function LandingPage() {
                          </div>
                      </div>
                  </section>
-                 {/* Camps List Skeleton */}
-                 <section className="w-full py-12 md:py-24 lg:py-32">
-                    <div className="container px-4 md:px-6">
-                         <Skeleton className="h-10 w-1/3 mx-auto mb-12" />
-                         <SkeletonCampCard count={3} />
-                    </div>
-                 </section>
+                 {/* Removed Camps List Skeleton */}
              </main>
              {/* Footer Skeleton */}
              <footer className="py-6 px-4 md:px-6 border-t">
@@ -236,8 +193,9 @@ export default function LandingPage() {
                  >
                     Get Started
                  </Link>
+                 {/* Updated Explore Camps button link */}
                  <Link
-                     href="#available-camps" // Link to the available camps section
+                     href="/main" // Link directly to the main page where camps are listed
                      prefetch={false}
                      className={cn(buttonVariants({ variant: 'secondary', size: 'lg' }))}
                  >
@@ -248,27 +206,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Available Camps Section */}
-        <section id="available-camps" className="w-full py-12 md:py-24 lg:py-32">
-            <div className="container px-4 md:px-6">
-                <h2 className="text-3xl font-bold tracking-tighter text-center mb-12 sm:text-4xl md:text-5xl">
-                    Available Camps
-                </h2>
-                {/* Conditionally render based on campsLoading and firestoreCamps */}
-                {campsLoading ? (
-                    <SkeletonCampCard count={6} /> // Show more skeletons
-                ) : firestoreCamps.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {/* Display all available camps */}
-                        {firestoreCamps.map((camp) => (
-                            <LandingCampCard key={camp.id} camp={camp} />
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-center text-muted-foreground">No camps available at the moment. Check back soon!</p>
-                )}
-            </div>
-        </section>
+        {/* Removed Available Camps Section */}
 
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
@@ -285,3 +223,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
