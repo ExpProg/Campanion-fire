@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/layout/Header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, CalendarCheck2, Check, PlusCircle, Users } from 'lucide-react'; // Removed History
+import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, CalendarCheck2, Check, PlusCircle, Users, FileText } from 'lucide-react'; // Added FileText for Draft
 import Link from 'next/link';
 import { collection, getDocs, deleteDoc, doc, Timestamp, addDoc, updateDoc } from 'firebase/firestore'; // Added addDoc, deleteDoc, updateDoc
 import { db } from '@/config/firebase';
@@ -49,7 +49,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'; // Import Avatar components
 
-// Camp Data Interface including creatorId and creationMode
+// Camp Data Interface including status
 interface Camp {
   id: string;
   name: string;
@@ -63,6 +63,7 @@ interface Camp {
   organizerId?: string; // Link to the organizers collection
   creatorId: string; // ID of the admin who created the camp
   creationMode: 'admin' | 'user'; // Added creationMode
+  status: 'draft' | 'active'; // Added status field
   organizerEmail?: string; // May no longer be relevant
   createdAt?: Timestamp;
   activities?: string[];
@@ -88,11 +89,17 @@ const organizerSchema = z.object({
 
 type OrganizerFormValues = z.infer<typeof organizerSchema>;
 
-// Define the possible filter values
-type CampStatusFilter = 'all' | 'active' | 'past';
+// Define the possible filter values including draft
+type CampStatusFilter = 'all' | 'active' | 'past' | 'draft';
 
-// Helper function to determine camp status
-const getCampStatus = (camp: Camp): 'Active' | 'Past' => {
+// Define the possible detailed camp statuses
+type DetailedCampStatus = 'Active' | 'Past' | 'Draft';
+
+// Helper function to determine camp status including draft
+const getCampStatus = (camp: Camp): DetailedCampStatus => {
+  if (camp.status === 'draft') {
+    return 'Draft';
+  }
   const today = new Date();
   today.setHours(0, 0, 0, 0); // Set to the beginning of today for comparison
   const endDate = camp.endDate?.toDate();
@@ -140,6 +147,7 @@ const AdminPageSkeleton = () => (
                        <Skeleton className="h-6 w-16" />
                        <Skeleton className="h-6 w-16" />
                        <Skeleton className="h-6 w-16" />
+                       <Skeleton className="h-6 w-16" /> {/* Added Draft filter skeleton */}
                     </div>
                     <AdminCampListSkeleton count={3} />
                  </div>
@@ -157,19 +165,23 @@ const AdminCampListItem = ({ camp, isCreator, onDeleteClick, deletingCampId, sta
     isCreator: boolean; // Check if the logged-in user is the creator
     onDeleteClick: (campId: string) => void;
     deletingCampId: string | null;
-    status: 'Active' | 'Past';
+    status: DetailedCampStatus; // Use DetailedCampStatus
 }) => {
 
     const badgeClasses = cn(
         'flex-shrink-0 transition-colors pointer-events-none',
         {
             'bg-[#FFD54F] text-yellow-950 dark:bg-[#FFD54F] dark:text-yellow-950 border-transparent': status === 'Active',
-            '': status === 'Past'
+            'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 border-transparent': status === 'Draft', // Draft color
+            '': status === 'Past' // Default variant for Past
         }
     );
 
     const badgeVariant = status === 'Past' ? 'default' : undefined;
     const formattedPrice = camp.price.toLocaleString('ru-RU'); // Format price with spaces
+
+    // Choose icon based on status
+    const StatusIcon = status === 'Active' ? CalendarCheck2 : status === 'Past' ? Check : FileText;
 
     return (
       <div key={camp.id} className="flex items-center justify-between p-4 border-b hover:bg-muted/50 transition-colors">
@@ -178,7 +190,7 @@ const AdminCampListItem = ({ camp, isCreator, onDeleteClick, deletingCampId, sta
              <div className="flex items-center gap-2 mb-1">
                  <p className="font-semibold truncate">{camp.name}</p>
                  <Badge variant={badgeVariant} className={badgeClasses}>
-                    {status === 'Active' ? <CalendarCheck2 className="h-3 w-3 mr-1" /> : <Check className="h-3 w-3 mr-1" />}
+                     <StatusIcon className="h-3 w-3 mr-1" />
                     {status}
                  </Badge>
              </div>
@@ -656,14 +668,29 @@ export default function AdminPage() {
         const sortedCamps = [...allAdminCamps].sort((a, b) => {
             const statusA = getCampStatus(a);
             const statusB = getCampStatus(b);
-            if (statusA === 'Active' && statusB === 'Past') return -1;
-            if (statusA === 'Past' && statusB === 'Active') return 1;
+            // Define sort order: Active > Draft > Past
+            const statusOrder = { 'Active': 1, 'Draft': 2, 'Past': 3 };
+            if (statusOrder[statusA] !== statusOrder[statusB]) {
+                return statusOrder[statusA] - statusOrder[statusB];
+            }
+            // If statuses are the same, sort by creation date desc
             const dateA = a.createdAt?.toDate() ?? new Date(0);
             const dateB = b.createdAt?.toDate() ?? new Date(0);
             return dateB.getTime() - dateA.getTime();
         });
+
         if (filterStatus === 'all') return sortedCamps;
-        return sortedCamps.filter(camp => (filterStatus === 'active' ? getCampStatus(camp) === 'Active' : getCampStatus(camp) === 'Past'));
+
+        return sortedCamps.filter(camp => {
+             const detailedStatus = getCampStatus(camp);
+             switch (filterStatus) {
+                 case 'active': return detailedStatus === 'Active';
+                 case 'past': return detailedStatus === 'Past';
+                 case 'draft': return detailedStatus === 'Draft';
+                 default: return true; // Should not happen with 'all' handled
+             }
+         });
+
     }, [allAdminCamps, filterStatus]);
 
 
@@ -860,6 +887,10 @@ export default function AdminPage() {
                                 <RadioGroupItem value="active" id="r-active" />
                                 <Label htmlFor="r-active">Active</Label>
                             </div>
+                             <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="draft" id="r-draft" />
+                                <Label htmlFor="r-draft">Draft</Label>
+                             </div>
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="past" id="r-past" />
                                 <Label htmlFor="r-past">Past</Label>
@@ -888,6 +919,7 @@ export default function AdminPage() {
                                      <p className="text-muted-foreground">
                                         {filterStatus === 'all' ? "You haven't created any camps yet." :
                                          filterStatus === 'active' ? "No active camps found." :
+                                         filterStatus === 'draft' ? "No draft camps found." :
                                          "No past camps found."}
                                      </p>
                                      {/* Button removed from here as it's now at the top of the section */}

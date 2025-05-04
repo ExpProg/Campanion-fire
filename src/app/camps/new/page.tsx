@@ -26,6 +26,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Header from '@/components/layout/Header';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"; // Import RadioGroup
 
 // Organizer Interface (matching Firestore structure)
 interface Organizer {
@@ -48,6 +49,7 @@ const createCampSchema = z.object({
   price: z.coerce.number().min(0, { message: 'Price must be a positive number.' }), // coerce converts string input to number
   imageUrl: z.string().url({ message: 'Please enter a valid image URL.' }).optional().or(z.literal('')), // Optional image URL
   activities: z.string().optional(), // Optional comma-separated activities
+  status: z.enum(['draft', 'active'], { required_error: 'Status is required.' }), // Added status field
 }).refine((data) => data.endDate >= data.startDate, {
   message: "End date cannot be before start date.",
   path: ["endDate"], // Set the error path to the endDate field
@@ -56,7 +58,7 @@ const createCampSchema = z.object({
 
 type CreateCampFormValues = z.infer<typeof createCampSchema>;
 
-// Camp Data Interface including creatorId and creationMode
+// Camp Data Interface including creatorId, creationMode, and status
 interface CampFirestoreData {
   name: string;
   description: string;
@@ -72,6 +74,7 @@ interface CampFirestoreData {
   price: number;
   imageUrl: string;
   activities: string[];
+  status: 'draft' | 'active'; // Added status field
   createdAt: Timestamp;
 }
 
@@ -151,6 +154,7 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
             price: 0,
             imageUrl: '',
             activities: '',
+            status: 'draft', // Default status to 'draft'
         },
     });
 
@@ -223,6 +227,7 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
                 price: values.price,
                 imageUrl: values.imageUrl || `https://picsum.photos/seed/${values.name.replace(/\s+/g, '-')}/600/400`, // Use name for seed or default
                 activities: activitiesArray,
+                status: values.status, // Add the status field
                 createdAt: Timestamp.fromDate(new Date()),
             };
 
@@ -409,6 +414,47 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
                     )}
                 />
 
+                {/* Status Field */}
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>Status</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex space-x-4"
+                          disabled={isLoading || organizersLoading}
+                        >
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="draft" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              Draft
+                            </FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="active" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              Active
+                            </FormLabel>
+                          </FormItem>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormDescription>
+                        'Draft' camps are only visible in the admin panel. 'Active' camps are visible to everyone.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+
                 <Button type="submit" className="mt-6" disabled={isLoading || organizersLoading || organizers.length === 0}>
                    {isLoading ? 'Creating Camp...' : 'Create Camp'}
                 </Button>
@@ -511,6 +557,7 @@ export default function CreateCampPage() {
                                 </div>
                                 <Skeleton className="h-10 w-full mb-4" /> {/* Image URL */}
                                 <Skeleton className="h-10 w-full mb-4" /> {/* Activities */}
+                                <Skeleton className="h-10 w-full mb-4" /> {/* Status */}
                                 <Skeleton className="h-10 w-1/4 mt-6" /> {/* Submit Button */}
                             </CardContent>
                         </Card>

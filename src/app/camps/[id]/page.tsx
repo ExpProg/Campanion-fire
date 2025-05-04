@@ -27,6 +27,7 @@ interface Camp {
   location: string;
   imageUrl: string;
   price: number;
+  status: 'draft' | 'active'; // Added status field
   organizerId: string; // Keep organizerId
   organizerName?: string; // Denormalized organizer name from Firestore
   organizerLink?: string; // Denormalized organizer link from Firestore
@@ -79,6 +80,7 @@ async function fetchCampDetailsFromFirestore(id: string): Promise<Camp | null> {
         location: data.location || 'Location not specified',
         imageUrl: data.imageUrl || 'https://picsum.photos/seed/placeholder/800/500', // Fallback image
         price: data.price || 0,
+        status: data.status || 'draft', // Default to draft if status is missing
         organizerId: data.organizerId || '', // Get organizerId
         organizerName: organizerName, // Use the determined organizer name
         organizerLink: organizerLink, // Use the fetched or denormalized link
@@ -99,7 +101,7 @@ async function fetchCampDetailsFromFirestore(id: string): Promise<Camp | null> {
 
 
 export default function CampDetailsPage() {
-  const { user, loading: authLoading } = useAuth(); // Keep user context for potential future use (e.g., booking button)
+  const { user, isAdmin, loading: authLoading } = useAuth(); // Keep user context for potential future use (e.g., booking button) & isAdmin check
   const router = useRouter();
   const params = useParams();
   const campId = params.id as string;
@@ -118,14 +120,22 @@ export default function CampDetailsPage() {
       fetchCampDetailsFromFirestore(campId)
         .then(data => {
           if (data) {
-            setCamp(data);
+            // Check if camp is draft and user is not admin
+            if (data.status === 'draft' && !isAdmin) {
+               setError("Camp not found."); // Treat draft camps as not found for non-admins
+               setCamp(null);
+            } else {
+              setCamp(data);
+            }
           } else {
              setError("Camp not found."); // Set error if data is null
+             setCamp(null);
           }
         })
         .catch(error => {
           console.error("Failed to fetch camp details:", error);
           setError("Failed to load camp details. Please try again."); // Set error on fetch failure
+          setCamp(null);
         })
         .finally(() => {
           setLoading(false);
@@ -134,8 +144,9 @@ export default function CampDetailsPage() {
         setLoading(false); // Stop loading if no ID
         setError("Camp ID is missing.");
         console.error("Camp ID is missing");
+        setCamp(null);
     }
-  }, [campId]); // Only depend on campId
+  }, [campId, isAdmin]); // Added isAdmin dependency
 
   if (authLoading || loading) { // Show skeleton if auth is loading OR camp data is loading
      return (

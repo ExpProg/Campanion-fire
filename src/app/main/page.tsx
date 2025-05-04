@@ -1,4 +1,5 @@
 
+// src/app/main/page.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -7,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Image from 'next/image';
-import { collection, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, Timestamp, query, where } from 'firebase/firestore'; // Added query, where
 import { db } from '@/config/firebase';
 import { Building, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -15,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/layout/Header';
 
-// Camp Data Interface - reflects Firestore structure
+// Camp Data Interface - reflects Firestore structure, including status
 interface Camp {
   id: string;
   name: string;
@@ -26,6 +27,7 @@ interface Camp {
   location: string;
   imageUrl: string;
   price: number;
+  status: 'draft' | 'active'; // Added status field
   organizerId?: string; // Link to the organizers collection
   organizerName?: string; // Denormalized organizer name
   organizerLink?: string; // Denormalized organizer link
@@ -78,20 +80,21 @@ export default function MainPage() { // Renamed from DashboardPage
   const fetchFirestoreCamps = async () => {
     try {
       const campsCollectionRef = collection(db, 'camps');
-      const querySnapshot = await getDocs(campsCollectionRef);
-      // Removed date filtering: Fetch ALL camps
-      // const today = new Date();
-      // today.setHours(0, 0, 0, 0); // Set to the beginning of today for accurate comparison
+      const today = Timestamp.now(); // Use Firestore Timestamp for comparison
+
+      // Query for active camps where the end date is today or in the future
+      const q = query(
+        campsCollectionRef,
+        where('status', '==', 'active'), // Only fetch 'active' camps
+        where('endDate', '>=', today) // Only fetch camps ending today or later
+      );
+
+      const querySnapshot = await getDocs(q);
 
       const fetchedCamps = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data() as Omit<Camp, 'id'> // Assert data type, excluding id
       }))
-      // Removed filter:
-      // .filter(camp => {
-      //     const endDate = camp.endDate?.toDate();
-      //     return endDate && endDate >= today;
-      // })
       .sort((a, b) => {
           // Sort camps by creation date, newest first, if createdAt exists
           const dateA = a.createdAt?.toDate() ?? new Date(0);
@@ -238,7 +241,7 @@ export default function MainPage() { // Renamed from DashboardPage
         {/* Section for All Available Firestore Camps */}
         <div id="available-camps"> {/* Added ID for potential linking */}
           {/* Changed title to reflect showing all camps */}
-          <h2 className="text-2xl font-bold mb-6 text-foreground">All Camps</h2>
+          <h2 className="text-2xl font-bold mb-6 text-foreground">Available Camps</h2>
           {/* Show skeleton if firestore is loading */}
           {firestoreLoading ? (
              <SkeletonCard count={6} />
@@ -250,7 +253,7 @@ export default function MainPage() { // Renamed from DashboardPage
              <Card className="text-center py-12">
                 <CardContent>
                     {/* Updated message when no camps are found */}
-                    <p className="text-muted-foreground mb-4">No camps found.</p>
+                    <p className="text-muted-foreground mb-4">No active camps found.</p>
                     {/* Show create camp button only if user is admin and logged in */}
                     {isAdmin && user && (
                         <Button asChild>
@@ -273,3 +276,4 @@ export default function MainPage() { // Renamed from DashboardPage
     </div>
   );
 }
+

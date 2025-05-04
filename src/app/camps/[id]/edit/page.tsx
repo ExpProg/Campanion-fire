@@ -26,6 +26,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Header from '@/components/layout/Header';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"; // Import RadioGroup
 
 // Organizer Interface (matching Firestore structure)
 interface Organizer {
@@ -48,6 +49,7 @@ const editCampSchema = z.object({
   price: z.coerce.number().min(0, { message: 'Price must be a positive number.' }),
   imageUrl: z.string().url({ message: 'Please enter a valid image URL.' }).optional().or(z.literal('')),
   activities: z.string().optional(),
+  status: z.enum(['draft', 'active'], { required_error: 'Status is required.' }), // Added status field
 }).refine((data) => data.endDate >= data.startDate, {
   message: "End date cannot be before start date.",
   path: ["endDate"],
@@ -55,7 +57,7 @@ const editCampSchema = z.object({
 
 type EditCampFormValues = z.infer<typeof editCampSchema>;
 
-// CampData Interface including creatorId and creationMode
+// CampData Interface including creatorId, creationMode and status
 interface CampData {
   id: string;
   name: string;
@@ -72,6 +74,7 @@ interface CampData {
   activities: string[];
   creatorId: string; // Added creatorId
   creationMode: 'admin' | 'user'; // Added creationMode
+  status: 'draft' | 'active'; // Added status field
   // Keep organizerId from original camp data
 }
 
@@ -154,6 +157,7 @@ function EditCampForm({ campData, campId, organizers, organizersLoading }: {
             price: campData.price || 0,
             imageUrl: campData.imageUrl || '',
             activities: campData.activities?.join(', ') || '', // Join array back into comma-separated string
+            status: campData.status || 'draft', // Set initial status
         },
     });
 
@@ -216,6 +220,7 @@ function EditCampForm({ campData, campId, organizers, organizersLoading }: {
                 price: values.price,
                 imageUrl: values.imageUrl || `https://picsum.photos/seed/${values.name.replace(/\s+/g, '-')}/600/400`, // Fallback logic
                 activities: activitiesArray,
+                status: values.status, // Update the status field
                 // createdAt remains unchanged
             };
 
@@ -398,6 +403,47 @@ function EditCampForm({ campData, campId, organizers, organizersLoading }: {
                     )}
                 />
 
+                 {/* Status Field */}
+                 <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>Status</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex space-x-4"
+                           disabled={isLoading || organizersLoading}
+                        >
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="draft" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              Draft
+                            </FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="active" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              Active
+                            </FormLabel>
+                          </FormItem>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormDescription>
+                        'Draft' camps are only visible in the admin panel. 'Active' camps are visible to everyone.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+
                 <Button type="submit" className="mt-6" disabled={isLoading || organizersLoading || organizers.length === 0}>
                    {isLoading ? 'Saving Changes...' : 'Save Changes'}
                 </Button>
@@ -454,12 +500,13 @@ export default function EditCampPage() {
                             router.push('/admin');
                             return;
                         }
-                        // Add default values for potentially missing creatorId/creationMode
+                        // Add default values for potentially missing fields
                         setCampData({
                             id: docSnap.id,
                             ...data,
                             creatorId: data.creatorId || user.uid, // Fallback just in case
                             creationMode: data.creationMode || 'admin', // Fallback just in case
+                            status: data.status || 'draft', // Fallback status
                          });
                     } else {
                         setError("Camp not found.");
@@ -551,6 +598,7 @@ export default function EditCampPage() {
                                  </div>
                                  <Skeleton className="h-10 w-full mb-4" /> {/* Image URL */}
                                  <Skeleton className="h-10 w-full mb-4" /> {/* Activities */}
+                                 <Skeleton className="h-10 w-full mb-4" /> {/* Status */}
                                  <Skeleton className="h-10 w-1/4 mt-6" /> {/* Submit Button */}
                              </CardContent>
                          </Card>
