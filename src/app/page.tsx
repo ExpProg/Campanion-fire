@@ -191,17 +191,6 @@ export default function LandingPage() {
                          </div>
                      </div>
                  </section>
-                {/* Benefits Skeleton */}
-                 <section className="w-full py-12 md:py-24 lg:py-32 bg-muted">
-                    <div className="container px-4 md:px-6">
-                       <Skeleton className="h-10 w-1/2 mx-auto mb-12" />
-                       <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                            <Skeleton className="h-48 w-full rounded-lg" />
-                            <Skeleton className="h-48 w-full rounded-lg" />
-                            <Skeleton className="h-48 w-full rounded-lg" />
-                       </div>
-                    </div>
-                 </section>
                  {/* Camps List Skeleton */}
                  <section className="w-full py-12 md:py-24 lg:py-32">
                     <div className="container px-4 md:px-6">
@@ -248,68 +237,18 @@ export default function LandingPage() {
                     Get Started
                  </Link>
                  <Link
-                     href="#features"
+                     href="#featured-camps" // Link to the camps section instead of removed features
                      prefetch={false}
                      className={cn(buttonVariants({ variant: 'secondary', size: 'lg' }))}
                  >
-                     Learn More
+                     Explore Camps
                  </Link>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Benefits Section */}
-        <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-muted">
-           <div className="container px-4 md:px-6">
-             <h2 className="text-3xl font-bold tracking-tighter text-center mb-12 sm:text-4xl md:text-5xl">
-               Why Choose Campanion?
-             </h2>
-             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-               <Card className="shadow-md hover:shadow-lg transition-shadow">
-                 <CardHeader className="flex flex-row items-center gap-4">
-                   <div className="bg-primary/10 p-3 rounded-full">
-                     <Search className="h-6 w-6 text-primary" />
-                   </div>
-                   <CardTitle>Effortless Discovery</CardTitle>
-                 </CardHeader>
-                 <CardContent>
-                   <p className="text-muted-foreground">
-                     Quickly find camps that match your criteria with our easy-to-use search and filtering tools.
-                   </p>
-                 </CardContent>
-               </Card>
-               <Card className="shadow-md hover:shadow-lg transition-shadow">
-                 <CardHeader className="flex flex-row items-center gap-4">
-                    <div className="bg-primary/10 p-3 rounded-full">
-                      <ListChecks className="h-6 w-6 text-primary" />
-                    </div>
-                   <CardTitle>Wide Variety</CardTitle>
-                 </CardHeader>
-                 <CardContent>
-                   <p className="text-muted-foreground">
-                     Explore a diverse range of camps, from outdoor adventures and sports to arts, science, and technology.
-                   </p>
-                 </CardContent>
-               </Card>
-               <Card className="shadow-md hover:shadow-lg transition-shadow">
-                 <CardHeader className="flex flex-row items-center gap-4">
-                   <div className="bg-primary/10 p-3 rounded-full">
-                     <Sparkles className="h-6 w-6 text-primary" />
-                   </div>
-                   <CardTitle>Unforgettable Experiences</CardTitle>
-                 </CardHeader>
-                 <CardContent>
-                   <p className="text-muted-foreground">
-                     Create lasting memories, learn new skills, and foster personal growth in unique camp settings.
-                   </p>
-                 </CardContent>
-               </Card>
-             </div>
-           </div>
-         </section>
-
-        {/* Featured Camps Section - Added */}
+        {/* Featured Camps Section */}
         <section id="featured-camps" className="w-full py-12 md:py-24 lg:py-32">
             <div className="container px-4 md:px-6">
                 <h2 className="text-3xl font-bold tracking-tighter text-center mb-12 sm:text-4xl md:text-5xl">
@@ -359,3 +298,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
