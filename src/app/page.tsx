@@ -262,13 +262,13 @@ export default function LandingPage() {
         {/* Featured Camps Section - Full Width Background */}
         <section className="w-full py-12 bg-muted/50"> {/* Reduced padding to py-12 */}
            {/* Container for content within the full-width section */}
-           <div className="container px-4 md:px-6">
+           <div className="container px-4 md:px-6"> {/* This container centers the content block */}
                {/* Added text-center to center the heading */}
                <h2 className="text-3xl md:text-4xl font-bold mb-8 text-center text-foreground">Recently Added Camps</h2>
                {campsLoading ? (
                    <SkeletonCard count={3} />
                ) : featuredCamps.length > 0 ? (
-                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> {/* The grid spans the width of the centered container */}
                        {featuredCamps.map((camp) => <CampCard key={camp.id} camp={camp} />)}
                    </div>
                ) : (
@@ -302,5 +302,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-
