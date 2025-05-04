@@ -6,23 +6,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Image from 'next/image';
-import { collection, getDocs, deleteDoc, doc, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, Timestamp } from 'firebase/firestore'; // Removed deleteDoc, doc
 import { db } from '@/config/firebase';
-import { Building, PlusCircle } from 'lucide-react'; // Removed Pencil/Trash2, Added Building
+import { Building, PlusCircle } from 'lucide-react'; // Removed Pencil/Trash2
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Separator } from '@/components/ui/separator';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+// Removed Separator import as it's not used
+// Removed AlertDialog imports as deletion is moved to admin panel
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/layout/Header';
 
@@ -37,10 +27,11 @@ interface Camp {
   location: string;
   imageUrl: string;
   price: number;
-  organizerId?: string; // Crucial for checking ownership
+  organizerId?: string; // Link to the organizers collection
   organizerName?: string; // Denormalized organizer name
   organizerLink?: string; // Denormalized organizer link
-  organizerEmail?: string;
+  organizerEmail?: string; // May no longer be relevant
+  creatorId?: string; // ID of the user who created the camp
   createdAt?: Timestamp;
   activities?: string[];
 }
@@ -78,16 +69,6 @@ export default function MainPage() { // Renamed from DashboardPage
   const { toast } = useToast();
   const [firestoreCamps, setFirestoreCamps] = useState<Camp[]>([]);
   const [firestoreLoading, setFirestoreLoading] = useState(true);
-  // Removed deletingCampId state as deletion is moved to admin panel
-  // const [deletingCampId, setDeletingCampId] = useState<string | null>(null);
-
-  // useEffect(() => {
-  //   // Redirect to login if not authenticated and loading is finished
-  //   // Commented out redirect: Page should be accessible without login
-  //   // if (!authLoading && !user) {
-  //   //   router.push('/login');
-  //   // }
-  // }, [user, authLoading, router]);
 
   useEffect(() => {
     // Fetch Firestore data regardless of user login status
@@ -123,26 +104,22 @@ export default function MainPage() { // Renamed from DashboardPage
     } catch (error) {
       console.error("Error fetching camps from Firestore:", error);
       toast({
-        title: 'Error',
-        description: 'Could not load camps from the database.',
+        title: 'Error fetching camps',
+        description: 'Could not load camps. Check Firestore rules or connection.',
         variant: 'destructive',
       });
+      // Ensure loading stops even on error
+      setFirestoreLoading(false);
     } finally {
+      // Ensure loading state is set to false after attempt
+      // Note: If there was an error, firestoreCamps might be empty
       setFirestoreLoading(false);
     }
   };
 
-  // Removed handleDeleteCamp function as it's moved to admin panel
-  /*
-  const handleDeleteCamp = async (campId: string) => {
-    // ... (deletion logic removed)
-  };
-  */
 
   // Helper component for rendering camp cards
   const CampCard = ({ camp }: { camp: Camp }) => {
-    // No need to check ownership here as edit/delete are removed
-    // const isOwner = camp.organizerId === user?.uid;
     const organizerDisplay = camp.organizerName || 'Campanion Partner'; // Fallback
     const formattedPrice = camp.price.toLocaleString('ru-RU'); // Format price with spaces
 
@@ -280,7 +257,7 @@ export default function MainPage() { // Renamed from DashboardPage
                     {/* Show create camp button only if user is admin and logged in */}
                     {isAdmin && user && (
                         <Button asChild>
-                            <Link href="/camps/new">Create a New Camp</Link>
+                            <Link href="/camps/new"><PlusCircle className="mr-2 h-4 w-4"/>Create New Camp</Link>
                         </Button>
                     )}
                 </CardContent>
