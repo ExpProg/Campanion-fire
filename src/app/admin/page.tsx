@@ -97,11 +97,11 @@ const AdminCampListItem = ({ camp, isOwner, onDeleteClick, deletingCampId, statu
 }) => {
 
     const badgeClasses = cn(
-        'flex-shrink-0 transition-colors', // Ensure transitions apply
+        'flex-shrink-0 transition-colors pointer-events-none', // Added pointer-events-none to disable hover interactions
         {
             // Apply yellow background and dark text for 'Active' status
-            // Add hover:bg-primary/80 for consistent hover effect
-            'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 border-transparent hover:bg-primary/80 hover:text-primary-foreground': status === 'Active',
+            // Removed hover classes
+            'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 border-transparent': status === 'Active',
             // Use default variant classes for 'Past' status - hover handled by variant
             '': status === 'Past'
         }
