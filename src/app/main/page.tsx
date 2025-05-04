@@ -30,7 +30,6 @@ interface Camp {
   organizerId?: string; // Link to the organizers collection
   organizerName?: string; // Denormalized organizer name
   organizerLink?: string; // Denormalized organizer link
-  organizerEmail?: string; // May no longer be relevant
   creatorId?: string; // ID of the user who created the camp
   createdAt?: Timestamp;
   activities?: string[];
@@ -72,7 +71,6 @@ export default function MainPage() { // Renamed from DashboardPage
 
   useEffect(() => {
     // Fetch Firestore data regardless of user login status
-    // Fetch camps once when the component mounts
     setFirestoreLoading(true);
     fetchFirestoreCamps(); // Call fetch function
   }, []); // Empty dependency array means this runs once on mount
@@ -108,11 +106,8 @@ export default function MainPage() { // Renamed from DashboardPage
         description: 'Could not load camps. Check Firestore rules or connection.',
         variant: 'destructive',
       });
-      // Ensure loading stops even on error
-      setFirestoreLoading(false);
     } finally {
       // Ensure loading state is set to false after attempt
-      // Note: If there was an error, firestoreCamps might be empty
       setFirestoreLoading(false);
     }
   };
