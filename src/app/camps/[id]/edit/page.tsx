@@ -258,7 +258,7 @@ function EditCampForm({ campData, campId, organizers, organizersLoading }: {
                         <FormLabel>Organizer</FormLabel>
                         <Select
                             onValueChange={field.onChange}
-                            value={field.value} // Use value instead of defaultValue for controlled component
+                            value={field.value} // Use field.value for controlled component
                             disabled={isLoading || organizersLoading}
                         >
                             <FormControl>
@@ -592,3 +592,4 @@ export default function EditCampPage() {
         </div>
     );
 }
+
