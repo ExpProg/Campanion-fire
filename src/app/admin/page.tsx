@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/layout/Header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, CalendarCheck2, Check, PlusCircle, Users, FileText, Archive } from 'lucide-react'; // Added FileText, Archive
+import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, CalendarCheck2, Check, PlusCircle, Users, FileText, Archive } from 'lucide-react'; // Keep Check icon for now, might be unused
 import Link from 'next/link';
 import { collection, getDocs, deleteDoc, doc, Timestamp, addDoc, updateDoc } from 'firebase/firestore'; // Added addDoc, deleteDoc, updateDoc
 import { db } from '@/config/firebase';
@@ -89,13 +89,13 @@ const organizerSchema = z.object({
 
 type OrganizerFormValues = z.infer<typeof organizerSchema>;
 
-// Define the possible filter values including draft and archive
-type CampStatusFilter = 'all' | 'active' | 'past' | 'draft' | 'archive';
+// Define the possible filter values excluding 'past'
+type CampStatusFilter = 'all' | 'active' | 'draft' | 'archive';
 
-// Define the possible detailed camp statuses
-type DetailedCampStatus = 'Active' | 'Past' | 'Draft' | 'Archived';
+// Define the possible detailed camp statuses excluding 'Past'
+type DetailedCampStatus = 'Active' | 'Draft' | 'Archived';
 
-// Helper function to determine camp status including draft and archive
+// Helper function to determine camp status excluding 'Past'
 const getCampStatus = (camp: Camp): DetailedCampStatus => {
   if (camp.status === 'draft') {
     return 'Draft';
@@ -103,19 +103,12 @@ const getCampStatus = (camp: Camp): DetailedCampStatus => {
   if (camp.status === 'archive') {
     return 'Archived';
   }
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Set to the beginning of today for comparison
-  const endDate = camp.endDate?.toDate();
-  // Only consider active camps as 'Past' if their end date has passed
-  if (camp.status === 'active' && endDate && endDate < today) {
-    return 'Past';
-  }
-  // If status is 'active' and end date is today or later, it's 'Active'
+  // If status is 'active', it's 'Active' (regardless of date for this context)
   if (camp.status === 'active') {
       return 'Active';
   }
-  // Fallback for any other unexpected scenario (should ideally not happen with defined statuses)
-  return 'Draft'; // Or perhaps another default like 'Archived' if appropriate
+  // Fallback for any other unexpected scenario
+  return 'Draft'; // Default to Draft if status is somehow invalid
 };
 
 
@@ -159,8 +152,7 @@ const AdminPageSkeleton = () => (
                        <Skeleton className="h-6 w-16" />
                        <Skeleton className="h-6 w-16" />
                        <Skeleton className="h-6 w-16" />
-                       <Skeleton className="h-6 w-16" />
-                       <Skeleton className="h-6 w-16" /> {/* Added Archive filter skeleton */}
+                       <Skeleton className="h-6 w-16" /> {/* Removed Past filter skeleton */}
                     </div>
                     <AdminCampListSkeleton count={3} />
                  </div>
@@ -182,21 +174,20 @@ const AdminCampListItem = ({ camp, isCreator, onDeleteClick, deletingCampId, sta
 }) => {
 
     const badgeClasses = cn(
-        'flex-shrink-0 transition-colors pointer-events-none',
+        'flex-shrink-0 transition-colors pointer-events-none', // Removed pointer-events-none since hover is removed
         {
             'bg-[#FFD54F] text-yellow-950 dark:bg-[#FFD54F] dark:text-yellow-950 border-transparent': status === 'Active',
             'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 border-transparent': status === 'Draft', // Draft color
             'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400 border-transparent': status === 'Archived', // Archive color
-            '': status === 'Past' // Default variant for Past (uses text-foreground, bg-primary)
         }
     );
 
-    const badgeVariant = status === 'Past' ? 'default' : undefined;
+    // No specific variant needed now
+    const badgeVariant = undefined;
     const formattedPrice = camp.price.toLocaleString('ru-RU'); // Format price with spaces
 
     // Choose icon based on status
     const StatusIcon = status === 'Active' ? CalendarCheck2
-                     : status === 'Past' ? Check
                      : status === 'Draft' ? FileText
                      : Archive; // Icon for Archived
 
@@ -685,8 +676,8 @@ export default function AdminPage() {
         const sortedCamps = [...allAdminCamps].sort((a, b) => {
             const statusA = getCampStatus(a);
             const statusB = getCampStatus(b);
-            // Define sort order: Active > Draft > Past > Archived
-            const statusOrder = { 'Active': 1, 'Draft': 2, 'Past': 3, 'Archived': 4 };
+            // Define sort order: Active > Draft > Archived
+            const statusOrder = { 'Active': 1, 'Draft': 2, 'Archived': 3 };
             if (statusOrder[statusA] !== statusOrder[statusB]) {
                 return statusOrder[statusA] - statusOrder[statusB];
             }
@@ -702,7 +693,6 @@ export default function AdminPage() {
              const detailedStatus = getCampStatus(camp);
              switch (filterStatus) {
                  case 'active': return detailedStatus === 'Active';
-                 case 'past': return detailedStatus === 'Past';
                  case 'draft': return detailedStatus === 'Draft';
                  case 'archive': return detailedStatus === 'Archived';
                  default: return true; // Should not happen with 'all' handled
@@ -913,10 +903,7 @@ export default function AdminPage() {
                                 <RadioGroupItem value="archive" id="r-archive" />
                                 <Label htmlFor="r-archive">Archived</Label>
                             </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="past" id="r-past" />
-                                <Label htmlFor="r-past">Past</Label>
-                            </div>
+                            {/* Removed Past filter option */}
                          </RadioGroup>
 
                          {/* Camp List */}
@@ -943,7 +930,7 @@ export default function AdminPage() {
                                          filterStatus === 'active' ? "No active camps found." :
                                          filterStatus === 'draft' ? "No draft camps found." :
                                          filterStatus === 'archive' ? "No archived camps found." :
-                                         "No past camps found."}
+                                         "No camps found for this filter."} {/* Generic fallback */}
                                      </p>
                                      {/* Button removed from here as it's now at the top of the section */}
                                  </CardContent>
