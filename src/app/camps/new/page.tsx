@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CalendarIcon } from 'lucide-react';
+import { ArrowLeft, CalendarIcon, ShieldAlert } from 'lucide-react'; // Added ShieldAlert
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -122,10 +122,10 @@ function CreateCampForm() {
     });
 
     const onSubmit = async (values: CreateCampFormValues) => {
-        if (!user?.uid || !user?.email) { // Check for both uid and email
+        if (!user?.uid || !user?.email || !isAdmin) { // Check if user is admin
             toast({
-                title: 'Error',
-                description: 'You must be logged in to create a camp.',
+                title: 'Permission Denied',
+                description: 'Only administrators can create camps.',
                 variant: 'destructive',
             });
             return;
@@ -322,18 +322,18 @@ function CreateCampForm() {
 
 
 export default function CreateCampPage() {
-  const { user, loading } = useAuth(); // Get user and loading status
+  const { user, isAdmin, loading } = useAuth(); // Get user, isAdmin and loading status
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect logic: Only check if user is logged in
-    if (!loading && !user) {
-        router.push('/login'); // Not logged in
+    // Redirect logic: Redirect if loading is done and user is not logged in OR not an admin
+    if (!loading && (!user || !isAdmin)) {
+        router.push('/main'); // Redirect to main page if not admin or not logged in
     }
-  }, [user, loading, router]);
+  }, [user, isAdmin, loading, router]);
 
 
-  if (loading || !user) { // Updated condition: Show loading skeleton if auth is loading or user is not logged in
+  if (loading || !user || !isAdmin) { // Show skeleton if loading, or user not logged in, or not admin
      return (
          <div className="flex flex-col min-h-screen">
              {/* Header Skeleton */}
@@ -344,32 +344,44 @@ export default function CreateCampPage() {
                      <Skeleton className="h-8 w-20" /> {/* Button Skeleton */}
                  </div>
              </header>
-             {/* Create Camp Form Skeleton */}
+             {/* Conditional Content: Show "Access Denied" if not admin, otherwise skeleton */}
              <main className="flex-1 p-4 md:p-8 lg:p-12">
-                 <div className="container mx-auto px-4 py-8 md:py-12 max-w-4xl">
-                     <Skeleton className="h-8 w-32 mb-8" /> {/* Back button placeholder */}
-                     <Card>
-                         <CardHeader>
-                             <Skeleton className="h-8 w-1/2 mb-2" />
-                             <Skeleton className="h-4 w-3/4" />
-                         </CardHeader>
-                         <CardContent>
-                             <Skeleton className="h-10 w-full mb-4" />
-                             <Skeleton className="h-20 w-full mb-4" />
-                             <div className="grid grid-cols-2 gap-4 mb-4">
-                                 <Skeleton className="h-10 w-full" />
-                                 <Skeleton className="h-10 w-full" />
-                             </div>
-                             <div className="grid grid-cols-2 gap-4 mb-4">
-                                 <Skeleton className="h-10 w-full" />
-                                 <Skeleton className="h-10 w-full" />
-                             </div>
-                             <Skeleton className="h-10 w-full mb-4" />
-                             <Skeleton className="h-10 w-1/4 mt-6" />
-                         </CardContent>
-                     </Card>
+                {!loading && user && !isAdmin ? ( // Show access denied if loaded, user exists but is not admin
+                  <div className="container mx-auto px-4 py-12 flex flex-col items-center text-center">
+                     <ShieldAlert className="h-16 w-16 text-destructive mb-4" />
+                     <h1 className="text-2xl font-bold text-destructive mb-2">Access Denied</h1>
+                     <p className="text-muted-foreground mb-6">Only administrators can create new camps.</p>
+                     <Link href="/main" className="inline-flex items-center text-primary hover:underline" prefetch={false}>
+                         <ArrowLeft className="mr-2 h-4 w-4" />
+                         Return to Main Page
+                     </Link>
                  </div>
-             </main>
+                ) : ( // Otherwise (still loading or user is admin), show skeleton
+                    <div className="container mx-auto px-4 py-8 md:py-12 max-w-4xl">
+                        <Skeleton className="h-8 w-32 mb-8" /> {/* Back button placeholder */}
+                        <Card>
+                            <CardHeader>
+                                <Skeleton className="h-8 w-1/2 mb-2" />
+                                <Skeleton className="h-4 w-3/4" />
+                            </CardHeader>
+                            <CardContent>
+                                <Skeleton className="h-10 w-full mb-4" />
+                                <Skeleton className="h-20 w-full mb-4" />
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                    <Skeleton className="h-10 w-full" />
+                                    <Skeleton className="h-10 w-full" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                    <Skeleton className="h-10 w-full" />
+                                    <Skeleton className="h-10 w-full" />
+                                </div>
+                                <Skeleton className="h-10 w-full mb-4" />
+                                <Skeleton className="h-10 w-1/4 mt-6" />
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
+            </main>
              {/* Footer Skeleton */}
              <footer className="py-6 px-4 md:px-6 border-t">
                  <Skeleton className="h-4 w-1/4" />
@@ -379,7 +391,7 @@ export default function CreateCampPage() {
   }
 
 
-  // User is logged in
+  // User is logged in and is an admin
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header /> {/* Use the reusable Header component */}

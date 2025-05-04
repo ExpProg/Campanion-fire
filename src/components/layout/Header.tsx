@@ -102,13 +102,7 @@ export default function Header() {
                              <span className="text-base font-medium">Profile</span>
                          </Link>
                      </SheetClose>
-                      {/* Link to Create Camp page */}
-                     <SheetClose asChild>
-                         <Link href="/camps/new" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground w-full" prefetch={false}>
-                             <PlusCircle className="h-5 w-5" />
-                             <span className="text-base font-medium">Create Camp</span>
-                         </Link>
-                     </SheetClose>
+                      {/* Removed "Create Camp" link from side menu */}
 
                      {/* Conditional Admin Panel Link */}
                       {isAdmin && (
@@ -119,6 +113,15 @@ export default function Header() {
                              </Link>
                          </SheetClose>
                      )}
+                      {/* Conditional Create Camp Link for Admins Only */}
+                      {isAdmin && (
+                          <SheetClose asChild>
+                              <Link href="/camps/new" className="flex items-center gap-3 rounded-md px-3 py-2 text-foreground transition-colors hover:bg-accent hover:text-accent-foreground w-full" prefetch={false}>
+                                  <PlusCircle className="h-5 w-5" />
+                                  <span className="text-base font-medium">Create Camp</span>
+                              </Link>
+                          </SheetClose>
+                      )}
                      {/* Add more links here as needed */}
                  </div>
                  {/* Footer pushed to bottom */}
@@ -167,6 +170,15 @@ export default function Header() {
                        <span>Profile</span>
                      </Link>
                   </DropdownMenuItem>
+                   {/* Conditional Create Camp Link for Admins Only */}
+                    {isAdmin && (
+                       <DropdownMenuItem asChild>
+                           <Link href="/camps/new" className="flex items-center cursor-pointer w-full">
+                             <PlusCircle className="mr-2 h-4 w-4" />
+                             <span>Create Camp</span>
+                           </Link>
+                       </DropdownMenuItem>
+                    )}
                   {/* Conditional Admin Panel Link in Dropdown */}
                   {isAdmin && (
                      <DropdownMenuItem asChild>

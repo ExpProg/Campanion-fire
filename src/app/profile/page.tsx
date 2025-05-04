@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LogOut, Save, Trash2, Pencil, ArrowLeft, CalendarCheck, ShieldCheck } from 'lucide-react'; // Added ShieldCheck for admin badge
+import { LogOut, Save, Trash2, Pencil, ArrowLeft, CalendarCheck, ShieldCheck, PlusCircle } from 'lucide-react'; // Added ShieldCheck for admin badge, PlusCircle
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, Timestamp, collection, getDocs, deleteDoc } from 'firebase/firestore'; // Import Firestore functions
 import { auth, db } from '@/config/firebase';
@@ -265,17 +265,23 @@ export default function ProfilePage() {
           setProfileLoading(false);
       });
 
-      // Fetch Created Camps Data
-      fetchMyCreatedCamps(user.uid);
+      // Fetch Created Camps Data (only if admin)
+      if (isAdmin) {
+        fetchMyCreatedCamps(user.uid);
+      } else {
+        setMyCreatedCamps([]); // Non-admins have no created camps shown here
+        setCampsLoading(false); // Set loading false if not fetching created camps
+      }
 
-      // Fetch Booked Camps Data (Placeholder)
-      fetchMyBookedCamps(user.uid);
+
+      // Fetch Booked Camps Data (Placeholder) - Assuming all users can book
+      fetchMyBookedCamps(user.uid); // We need to adjust loading state based on this call
 
     }
-  }, [user, authLoading, router, toast, form]); // Dependencies
+  }, [user, authLoading, isAdmin, router, toast, form]); // Added isAdmin dependency
 
 
-  // Function to fetch user's created Firestore camps
+  // Function to fetch user's created Firestore camps (only called for admins now)
   const fetchMyCreatedCamps = async (userId: string) => {
     setCampsLoading(true); // Ensure loading state is true
     try {
@@ -297,12 +303,18 @@ export default function ProfilePage() {
         variant: 'destructive',
       });
     } finally {
-      // Loading state managed in fetchMyBookedCamps
+      // Loading state is managed in fetchMyBookedCamps or useEffect if not admin
     }
   };
 
    // Function to fetch user's booked Firestore camps (Placeholder Logic)
    const fetchMyBookedCamps = async (userId: string) => {
+    // If created camps were fetched (i.e., user is admin), setCampsLoading(true) was already called.
+    // If not admin, set loading true here before starting the fetch.
+    if (!isAdmin) {
+      setCampsLoading(true);
+    }
+
     try {
         // Simulate fetching booked camp IDs (replace with actual Firestore query)
         // Example: Fetch a 'bookings' collection where userId matches
@@ -310,6 +322,8 @@ export default function ProfilePage() {
 
         if (bookedCampIds.length === 0) {
             setBookedCamps([]);
+            // If no booked camps and user is not admin, loading is done
+             if (!isAdmin) setCampsLoading(false);
             return; // Exit early if no booked camps
         }
 
@@ -336,17 +350,21 @@ export default function ProfilePage() {
         });
          setBookedCamps([]); // Ensure it's empty on error
     } finally {
-        setCampsLoading(false); // Set loading false after both fetches (created & booked) are complete
+        // Set loading false after all necessary fetches are done
+        setCampsLoading(false);
     }
 };
 
 
-  // Function to handle camp deletion
+  // Function to handle camp deletion (only callable by admin via UI)
   const handleDeleteCamp = async (campId: string) => {
-    if (!campId || !user) return;
+    if (!campId || !user || !isAdmin) { // Double-check admin status
+       toast({ title: 'Permission Denied', description: 'Only admins can delete camps.', variant: 'destructive' });
+       return;
+    }
     const campToDelete = myCreatedCamps.find(camp => camp.id === campId);
     if (!campToDelete || campToDelete.organizerId !== user.uid) {
-       toast({ title: 'Permission Denied', description: 'Cannot delete this camp.', variant: 'destructive' });
+       toast({ title: 'Internal Error', description: 'Cannot delete this camp.', variant: 'destructive' }); // Should not happen if list is correct
        return;
     }
 
@@ -599,36 +617,40 @@ export default function ProfilePage() {
 
             {/* Events Section */}
             <div className="w-full max-w-4xl mx-auto"> {/* Centered content */}
-                 {/* Section for User's Created Camps */}
-               <div className="mb-12">
-                   <h2 className="text-2xl md:text-3xl font-bold mb-6">My Created Camps</h2>
-                   {campsLoading ? (
-                       <SkeletonCard count={myCreatedCamps.length > 0 ? myCreatedCamps.length : 1} />
-                   ) : myCreatedCamps.length > 0 ? (
-                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                           {myCreatedCamps.map((camp) => (
-                               <CampCard
-                                   key={camp.id}
-                                   camp={camp}
-                                   isOwner={true} // Always owner in this section
-                                   onDeleteClick={handleDeleteCamp}
-                                   deletingCampId={deletingCampId}
-                                />
-                           ))}
-                       </div>
-                   ) : (
-                       <Card className="text-center py-12">
-                           <CardContent>
-                               <p className="text-muted-foreground mb-4">You haven't created any camps yet.</p>
-                               <Button asChild>
-                                   <Link href="/camps/new">Create Your First Camp</Link>
-                               </Button>
-                           </CardContent>
-                       </Card>
-                   )}
-               </div>
+                 {/* Section for User's Created Camps (Only shown to Admins) */}
+               {isAdmin && (
+                    <div className="mb-12">
+                        <h2 className="text-2xl md:text-3xl font-bold mb-6">My Created Camps</h2>
+                        {campsLoading ? (
+                            <SkeletonCard count={myCreatedCamps.length > 0 ? myCreatedCamps.length : 1} />
+                        ) : myCreatedCamps.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {myCreatedCamps.map((camp) => (
+                                    <CampCard
+                                        key={camp.id}
+                                        camp={camp}
+                                        isOwner={true} // Always owner in this section
+                                        onDeleteClick={handleDeleteCamp}
+                                        deletingCampId={deletingCampId}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <Card className="text-center py-12">
+                                <CardContent>
+                                    <p className="text-muted-foreground mb-4">You haven't created any camps yet.</p>
+                                    <Button asChild>
+                                        <Link href="/camps/new"><PlusCircle className="mr-2 h-4 w-4"/>Create Your First Camp</Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+               )}
 
-               <Separator className="my-12"/>
+               {/* Separator only shown if both sections might be visible */}
+               {isAdmin && <Separator className="my-12"/>}
+
 
                 {/* Section for Camps User Responded To (Booked Camps) */}
                <div>
