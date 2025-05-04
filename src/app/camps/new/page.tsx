@@ -199,7 +199,7 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
                 description: `Your camp "${values.name}" has been added.`,
             });
             // Redirect to the main page or the new camp's page
-            router.push('/main');
+            router.push('/admin'); // Redirect to admin page after creation
             // Optional: redirect to the new camp's detail page: router.push(`/camps/${docRef.id}`);
 
         } catch (error) {
@@ -239,7 +239,7 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
                         <FormLabel>Organizer</FormLabel>
                         <Select
                             onValueChange={field.onChange}
-                            defaultValue={field.value}
+                            value={field.value} // Use value instead of defaultValue
                             disabled={isLoading || organizersLoading}
                         >
                             <FormControl>
@@ -397,8 +397,11 @@ export default function CreateCampPage() {
   useEffect(() => {
       if (isAdmin) {
           fetchOrganizers();
+      } else if (!loading && user) {
+          // If user is loaded and not admin, no need to fetch organizers, just stop loading state
+          setOrganizersLoading(false);
       }
-  }, [isAdmin]);
+  }, [isAdmin, user, loading]); // Add user and loading dependencies
 
    // Function to fetch organizers
     const fetchOrganizers = async () => {
@@ -420,7 +423,7 @@ export default function CreateCampPage() {
     };
 
 
-  if (loading || !user || !isAdmin) { // Show skeleton if loading, or user not logged in, or not admin
+  if (loading || organizersLoading || (!user && !loading)) { // Show skeleton if auth loading, organizers loading, or redirecting
      return (
          <div className="flex flex-col min-h-screen">
              {/* Header Skeleton */}
@@ -487,9 +490,10 @@ export default function CreateCampPage() {
 
       <main className="flex-1 p-4 md:p-8 lg:p-12">
           <div className="container mx-auto px-4 py-8 md:py-12 max-w-4xl"> {/* Added max-w */}
-              <Link href="/main" className="inline-flex items-center text-primary hover:underline mb-6" prefetch={false}>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Main
+              {/* Link back to admin panel */}
+              <Link href="/admin" className="inline-flex items-center text-primary hover:underline mb-6" prefetch={false}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Admin Panel
               </Link>
 
               <Card className="shadow-lg">

@@ -410,53 +410,64 @@ export default function EditCampPage() {
     useEffect(() => {
         // Redirect if not logged in or not admin after auth check
         if (!authLoading && (!user || !isAdmin)) {
+            toast({ title: 'Access Denied', description: 'You must be an administrator to edit camps.', variant: 'destructive' });
             router.push('/main'); // Redirect non-admins or logged-out users
             return;
         }
 
+        // If auth is still loading, or user is not yet verified as admin, wait.
+        if (authLoading || (user && !isAdmin)) {
+            setLoading(true); // Keep loading state true until admin status is confirmed
+            return;
+        }
+
+        // At this point, user is loaded and confirmed as admin
         if (campId && user && isAdmin) { // Fetch only if ID, user, and admin status are valid
-            setLoading(true);
+            setLoading(true); // Set loading before async fetches
+            setOrganizersLoading(true);
             setError(null);
-            const campDocRef = doc(db, 'camps', campId);
-            getDoc(campDocRef)
-                .then(docSnap => {
+
+            const fetchCampAndOrganizers = async () => {
+                try {
+                    // Fetch Camp Data
+                    const campDocRef = doc(db, 'camps', campId);
+                    const docSnap = await getDoc(campDocRef);
                     if (docSnap.exists()) {
                         const data = docSnap.data() as Omit<CampData, 'id'>;
-                        // Admin check is already done, no need to check owner here
                         setCampData({ id: docSnap.id, ...data });
                     } else {
                         setError("Camp not found.");
                         toast({ title: 'Error', description: 'Camp not found.', variant: 'destructive' });
                         router.push('/admin'); // Redirect if camp doesn't exist
+                        return; // Stop further execution if camp not found
                     }
-                })
-                .catch(fetchError => {
-                    console.error("Error fetching camp data:", fetchError);
-                    setError("Failed to load camp data.");
-                    toast({ title: 'Error', description: 'Failed to load camp data. Please try again.', variant: 'destructive' });
-                })
-                .finally(() => {
-                    setLoading(false);
-                });
 
-             // Fetch organizers regardless of camp fetch status (needed for the dropdown)
-            fetchOrganizers();
+                    // Fetch Organizers Data
+                    await fetchOrganizers();
+
+                } catch (fetchError) {
+                    console.error("Error fetching data:", fetchError);
+                    setError("Failed to load required data.");
+                    toast({ title: 'Error', description: 'Failed to load camp or organizer data. Please try again.', variant: 'destructive' });
+                } finally {
+                    setLoading(false); // Stop loading after both fetches (or error)
+                    // Organizers loading is handled within fetchOrganizers
+                }
+            };
+
+            fetchCampAndOrganizers();
 
         } else if (!campId) {
             setError("Camp ID is missing.");
             setLoading(false);
+            setOrganizersLoading(false);
             router.push('/admin'); // Redirect if no ID
-        } else if (!isAdmin && !authLoading) {
-            // This case should be caught by the initial redirect, but as a fallback
-            setError('You do not have permission to edit this camp.');
-            setLoading(false);
-            router.push('/main');
         }
     }, [campId, user, isAdmin, authLoading, router, toast]);
 
      // Function to fetch organizers
     const fetchOrganizers = async () => {
-        setOrganizersLoading(true);
+        // Don't reset organizersLoading here, handled by caller's state management
         try {
             const organizersCollectionRef = collection(db, 'organizers');
             const querySnapshot = await getDocs(organizersCollectionRef);
@@ -468,13 +479,18 @@ export default function EditCampPage() {
         } catch (error) {
             console.error("Error fetching organizers:", error);
             toast({ title: 'Error', description: 'Could not load organizers for selection.', variant: 'destructive' });
+            // Set organizers to empty array on error
+            setOrganizers([]);
         } finally {
-            setOrganizersLoading(false);
+            setOrganizersLoading(false); // Set loading false for organizers specifically
         }
     };
 
+    // Combined loading state check
+    const isPageLoading = loading || authLoading || organizersLoading;
+
     // Loading state skeleton
-    if (loading || authLoading || organizersLoading || (!user && !authLoading)) { // Include organizersLoading
+    if (isPageLoading) {
         return (
              <div className="flex flex-col min-h-screen">
                  {/* Header Skeleton */}
@@ -564,7 +580,7 @@ export default function EditCampPage() {
                                             campData={campData}
                                             campId={campId}
                                             organizers={organizers}
-                                            organizersLoading={organizersLoading}
+                                            organizersLoading={organizersLoading} // Pass down organizer loading state
                                           />}
                         </CardContent>
                     </Card>
