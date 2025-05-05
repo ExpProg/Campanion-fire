@@ -24,7 +24,6 @@ const ExtractCampDataOutputSchema = z.object({
     startDateString: z.string().optional().describe("The start date of the camp as a string (e.g., 'July 10, 2024', '2024-07-10', '10/07/2024')."),
     endDateString: z.string().optional().describe("The end date of the camp as a string (e.g., 'July 20, 2024', '2024-07-20', '20/07/2024')."),
     price: z.number().optional().describe("The price of the camp as a number."),
-    // Removed .url() validation as it's not supported by the API for string format
     imageUrl: z.string().optional().describe("A direct URL to a representative image for the camp."),
     activities: z.array(z.string()).optional().describe("A list of main activities offered at the camp."),
 });
@@ -42,20 +41,15 @@ const prompt = ai.definePrompt({
     output: {
         schema: ExtractCampDataOutputSchema,
     },
-    prompt: `You are an expert data extractor. Analyze the content of the webpage at the following URL and extract the requested camp information.
+    prompt: `You are an expert data extractor. Analyze the content of the webpage at the following URL and extract the requested camp information based on the provided output schema.
+**Important:** Extract the text content (like name, description, location, activities) in the **original language** found on the webpage. Do not translate it to English.
 If a piece of information is not clearly available, omit the corresponding field.
 
 URL: {{{url}}}
 
-Extract the following details:
-- Camp Name (name)
-- Short Description (description)
-- Location (location)
-- Start Date as a string (startDateString) - try to use a common format like 'MM/DD/YYYY' or 'YYYY-MM-DD' or 'Month Day, Year'
-- End Date as a string (endDateString) - try to use a common format like 'MM/DD/YYYY' or 'YYYY-MM-DD' or 'Month Day, Year'
-- Price as a number (price) - extract only the numerical value, remove currency symbols.
-- Image URL (imageUrl) - find a relevant image representing the camp.
-- List of main Activities (activities)
+Extract the camp details according to the output schema. Pay attention to the format specified for each field (string, number, array, date format hints).
+- For dates (startDateString, endDateString), try to use a common format like 'MM/DD/YYYY', 'YYYY-MM-DD', or 'Month Day, Year'.
+- For price, extract only the numerical value, remove currency symbols.
 `,
 });
 
@@ -74,4 +68,3 @@ const extractCampDataFlow = ai.defineFlow<
         return output ?? {};
     }
 );
-
