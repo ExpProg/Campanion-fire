@@ -24,7 +24,8 @@ const ExtractCampDataOutputSchema = z.object({
     startDateString: z.string().optional().describe("The start date of the camp as a string (e.g., 'July 10, 2024', '2024-07-10', '10/07/2024')."),
     endDateString: z.string().optional().describe("The end date of the camp as a string (e.g., 'July 20, 2024', '2024-07-20', '20/07/2024')."),
     price: z.number().optional().describe("The price of the camp as a number."),
-    imageUrl: z.string().url().optional().describe("A direct URL to a representative image for the camp."),
+    // Removed .url() validation as it's not supported by the API for string format
+    imageUrl: z.string().optional().describe("A direct URL to a representative image for the camp."),
     activities: z.array(z.string()).optional().describe("A list of main activities offered at the camp."),
 });
 export type ExtractCampDataOutput = z.infer<typeof ExtractCampDataOutputSchema>;
@@ -73,3 +74,4 @@ const extractCampDataFlow = ai.defineFlow<
         return output ?? {};
     }
 );
+
