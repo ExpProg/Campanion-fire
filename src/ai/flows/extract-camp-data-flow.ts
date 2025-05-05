@@ -1,94 +1,72 @@
 'use server';
 /**
- * @fileOverview Flow to extract camp data from a URL.
+ * @fileOverview Flow to extract only the camp name from a URL.
  *
- * - extractCampDataFromUrl - A function that takes a URL and returns extracted camp data.
- * - ExtractCampDataInput - The input type for the extractCampDataFromUrl function.
- * - ExtractCampDataOutput - The return type for the extractCampDataFromUrl function.
+ * - extractCampNameFromUrl - A function that takes a URL and returns the extracted camp name.
+ * - ExtractCampNameInput - The input type for the extractCampNameFromUrl function.
+ * - ExtractCampNameOutput - The return type for the extractCampNameFromUrl function.
  */
 
 import { ai } from '@/ai/ai-instance';
 import { z } from 'genkit';
 
-const ExtractCampDataInputSchema = z.object({
-  url: z.string().url().describe('The URL of the camp page to extract data from.'),
+const ExtractCampNameInputSchema = z.object({
+  url: z.string().url().describe('The URL of the camp page to extract the name from.'),
 });
-export type ExtractCampDataInput = z.infer<typeof ExtractCampDataInputSchema>;
+export type ExtractCampNameInput = z.infer<typeof ExtractCampNameInputSchema>;
 
-// Define the expected output structure from the LLM for the flow's final output type
-const ExtractCampDataOutputSchema = z.object({
+// Define the expected output structure: only the name
+const ExtractCampNameOutputSchema = z.object({
     name: z.string().optional().describe("The name of the camp. Extract the exact name found on the page in its original language."),
-    // Updated description instruction
-    description: z.string().optional().describe("A very short (1-2 sentences max) summary highlighting the key purpose or theme of the camp, generated based *only* on the main content of the page. Write this summary in the *original language* of the webpage. Avoid generic phrases."),
-    location: z.string().optional().describe("The location of the camp (e.g., City, State or Region). Extract only if clearly stated, in the original language."),
-    startDateString: z.string().optional().describe("The start date of the camp as a string (e.g., 'July 10, 2024', '2024-07-10', '10/07/2024'). Extract only if a specific start date is clearly stated. Omit if only a month or season is mentioned."),
-    endDateString: z.string().optional().describe("The end date of the camp as a string (e.g., 'July 20, 2024', '2024-07-20', '20/07/2024'). Extract only if a specific end date is clearly stated. Omit if only a month or season is mentioned."),
-    price: z.number().optional().describe("The price of the camp as a number. Extract only the numerical value, remove currency symbols ($, €, ₽, etc.). Omit if no price is clearly stated."),
-    imageUrl: z.string().url().optional().describe("A direct URL to a representative image for the camp (e.g., banner, logo, activities). Omit if no suitable image URL is found."), // Keep .url() validation for the final flow output type
-    activities: z.array(z.string()).optional().describe("A list of main activities offered at the camp. Extract only if explicitly listed or described as core parts of the program, in the original language."),
+    // All other fields are removed or made optional as they are no longer extracted
 });
-export type ExtractCampDataOutput = z.infer<typeof ExtractCampDataOutputSchema>;
+export type ExtractCampNameOutput = z.infer<typeof ExtractCampNameOutputSchema>;
 
-export async function extractCampDataFromUrl(input: ExtractCampDataInput): Promise<ExtractCampDataOutput> {
-    return extractCampDataFlow(input);
+// Renamed function to reflect its specific purpose
+export async function extractCampNameFromUrl(input: ExtractCampNameInput): Promise<ExtractCampNameOutput> {
+    return extractCampNameFlow(input);
 }
 
 const prompt = ai.definePrompt({
-    name: 'extractCampDataPrompt',
+    name: 'extractCampNamePrompt', // Renamed prompt
     input: {
-        schema: ExtractCampDataInputSchema,
+        schema: ExtractCampNameInputSchema,
     },
     output: {
-        // Define the schema specifically for the LLM prompt output, removing unsupported formats
+        // Define the schema specifically for the LLM prompt output: only name
         schema: z.object({
             name: z.string().optional().describe("The name of the camp. Extract the exact name found on the page in its original language."),
-            description: z.string().optional().describe("A very short (1-2 sentences max) summary highlighting the key purpose or theme of the camp, generated based *only* on the main content of the page. Write this summary in the *original language* of the webpage. Avoid generic phrases."),
-            location: z.string().optional().describe("The location of the camp (e.g., City, State or Region). Extract only if clearly stated, in the original language."),
-            startDateString: z.string().optional().describe("The start date of the camp as a string (e.g., 'July 10, 2024', '2024-07-10', '10/07/2024'). Extract only if a specific start date is clearly stated. Omit if only a month or season is mentioned."),
-            endDateString: z.string().optional().describe("The end date of the camp as a string (e.g., 'July 20, 2024', '2024-07-20', '20/07/2024'). Extract only if a specific end date is clearly stated. Omit if only a month or season is mentioned."),
-            price: z.number().optional().describe("The price of the camp as a number. Extract only the numerical value, remove currency symbols ($, €, ₽, etc.). Omit if no price is clearly stated."),
-            imageUrl: z.string().optional().describe("A direct URL to a representative image for the camp (e.g., banner, logo, activities). Omit if no suitable image URL is found."), // Removed .url() for prompt output schema
-            activities: z.array(z.string()).optional().describe("A list of main activities offered at the camp. Extract only if explicitly listed or described as core parts of the program, in the original language."),
         }),
     },
-    // Refined prompt instructions for better accuracy and specific field handling
-    prompt: `You are an expert data extractor. Your task is to meticulously analyze the content of the webpage at the provided URL and extract specific information about a camp.
+    // Refined prompt instructions to ONLY extract the name
+    prompt: `You are an expert data extractor. Your task is to meticulously analyze the content of the webpage at the provided URL and extract ONLY the name of the camp.
 **Crucial Instructions:**
-1.  **Accuracy First:** Only extract information that is **explicitly stated** on the webpage. Do **NOT** guess, infer, or make assumptions. If a piece of information (like price, specific dates, activities, location, or image URL) is not clearly present, **omit** the corresponding field in your output.
-2.  **Original Language:** Extract all textual information (name, description, location, activities) in the **exact language** used on the webpage. Do **NOT** translate to English or any other language.
-3.  **Description Summary:** For the 'description' field, **generate** a **very short (1-2 sentences maximum)** summary highlighting the **key purpose or theme** of the camp, based **only** on the main content of the page. Write this summary in the **original language** of the webpage. Avoid generic phrases.
-4.  **Field Specifics:**
-    *   **name:** Extract the exact camp name as it appears on the page.
-    *   **Dates (startDateString, endDateString):** Extract only if **specific** start and end dates are clearly mentioned. Use common formats like 'MM/DD/YYYY', 'YYYY-MM-DD', 'Month Day, Year', 'Day Month Year'. If only a month, season, or general timeframe is mentioned, **do not extract** the date fields.
-    *   **Price:** Extract only the **numerical value** if a price is clearly stated. Remove currency symbols ($, €, ₽, etc.). If no price is found, omit the field.
-    *   **imageUrl:** Find a **direct URL** to a relevant image representing the camp (e.g., a banner, logo, or photo of camp activities). If no suitable image URL is found, omit the field. Ensure it's a valid URL string.
-    *   **activities:** List the main activities **only if** they are explicitly listed or described as core parts of the camp program. Use the original language.
+1.  **Accuracy First:** Only extract the camp name that is **explicitly stated** on the webpage. Do **NOT** guess, infer, or make assumptions. If the name is not clearly present, **omit** the field.
+2.  **Original Language:** Extract the camp name in the **exact language** used on the webpage. Do **NOT** translate to English or any other language.
 
 Analyze the webpage at this URL: {{{url}}}
 
-Provide the extracted information strictly following the output schema and the instructions above.`,
+Provide ONLY the extracted camp name strictly following the output schema and the instructions above.`,
 });
 
-const extractCampDataFlow = ai.defineFlow<
-    typeof ExtractCampDataInputSchema,
-    typeof ExtractCampDataOutputSchema // Use the schema with .url() for the final flow output type
+// Renamed flow
+const extractCampNameFlow = ai.defineFlow<
+    typeof ExtractCampNameInputSchema,
+    typeof ExtractCampNameOutputSchema
 >(
     {
-        name: 'extractCampDataFlow',
-        inputSchema: ExtractCampDataInputSchema,
-        outputSchema: ExtractCampDataOutputSchema, // Flow output type uses the more strict schema
+        name: 'extractCampNameFlow', // Renamed flow
+        inputSchema: ExtractCampNameInputSchema,
+        outputSchema: ExtractCampNameOutputSchema,
     },
     async (input) => {
-        const { output } = await prompt(input); // Prompt uses the schema without .url() on imageUrl
+        const { output } = await prompt(input);
         // Ensure output exists before returning, provide default empty object if null/undefined
-        // Also, explicitly check if the output might be an empty object from the LLM if nothing was found.
         if (!output || Object.keys(output).length === 0) {
-           console.warn(`AI extraction returned no data or an empty object for URL: ${input.url}`);
+           console.warn(`AI extraction returned no name or an empty object for URL: ${input.url}`);
            return {}; // Return empty object if extraction yielded nothing or failed
         }
-        // The output here matches the *prompt's* output schema.
-        // Zod validation for the flow's output schema (including .url()) happens implicitly
-        // upon returning, ensuring the final result conforms to ExtractCampDataOutputSchema.
-        return output as ExtractCampDataOutput; // Cast to the final flow output type
+        // Return only the name field
+        return { name: output.name } as ExtractCampNameOutput;
     }
 );

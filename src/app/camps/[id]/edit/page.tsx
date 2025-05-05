@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils';
 import Header from '@/components/layout/Header';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"; // Import RadioGroup
-import { extractCampDataFromUrl } from '@/ai/flows/extract-camp-data-flow'; // Import the new AI flow
+import { extractCampNameFromUrl } from '@/ai/flows/extract-camp-data-flow'; // Import the updated AI flow
 
 // Organizer Interface (matching Firestore structure)
 interface Organizer {
@@ -169,7 +169,7 @@ function EditCampForm({ campData, campId, organizers, organizersLoading }: {
      // Watch for changes in start date to potentially disable end date picker
     const startDateValue = form.watch('startDate');
 
-    // Attempt to parse date string into Date object
+    // Attempt to parse date string into Date object - Kept for manual entry, but AI won't use it
     const parseDateString = (dateString: string | undefined): Date | undefined => {
         if (!dateString) return undefined;
         // Add more formats if needed
@@ -208,38 +208,22 @@ function EditCampForm({ campData, campId, organizers, organizersLoading }: {
 
         setIsExtracting(true);
         try {
-            const result = await extractCampDataFromUrl({ url });
+            // Use the updated function name
+            const result = await extractCampNameFromUrl({ url });
 
-            // Set values, attempting to parse dates
-            form.setValue('name', result.name || campData.name, { shouldValidate: true });
-            form.setValue('description', result.description || campData.description, { shouldValidate: true });
-            form.setValue('location', result.location || campData.location, { shouldValidate: true });
-            form.setValue('price', result.price ?? campData.price, { shouldValidate: true });
-            form.setValue('imageUrl', result.imageUrl || campData.imageUrl, { shouldValidate: true });
-            form.setValue('activities', result.activities?.join(', ') || campData.activities?.join(', ') || '', { shouldValidate: true });
-
-
-             // Attempt to parse and set dates
-            const startDate = parseDateString(result.startDateString);
-            const endDate = parseDateString(result.endDateString);
-
-            if (startDate) {
-                form.setValue('startDate', startDate, { shouldValidate: true });
-            } else if (result.startDateString) {
-                toast({ title: 'Date Parsing Warning', description: `Could not automatically parse start date: "${result.startDateString}". Please set manually.`, variant: 'default' });
+            // Set ONLY the name value
+            if (result.name) {
+                form.setValue('name', result.name, { shouldValidate: true });
+                toast({ title: 'Camp Name Extracted', description: 'The camp name field has been populated. Please fill other fields manually.' });
+            } else {
+                 toast({ title: 'Name Not Found', description: 'Could not automatically extract the camp name. Please enter it manually.', variant: 'default' });
             }
 
-             if (endDate) {
-                form.setValue('endDate', endDate, { shouldValidate: true });
-            } else if (result.endDateString) {
-                 toast({ title: 'Date Parsing Warning', description: `Could not automatically parse end date: "${result.endDateString}". Please set manually.`, variant: 'default' });
-            }
-
-            toast({ title: 'Data Extracted', description: 'Form fields have been populated. Please review and adjust.' });
+            // Removed setting values for description, location, price, imageUrl, activities, dates
 
         } catch (error) {
-            console.error('Error extracting camp data:', error);
-            toast({ title: 'Extraction Failed', description: 'Could not extract data from the provided URL. Please fill manually.', variant: 'destructive' });
+            console.error('Error extracting camp name:', error);
+            toast({ title: 'Extraction Failed', description: 'Could not extract the camp name from the URL. Please fill manually.', variant: 'destructive' });
         } finally {
             setIsExtracting(false);
         }
@@ -362,7 +346,7 @@ function EditCampForm({ campData, campId, organizers, organizersLoading }: {
                                 </Button>
                              </div>
                             <FormDescription>
-                                Enter a link to automatically fill some fields (Name, Description, Location, Price, Image, Activities, Dates).
+                                Enter a link to automatically fill the Camp Name field.
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
