@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CalendarIcon, ShieldAlert, Building } from 'lucide-react'; // Added Building icon
+import { ArrowLeft, CalendarIcon, ShieldAlert, Building, Link as LinkIcon } from 'lucide-react'; // Added LinkIcon
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -50,6 +50,7 @@ const createCampSchema = z.object({
   imageUrl: z.string().url({ message: 'Please enter a valid image URL.' }).optional().or(z.literal('')), // Optional image URL
   activities: z.string().optional(), // Optional comma-separated activities
   status: z.enum(['draft', 'active', 'archive'], { required_error: 'Status is required.' }), // Added 'archive' status
+  originalLink: z.string().url({ message: 'Please enter a valid URL for the original link.' }).optional().or(z.literal('')), // Added optional originalLink
 }).refine((data) => data.endDate >= data.startDate, {
   message: "End date cannot be before start date.",
   path: ["endDate"], // Set the error path to the endDate field
@@ -76,6 +77,7 @@ interface CampFirestoreData {
   activities: string[];
   status: 'draft' | 'active' | 'archive'; // Added 'archive' status
   createdAt: Timestamp;
+  originalLink?: string; // Added optional originalLink
 }
 
 
@@ -155,6 +157,7 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
             imageUrl: '',
             activities: '',
             status: 'draft', // Default status to 'draft'
+            originalLink: '', // Added originalLink default
         },
     });
 
@@ -229,6 +232,7 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
                 activities: activitiesArray,
                 status: values.status, // Add the status field
                 createdAt: Timestamp.fromDate(new Date()),
+                originalLink: values.originalLink || '', // Add originalLink, ensure it's not null/undefined
             };
 
             const docRef = await addDoc(collection(db, 'camps'), campData);
@@ -399,6 +403,28 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
                     )}
                 />
 
+                {/* Original Link Field */}
+                <FormField
+                    control={form.control}
+                    name="originalLink"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Original Link (Optional)</FormLabel>
+                            <FormControl>
+                                <Input
+                                    type="url"
+                                    placeholder="https://original-source.com/camp"
+                                    {...field}
+                                    disabled={isLoading || organizersLoading}
+                                />
+                            </FormControl>
+                            <FormDescription>Link to the original source or website of the camp, if applicable.</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+
                 <FormField
                     control={form.control}
                     name="activities"
@@ -564,6 +590,7 @@ export default function CreateCampPage() {
                                     <Skeleton className="h-10 w-full" /> {/* Price */}
                                 </div>
                                 <Skeleton className="h-10 w-full mb-4" /> {/* Image URL */}
+                                <Skeleton className="h-10 w-full mb-4" /> {/* Original Link */}
                                 <Skeleton className="h-10 w-full mb-4" /> {/* Activities */}
                                 <Skeleton className="h-10 w-full mb-4" /> {/* Status */}
                                 <Skeleton className="h-10 w-1/4 mt-6" /> {/* Submit Button */}

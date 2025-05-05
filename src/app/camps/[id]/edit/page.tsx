@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CalendarIcon, Building } from 'lucide-react'; // Added Building icon
+import { ArrowLeft, CalendarIcon, Building, Link as LinkIcon } from 'lucide-react'; // Added LinkIcon
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -50,6 +50,7 @@ const editCampSchema = z.object({
   imageUrl: z.string().url({ message: 'Please enter a valid image URL.' }).optional().or(z.literal('')),
   activities: z.string().optional(),
   status: z.enum(['draft', 'active', 'archive'], { required_error: 'Status is required.' }), // Added 'archive' status
+  originalLink: z.string().url({ message: 'Please enter a valid URL for the original link.' }).optional().or(z.literal('')), // Added optional originalLink
 }).refine((data) => data.endDate >= data.startDate, {
   message: "End date cannot be before start date.",
   path: ["endDate"],
@@ -75,6 +76,7 @@ interface CampData {
   creatorId: string; // Added creatorId
   creationMode: 'admin' | 'user'; // Added creationMode
   status: 'draft' | 'active' | 'archive'; // Added 'archive' status
+  originalLink?: string; // Added optional originalLink
   // Keep organizerId from original camp data
 }
 
@@ -158,6 +160,7 @@ function EditCampForm({ campData, campId, organizers, organizersLoading }: {
             imageUrl: campData.imageUrl || '',
             activities: campData.activities?.join(', ') || '', // Join array back into comma-separated string
             status: campData.status || 'draft', // Set initial status
+            originalLink: campData.originalLink || '', // Set initial originalLink
         },
     });
 
@@ -205,7 +208,7 @@ function EditCampForm({ campData, campId, organizers, organizersLoading }: {
             const organizerLink = selectedOrganizer?.link || '';
 
             // Construct updated data, keeping creatorId and creationMode unchanged
-            const updatedData = {
+            const updatedData: Partial<CampData> = { // Use Partial<CampData> to allow partial updates
                 name: values.name,
                 organizerId: values.organizerId, // Update organizer ID
                 organizerName: organizerName, // Update denormalized name
@@ -221,6 +224,7 @@ function EditCampForm({ campData, campId, organizers, organizersLoading }: {
                 imageUrl: values.imageUrl || `https://picsum.photos/seed/${values.name.replace(/\s+/g, '-')}/600/400`, // Fallback logic
                 activities: activitiesArray,
                 status: values.status, // Update the status field
+                originalLink: values.originalLink || '', // Update originalLink, ensure it's not null/undefined
                 // createdAt remains unchanged
             };
 
@@ -388,6 +392,27 @@ function EditCampForm({ campData, campId, organizers, organizersLoading }: {
                     )}
                 />
 
+                 {/* Original Link Field */}
+                 <FormField
+                    control={form.control}
+                    name="originalLink"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Original Link (Optional)</FormLabel>
+                            <FormControl>
+                                <Input
+                                    type="url"
+                                    placeholder="https://original-source.com/camp"
+                                    {...field}
+                                    disabled={isLoading || organizersLoading}
+                                />
+                            </FormControl>
+                            <FormDescription>Link to the original source or website of the camp, if applicable.</FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                 />
+
                 <FormField
                     control={form.control}
                     name="activities"
@@ -515,6 +540,7 @@ export default function EditCampPage() {
                             creatorId: data.creatorId || user.uid, // Fallback just in case
                             creationMode: data.creationMode || 'admin', // Fallback just in case
                             status: data.status || 'draft', // Fallback status
+                            originalLink: data.originalLink || '', // Load originalLink
                          });
                     } else {
                         setError("Camp not found.");
@@ -605,6 +631,7 @@ export default function EditCampPage() {
                                      <Skeleton className="h-10 w-full" /> {/* Price */}
                                  </div>
                                  <Skeleton className="h-10 w-full mb-4" /> {/* Image URL */}
+                                 <Skeleton className="h-10 w-full mb-4" /> {/* Original Link */}
                                  <Skeleton className="h-10 w-full mb-4" /> {/* Activities */}
                                  <Skeleton className="h-10 w-full mb-4" /> {/* Status */}
                                  <Skeleton className="h-10 w-1/4 mt-6" /> {/* Submit Button */}

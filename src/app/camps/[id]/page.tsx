@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import Image from 'next/image';
-import { ArrowLeft, CalendarDays, MapPin, DollarSign, Building } from 'lucide-react'; // Added Building
+import { ArrowLeft, CalendarDays, MapPin, DollarSign, Building, Link as LinkIcon } from 'lucide-react'; // Added LinkIcon
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
@@ -27,13 +27,13 @@ interface Camp {
   location: string;
   imageUrl: string;
   price: number;
-  status: 'draft' | 'active'; // Added status field
+  status: 'draft' | 'active' | 'archive'; // Keep archive status for potential logic later
   organizerId: string; // Keep organizerId
   organizerName?: string; // Denormalized organizer name from Firestore
   organizerLink?: string; // Denormalized organizer link from Firestore
-  // contactEmail?: string; // Might be the same as organizerEmail or a separate field (REMOVED for now, use organizer info)
   activities?: string[];
   creatorId?: string; // Added creatorId
+  originalLink?: string; // Added optional originalLink
   // Add any other fields present in your Firestore document
 }
 
@@ -84,9 +84,9 @@ async function fetchCampDetailsFromFirestore(id: string): Promise<Camp | null> {
         organizerId: data.organizerId || '', // Get organizerId
         organizerName: organizerName, // Use the determined organizer name
         organizerLink: organizerLink, // Use the fetched or denormalized link
-        // contactEmail: data.contactEmail || data.organizerEmail || 'Not specified', // Removed contactEmail
         activities: data.activities || [], // Assuming activities is an array of strings
         creatorId: data.creatorId, // Added creatorId
+        originalLink: data.originalLink, // Added originalLink
       };
       return camp;
     } else {
@@ -120,9 +120,9 @@ export default function CampDetailsPage() {
       fetchCampDetailsFromFirestore(campId)
         .then(data => {
           if (data) {
-            // Check if camp is draft and user is not admin
-            if (data.status === 'draft' && !isAdmin) {
-               setError("Camp not found."); // Treat draft camps as not found for non-admins
+            // Check if camp is draft or archived and user is not admin
+            if ((data.status === 'draft' || data.status === 'archive') && !isAdmin) {
+               setError("Camp not found."); // Treat non-active camps as not found for non-admins
                setCamp(null);
             } else {
               setCamp(data);
@@ -177,6 +177,7 @@ export default function CampDetailsPage() {
                              <Skeleton className="h-8 w-full" />
                              <Skeleton className="h-8 w-full" />
                              <Skeleton className="h-8 w-full" />
+                             <Skeleton className="h-8 w-full" /> {/* Original Link placeholder */}
                              <Skeleton className="h-10 w-full mt-4" /> {/* Button placeholder */}
                          </div>
                      </div>
@@ -211,7 +212,6 @@ export default function CampDetailsPage() {
   }
 
   // Camp data is available
-  // const displayContactEmail = camp.contactEmail || 'Not specified'; // Removed contactEmail
   const organizerDisplay = camp.organizerName || 'Campanion Partner'; // Fallback
   const formattedPrice = camp.price.toLocaleString('ru-RU'); // Format price with spaces
 
@@ -268,12 +268,6 @@ export default function CampDetailsPage() {
                                   </div>
                               )}
 
-                              {/* Removed contact email section */}
-                              {/*
-                              <div className="text-sm text-muted-foreground">
-                                  Contact: {displayContactEmail}
-                              </div>
-                              */}
                           </CardContent>
                       </div>
                       <div className="bg-muted/50 p-6 md:p-8 border-t md:border-t-0 md:border-l">
@@ -301,6 +295,18 @@ export default function CampDetailsPage() {
                                       <p className="text-2xl font-bold text-primary">{formattedPrice} ₽</p> {/* Use formatted price */}
                                   </div>
                               </div>
+                              {/* Display Original Link if it exists */}
+                               {camp.originalLink && (
+                                   <div className="flex items-start">
+                                       <LinkIcon className="h-5 w-5 mr-3 mt-1 text-primary flex-shrink-0" />
+                                       <div>
+                                           <p className="font-medium">Original Source</p>
+                                           <a href={camp.originalLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline break-all">
+                                               {camp.originalLink}
+                                           </a>
+                                       </div>
+                                   </div>
+                               )}
                           </div>
                           <CardFooter className="px-0 pb-0 pt-8">
                               <Button className="w-full" size="lg">Book Now</Button> {/* Add booking functionality later */}
