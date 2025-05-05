@@ -17,16 +17,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CalendarIcon, ShieldAlert, Building, Link as LinkIcon } from 'lucide-react'; // Added LinkIcon
+import { ArrowLeft, CalendarIcon, ShieldAlert, Building, Link as LinkIcon, Sparkles, Loader2 } from 'lucide-react'; // Added Sparkles, Loader2
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns'; // Import parse for date string parsing
 import { cn } from '@/lib/utils';
 import Header from '@/components/layout/Header';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"; // Import RadioGroup
+import { extractCampDataFromUrl } from '@/ai/flows/extract-camp-data-flow'; // Import the new AI flow
 
 // Organizer Interface (matching Firestore structure)
 interface Organizer {
@@ -50,7 +51,7 @@ const createCampSchema = z.object({
   imageUrl: z.string().url({ message: 'Please enter a valid image URL.' }).optional().or(z.literal('')), // Optional image URL
   activities: z.string().optional(), // Optional comma-separated activities
   status: z.enum(['draft', 'active', 'archive'], { required_error: 'Status is required.' }), // Added 'archive' status
-  originalLink: z.string().url({ message: 'Please enter a valid URL for the original link.' }).optional().or(z.literal('')), // Added optional originalLink
+  originalLink: z.string().url({ message: 'Please enter a valid URL.' }).optional().or(z.literal('')), // Added optional originalLink
 }).refine((data) => data.endDate >= data.startDate, {
   message: "End date cannot be before start date.",
   path: ["endDate"], // Set the error path to the endDate field
@@ -143,6 +144,7 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
     const router = useRouter();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
+    const [isExtracting, setIsExtracting] = useState(false); // Loading state for AI extraction
 
     const form = useForm<CreateCampFormValues>({
         resolver: zodResolver(createCampSchema),
@@ -160,6 +162,82 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
             originalLink: '', // Added originalLink default
         },
     });
+
+    // Attempt to parse date string into Date object
+    const parseDateString = (dateString: string | undefined): Date | undefined => {
+        if (!dateString) return undefined;
+        // Add more formats if needed
+        const formats = [
+            'MM/dd/yyyy', 'yyyy-MM-dd', 'MMM d, yyyy', 'MMMM d, yyyy', 'd MMM yyyy',
+            'yyyy/MM/dd', 'dd.MM.yyyy', 'MM-dd-yyyy'
+        ];
+        for (const fmt of formats) {
+            try {
+                const parsedDate = parse(dateString, fmt, new Date());
+                if (!isNaN(parsedDate.getTime())) {
+                    return parsedDate;
+                }
+            } catch (e) {
+                // Ignore parsing errors for this format
+            }
+        }
+        console.warn(`Could not parse date string: ${dateString}`);
+        return undefined; // Return undefined if no format matches
+    };
+
+
+    const handleExtractData = async () => {
+        const url = form.getValues('originalLink');
+        if (!url) {
+            toast({ title: 'Missing URL', description: 'Please enter a URL in the "Original Link" field.', variant: 'destructive' });
+            return;
+        }
+
+        try {
+            new URL(url); // Validate URL format
+        } catch (_) {
+            toast({ title: 'Invalid URL', description: 'Please enter a valid URL.', variant: 'destructive' });
+            return;
+        }
+
+        setIsExtracting(true);
+        try {
+            const result = await extractCampDataFromUrl({ url });
+
+            // Set values, attempting to parse dates
+            form.setValue('name', result.name || '', { shouldValidate: true });
+            form.setValue('description', result.description || '', { shouldValidate: true });
+            form.setValue('location', result.location || '', { shouldValidate: true });
+            form.setValue('price', result.price ?? 0, { shouldValidate: true });
+            form.setValue('imageUrl', result.imageUrl || '', { shouldValidate: true });
+            form.setValue('activities', result.activities?.join(', ') || '', { shouldValidate: true });
+
+             // Attempt to parse and set dates
+            const startDate = parseDateString(result.startDateString);
+            const endDate = parseDateString(result.endDateString);
+
+            if (startDate) {
+                form.setValue('startDate', startDate, { shouldValidate: true });
+            } else if (result.startDateString) {
+                toast({ title: 'Date Parsing Warning', description: `Could not automatically parse start date: "${result.startDateString}". Please set manually.`, variant: 'default' });
+            }
+
+             if (endDate) {
+                form.setValue('endDate', endDate, { shouldValidate: true });
+            } else if (result.endDateString) {
+                 toast({ title: 'Date Parsing Warning', description: `Could not automatically parse end date: "${result.endDateString}". Please set manually.`, variant: 'default' });
+            }
+
+
+            toast({ title: 'Data Extracted', description: 'Form fields have been populated. Please review and adjust.' });
+
+        } catch (error) {
+            console.error('Error extracting camp data:', error);
+            toast({ title: 'Extraction Failed', description: 'Could not extract data from the provided URL. Please fill manually.', variant: 'destructive' });
+        } finally {
+            setIsExtracting(false);
+        }
+    };
 
     const onSubmit = async (values: CreateCampFormValues) => {
         if (!user?.uid) { // Basic check for logged-in user
@@ -257,9 +335,48 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
         }
     };
 
+    const originalLinkValue = form.watch('originalLink');
+
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
+                 {/* Original Link Field with Extract Button */}
+                 <FormField
+                    control={form.control}
+                    name="originalLink"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Original Link (Optional)</FormLabel>
+                            <div className="flex gap-2">
+                                <FormControl>
+                                    <Input
+                                        type="url"
+                                        placeholder="https://original-source.com/camp"
+                                        {...field}
+                                        disabled={isLoading || organizersLoading || isExtracting}
+                                    />
+                                </FormControl>
+                                <Button
+                                    type="button"
+                                    onClick={handleExtractData}
+                                    disabled={isLoading || organizersLoading || isExtracting || !originalLinkValue}
+                                    variant="outline"
+                                    size="icon"
+                                    aria-label="Fill data from link"
+                                >
+                                    {isExtracting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                                </Button>
+                             </div>
+                            <FormDescription>
+                                Enter a link to automatically fill some fields (Name, Description, Location, Price, Image, Activities, Dates).
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+
                 <FormField
                     control={form.control}
                     name="name"
@@ -267,7 +384,7 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
                         <FormItem>
                             <FormLabel>Camp Name</FormLabel>
                             <FormControl>
-                                <Input placeholder="Enter camp name" {...field} disabled={isLoading || organizersLoading} />
+                                <Input placeholder="Enter camp name" {...field} disabled={isLoading || organizersLoading || isExtracting} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -281,7 +398,7 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Organizer</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading || organizersLoading}>
+                            <Select onValueChange={field.onChange} value={field.value} disabled={isLoading || organizersLoading || isExtracting}>
                                 <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select an organizer..." />
@@ -322,7 +439,7 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
                         <FormItem>
                             <FormLabel>Description</FormLabel>
                             <FormControl>
-                                <Textarea placeholder="Describe your camp" {...field} disabled={isLoading || organizersLoading} />
+                                <Textarea placeholder="Describe your camp" {...field} disabled={isLoading || organizersLoading || isExtracting} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -338,7 +455,7 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
                             <DatePickerField
                                 field={field}
                                 label="Start Date"
-                                disabled={isLoading || organizersLoading}
+                                disabled={isLoading || organizersLoading || isExtracting}
                                 isAdmin={isAdmin} // Pass admin status
                             />
                         )}
@@ -352,7 +469,7 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
                            <DatePickerField
                                 field={field}
                                 label="End Date"
-                                disabled={isLoading || organizersLoading || !form.watch('startDate')} // Disable if start date not picked
+                                disabled={isLoading || organizersLoading || isExtracting || !form.watch('startDate')} // Disable if start date not picked
                                 isAdmin={isAdmin} // Pass admin status
                             />
                         )}
@@ -367,7 +484,7 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
                             <FormItem>
                                 <FormLabel>Location</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="e.g., Rocky Mountains, CO" {...field} disabled={isLoading || organizersLoading} />
+                                    <Input placeholder="e.g., Rocky Mountains, CO" {...field} disabled={isLoading || organizersLoading || isExtracting} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -380,7 +497,7 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
                             <FormItem>
                                 <FormLabel>Price (₽)</FormLabel> {/* Changed $ to ₽ */}
                                 <FormControl>
-                                    <Input type="number" placeholder="Enter price" {...field} disabled={isLoading || organizersLoading} min="0" step="0.01" />
+                                    <Input type="number" placeholder="Enter price" {...field} disabled={isLoading || organizersLoading || isExtracting} min="0" step="0.01" />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -395,30 +512,9 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
                         <FormItem>
                             <FormLabel>Image URL (Optional)</FormLabel>
                             <FormControl>
-                                <Input placeholder="https://example.com/image.jpg" {...field} disabled={isLoading || organizersLoading} />
+                                <Input placeholder="https://example.com/image.jpg" {...field} disabled={isLoading || organizersLoading || isExtracting} />
                             </FormControl>
                             <FormDescription>If left blank, a placeholder image will be used.</FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                {/* Original Link Field */}
-                <FormField
-                    control={form.control}
-                    name="originalLink"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Original Link (Optional)</FormLabel>
-                            <FormControl>
-                                <Input
-                                    type="url"
-                                    placeholder="https://original-source.com/camp"
-                                    {...field}
-                                    disabled={isLoading || organizersLoading}
-                                />
-                            </FormControl>
-                            <FormDescription>Link to the original source or website of the camp, if applicable.</FormDescription>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -432,7 +528,7 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
                         <FormItem>
                             <FormLabel>Activities (Optional)</FormLabel>
                             <FormControl>
-                                <Input placeholder="Hiking, Swimming, Coding" {...field} disabled={isLoading || organizersLoading} />
+                                <Input placeholder="Hiking, Swimming, Coding" {...field} disabled={isLoading || organizersLoading || isExtracting} />
                             </FormControl>
                             <FormDescription>Enter activities separated by commas.</FormDescription>
                             <FormMessage />
@@ -450,9 +546,9 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
                       <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          value={field.value} // Use value instead of defaultValue for controlled component
                           className="flex space-x-4"
-                          disabled={isLoading || organizersLoading}
+                          disabled={isLoading || organizersLoading || isExtracting}
                         >
                           <FormItem className="flex items-center space-x-2 space-y-0">
                             <FormControl>
@@ -489,7 +585,7 @@ function CreateCampForm({ organizers, organizersLoading }: { organizers: Organiz
                 />
 
 
-                <Button type="submit" className="mt-6" disabled={isLoading || organizersLoading || organizers.length === 0}>
+                <Button type="submit" className="mt-6" disabled={isLoading || organizersLoading || isExtracting || organizers.length === 0}>
                    {isLoading ? 'Creating Camp...' : 'Create Camp'}
                 </Button>
             </form>
@@ -578,6 +674,7 @@ export default function CreateCampPage() {
                                 <Skeleton className="h-4 w-3/4" />
                             </CardHeader>
                             <CardContent>
+                                 <Skeleton className="h-10 w-full mb-4" /> {/* Original Link */}
                                 <Skeleton className="h-10 w-full mb-4" /> {/* Camp Name */}
                                 <Skeleton className="h-10 w-full mb-4" /> {/* Organizer Dropdown Skeleton */}
                                 <Skeleton className="h-20 w-full mb-4" /> {/* Description */}
@@ -590,7 +687,6 @@ export default function CreateCampPage() {
                                     <Skeleton className="h-10 w-full" /> {/* Price */}
                                 </div>
                                 <Skeleton className="h-10 w-full mb-4" /> {/* Image URL */}
-                                <Skeleton className="h-10 w-full mb-4" /> {/* Original Link */}
                                 <Skeleton className="h-10 w-full mb-4" /> {/* Activities */}
                                 <Skeleton className="h-10 w-full mb-4" /> {/* Status */}
                                 <Skeleton className="h-10 w-1/4 mt-6" /> {/* Submit Button */}
