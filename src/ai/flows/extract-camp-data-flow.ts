@@ -17,8 +17,8 @@ export type ExtractCampNameInput = z.infer<typeof ExtractCampNameInputSchema>;
 
 // Define the expected output structure: only the name
 const ExtractCampNameOutputSchema = z.object({
-    name: z.string().optional().describe("The name of the camp. Extract the exact name found on the page in its original language."),
-    // All other fields are removed or made optional as they are no longer extracted
+    // Updated description to emphasize full name and original language
+    name: z.string().optional().describe("The full and exact name of the camp as found on the page, in its original language. Do not translate or shorten."),
 });
 export type ExtractCampNameOutput = z.infer<typeof ExtractCampNameOutputSchema>;
 
@@ -35,18 +35,19 @@ const prompt = ai.definePrompt({
     output: {
         // Define the schema specifically for the LLM prompt output: only name
         schema: z.object({
-            name: z.string().optional().describe("The name of the camp. Extract the exact name found on the page in its original language."),
+            // Updated description to emphasize full name and original language
+            name: z.string().optional().describe("The full and exact name of the camp as found on the page, in its original language. Do not translate or shorten."),
         }),
     },
-    // Refined prompt instructions to ONLY extract the name
-    prompt: `You are an expert data extractor. Your task is to meticulously analyze the content of the webpage at the provided URL and extract ONLY the name of the camp.
+    // Refined prompt instructions to ONLY extract the full, original name
+    prompt: `You are an expert data extractor. Your task is to meticulously analyze the content of the webpage at the provided URL and extract ONLY the **full name** of the camp.
 **Crucial Instructions:**
-1.  **Accuracy First:** Only extract the camp name that is **explicitly stated** on the webpage. Do **NOT** guess, infer, or make assumptions. If the name is not clearly present, **omit** the field.
-2.  **Original Language:** Extract the camp name in the **exact language** used on the webpage. Do **NOT** translate to English or any other language.
+1.  **Accuracy First:** Only extract the camp name that is **explicitly stated** on the webpage. Look for the most complete version of the name. Do **NOT** guess, infer, or make assumptions. If the name is not clearly present, **omit** the field.
+2.  **Original Language & Format:** Extract the camp name in the **exact language and format** used on the webpage. Do **NOT** translate to English or any other language. Do **NOT** shorten or abbreviate the name.
 
 Analyze the webpage at this URL: {{{url}}}
 
-Provide ONLY the extracted camp name strictly following the output schema and the instructions above.`,
+Provide ONLY the extracted **full camp name** strictly following the output schema and the instructions above.`,
 });
 
 // Renamed flow
