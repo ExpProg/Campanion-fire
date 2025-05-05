@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/layout/Header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, CalendarCheck2, Check, PlusCircle, Users, FileText, Archive, AlertTriangle, CalendarClock, ArchiveRestore } from 'lucide-react'; // Added CalendarClock, ArchiveRestore
+import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, CalendarCheck2, Check, PlusCircle, Users, FileText, Archive, AlertTriangle, CalendarClock, ArchiveRestore, Copy } from 'lucide-react'; // Added Copy, CalendarClock, ArchiveRestore
 import Link from 'next/link';
 import { collection, getDocs, deleteDoc, doc, Timestamp, addDoc, updateDoc, writeBatch } from 'firebase/firestore'; // Added addDoc, deleteDoc, updateDoc, writeBatch
 import { db } from '@/config/firebase';
@@ -61,6 +61,8 @@ interface Camp {
   imageUrl: string;
   price: number;
   organizerId?: string; // Link to the organizers collection
+  organizerName?: string; // Denormalized organizer name
+  organizerLink?: string; // Denormalized organizer link
   creatorId: string; // ID of the admin who created the camp
   creationMode: 'admin' | 'user'; // Added creationMode
   status: 'draft' | 'active' | 'archive'; // Added 'archive' status
@@ -175,11 +177,13 @@ const AdminPageSkeleton = () => (
 );
 
 // Reusable Camp List Item Component for Admin Panel
-const AdminCampListItem = ({ camp, isCreator, onDeleteClick, deletingCampId, status, highlight }: {
+const AdminCampListItem = ({ camp, isCreator, onDeleteClick, onCopyClick, deletingCampId, isCopyingCampId, status, highlight }: {
     camp: Camp;
     isCreator: boolean; // Check if the logged-in user is the creator
     onDeleteClick: (campId: string) => void;
+    onCopyClick: (campId: string) => void; // Added copy handler prop
     deletingCampId: string | null;
+    isCopyingCampId: string | null; // Added copying state prop
     status: DetailedCampStatus; // Use DetailedCampStatus
     highlight?: boolean; // Optional flag for highlighting specific camps (e.g., started)
 }) => {
@@ -244,6 +248,17 @@ const AdminCampListItem = ({ camp, isCreator, onDeleteClick, deletingCampId, sta
                                <span className="sr-only">Edit</span>
                            </Link>
                       </Button>
+                       {/* Copy Button */}
+                       <Button
+                         variant="ghost"
+                         size="icon"
+                         onClick={() => onCopyClick(camp.id)}
+                         disabled={isCopyingCampId === camp.id}
+                         aria-label={`Copy ${camp.name}`}
+                       >
+                           <Copy className="h-4 w-4" />
+                           <span className="sr-only">Copy</span>
+                       </Button>
                       <AlertDialog>
                           <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={deletingCampId === camp.id} aria-label={`Delete ${camp.name}`}>
@@ -286,9 +301,10 @@ const AdminCampListSkeleton = ({ count = 3 }: { count?: number }) => (
                     <Skeleton className="h-4 w-1/4" />
                 </div>
                 <div className="flex gap-2 items-center flex-shrink-0">
-                    <Skeleton className="h-8 w-8 rounded-md" />
-                    <Skeleton className="h-8 w-8 rounded-md" />
-                    <Skeleton className="h-8 w-8 rounded-md" />
+                    <Skeleton className="h-8 w-8 rounded-md" /> {/* View */}
+                    <Skeleton className="h-8 w-8 rounded-md" /> {/* Edit */}
+                    <Skeleton className="h-8 w-8 rounded-md" /> {/* Copy */}
+                    <Skeleton className="h-8 w-8 rounded-md" /> {/* Delete */}
                 </div>
             </div>
         ))}
@@ -624,6 +640,7 @@ export default function AdminPage() {
     const [allAdminCamps, setAllAdminCamps] = useState<Camp[]>([]);
     const [campsLoading, setCampsLoading] = useState(true);
     const [deletingCampId, setDeletingCampId] = useState<string | null>(null);
+    const [isCopyingCampId, setIsCopyingCampId] = useState<string | null>(null); // Added copying state
     const [filterStatus, setFilterStatus] = useState<CampStatusFilter>('all');
     const [organizers, setOrganizers] = useState<Organizer[]>([]);
     const [organizersLoading, setOrganizersLoading] = useState(true);
@@ -763,6 +780,59 @@ export default function AdminPage() {
             setDeletingCampId(null);
         }
     };
+
+    // Function to handle copying a camp
+    const handleCopyCamp = async (campId: string) => {
+        if (!campId || !user || !isAdmin) return;
+
+        const campToCopy = allAdminCamps.find(camp => camp.id === campId);
+        if (!campToCopy) {
+            toast({ title: 'Error', description: 'Camp not found.', variant: 'destructive' });
+            return;
+        }
+
+        // Ensure the admin is the creator (though typically admin can copy any)
+        if (campToCopy.creatorId !== user.uid) {
+            toast({ title: 'Permission Denied', description: 'Cannot copy this camp.', variant: 'destructive' });
+            return;
+        }
+
+        setIsCopyingCampId(campId);
+        try {
+            // Prepare the new camp data
+            const { id, createdAt, ...originalData } = campToCopy; // Exclude original ID and createdAt
+            const newCampData = {
+                ...originalData,
+                name: `${originalData.name} (Copy)`, // Append (Copy) to the name
+                status: 'draft', // Set status to draft
+                createdAt: Timestamp.now(), // Set new creation timestamp
+                creatorId: user.uid, // Ensure the copier is the creator
+                creationMode: 'admin', // Copied by admin
+            };
+
+            // Add the new document to Firestore
+            const docRef = await addDoc(collection(db, 'camps'), newCampData);
+
+            // Add the newly created camp to the local state
+            const newCampWithId: Camp = {
+                id: docRef.id,
+                ...newCampData,
+            };
+            setAllAdminCamps(prev => [newCampWithId, ...prev]); // Add to the beginning of the list
+
+            toast({
+                title: 'Camp Copied',
+                description: `A draft copy of "${campToCopy.name}" has been created.`,
+            });
+
+        } catch (error) {
+            console.error("Error copying camp:", error);
+            toast({ title: 'Copy Failed', description: 'Could not copy the camp.', variant: 'destructive' });
+        } finally {
+            setIsCopyingCampId(null);
+        }
+    };
+
 
     // Function to handle organizer deletion
     const handleDeleteOrganizer = async (organizerId: string) => {
@@ -987,7 +1057,9 @@ export default function AdminPage() {
                                         camp={camp}
                                         isCreator={camp.creatorId === user.uid} // Pass whether the current user is the creator
                                         onDeleteClick={handleDeleteCamp}
+                                        onCopyClick={handleCopyCamp} // Pass copy handler
                                         deletingCampId={deletingCampId}
+                                        isCopyingCampId={isCopyingCampId} // Pass copying state
                                         status={getCampStatus(camp)}
                                     />
                                 ))}
@@ -1054,7 +1126,9 @@ export default function AdminPage() {
                                           camp={camp}
                                           isCreator={camp.creatorId === user.uid}
                                           onDeleteClick={handleDeleteCamp}
+                                          onCopyClick={handleCopyCamp} // Pass copy handler
                                           deletingCampId={deletingCampId}
+                                          isCopyingCampId={isCopyingCampId} // Pass copying state
                                           status={getCampStatus(camp)}
                                           highlight={true} // Pass the highlight flag
                                       />
