@@ -214,6 +214,17 @@ const AdminCampListItem = ({ camp, isCreator, onDeleteClick, onCopyClick, deleti
           "flex items-center justify-between p-4 border-b hover:bg-muted/50 transition-colors",
           highlight && "bg-yellow-50 border-yellow-200 hover:bg-yellow-100/80 dark:bg-yellow-900/20 dark:border-yellow-800/50 dark:hover:bg-yellow-900/30" // Highlight style for specific conditions
       )}>
+         {/* Camp Image */}
+          <div className="relative w-20 h-16 sm:w-24 sm:h-20 rounded-md overflow-hidden mr-4 flex-shrink-0">
+            <Image
+              src={camp.imageUrl || 'https://picsum.photos/seed/placeholder/200/150'}
+              alt={camp.name}
+              fill
+              style={{ objectFit: 'cover' }}
+              sizes="(max-width: 640px) 80px, 96px"
+              data-ai-hint="camp event"
+            />
+          </div>
          {/* Basic Camp Info */}
          <div className="flex-1 min-w-0 mr-4">
              <div className="flex items-center gap-2 mb-1">
@@ -234,7 +245,7 @@ const AdminCampListItem = ({ camp, isCreator, onDeleteClick, onCopyClick, deleti
          </div>
 
          {/* Action Buttons */}
-         <div className="flex gap-2 items-center flex-shrink-0">
+         <div className="flex gap-1 sm:gap-2 items-center flex-shrink-0">
               <Button size="sm" asChild variant="ghost" aria-label={`View ${camp.name}`}>
                 <Link href={`/camps/${camp.id}`} prefetch={false}>
                     <Eye className="h-4 w-4" />
@@ -293,6 +304,7 @@ const AdminCampListSkeleton = ({ count = 3 }: { count?: number }) => (
     <div className="border rounded-md">
         {[...Array(count)].map((_, index) => (
             <div key={index} className="flex items-center justify-between p-4 border-b last:border-b-0">
+                <Skeleton className="relative w-20 h-16 sm:w-24 sm:h-20 rounded-md mr-4 flex-shrink-0" /> {/* Image Skeleton */}
                 <div className="flex-1 min-w-0 mr-4 space-y-1">
                      <div className="flex items-center gap-2 mb-1">
                         <Skeleton className="h-5 w-1/2" />
@@ -301,7 +313,7 @@ const AdminCampListSkeleton = ({ count = 3 }: { count?: number }) => (
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-4 w-1/4" />
                 </div>
-                <div className="flex gap-2 items-center flex-shrink-0">
+                <div className="flex gap-1 sm:gap-2 items-center flex-shrink-0">
                     <Skeleton className="h-8 w-8 rounded-md" /> {/* View */}
                     <Skeleton className="h-8 w-8 rounded-md" /> {/* Edit */}
                     <Skeleton className="h-8 w-8 rounded-md" /> {/* Copy */}
@@ -1168,6 +1180,8 @@ export default function AdminPage() {
     );
 }
 
+
+    
 
     
 

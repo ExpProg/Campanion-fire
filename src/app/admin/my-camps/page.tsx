@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { collection, getDocs, deleteDoc, doc, Timestamp, addDoc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { Button } from '@/components/ui/button';
+import Image from 'next/image'; // Import Image
 import {
   AlertDialog,
   AlertDialogAction,
@@ -89,6 +90,17 @@ const AdminCampListItem = ({ camp, isCreator, onDeleteClick, onCopyClick, deleti
 
     return (
       <div key={camp.id} className="flex items-center justify-between p-4 border-b hover:bg-muted/50 transition-colors">
+          {/* Camp Image */}
+          <div className="relative w-20 h-16 sm:w-24 sm:h-20 rounded-md overflow-hidden mr-4 flex-shrink-0">
+            <Image
+              src={camp.imageUrl || 'https://picsum.photos/seed/placeholder/200/150'}
+              alt={camp.name}
+              fill
+              style={{ objectFit: 'cover' }}
+              sizes="(max-width: 640px) 80px, 96px"
+              data-ai-hint="camp event"
+            />
+          </div>
          <div className="flex-1 min-w-0 mr-4">
              <div className="flex items-center gap-2 mb-1">
                  <p className="font-semibold truncate">{camp.name}</p>
@@ -100,7 +112,7 @@ const AdminCampListItem = ({ camp, isCreator, onDeleteClick, onCopyClick, deleti
              <p className="text-sm text-muted-foreground truncate">{camp.location} | {formattedStartDate} - {formattedEndDate}</p>
              <p className="text-sm text-primary font-medium">{formattedPrice} ₽</p>
          </div>
-         <div className="flex gap-2 items-center flex-shrink-0">
+         <div className="flex gap-1 sm:gap-2 items-center flex-shrink-0">
               <Button size="sm" asChild variant="ghost" aria-label={`View ${camp.name}`}>
                 <Link href={`/camps/${camp.id}`} prefetch={false}><Eye className="h-4 w-4" /></Link>
               </Button>
@@ -135,11 +147,12 @@ const AdminCampListSkeleton = ({ count = ITEMS_PER_PAGE }: { count?: number }) =
     <div className="border rounded-md">
         {[...Array(count)].map((_, index) => (
             <div key={index} className="flex items-center justify-between p-4 border-b last:border-b-0">
+                <Skeleton className="relative w-20 h-16 sm:w-24 sm:h-20 rounded-md mr-4 flex-shrink-0" /> {/* Image Skeleton */}
                 <div className="flex-1 min-w-0 mr-4 space-y-1">
                      <div className="flex items-center gap-2 mb-1"><Skeleton className="h-5 w-1/2" /><Skeleton className="h-5 w-16" /></div>
                     <Skeleton className="h-4 w-3/4" /><Skeleton className="h-4 w-1/4" />
                 </div>
-                <div className="flex gap-2 items-center flex-shrink-0">
+                <div className="flex gap-1 sm:gap-2 items-center flex-shrink-0">
                     <Skeleton className="h-8 w-8 rounded-md" /><Skeleton className="h-8 w-8 rounded-md" /><Skeleton className="h-8 w-8 rounded-md" /><Skeleton className="h-8 w-8 rounded-md" />
                 </div>
             </div>
@@ -390,3 +403,6 @@ export default function AllMyCampsPage() {
         </div>
     );
 }
+
+
+    
