@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Header from '@/components/layout/Header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, CalendarCheck2, Check, PlusCircle, Users, FileText, Archive, AlertTriangle, CalendarClock, ArchiveRestore, Copy } from 'lucide-react'; // Added Copy, CalendarClock, ArchiveRestore
+import { ShieldAlert, ArrowLeft, Trash2, Pencil, ShieldCheck, Eye, CalendarCheck2, Check, PlusCircle, Users, FileText, Archive, AlertTriangle, CalendarClock, ArchiveRestore, Copy, List } from 'lucide-react'; // Added List icon
 import Link from 'next/link';
 import { collection, getDocs, deleteDoc, doc, Timestamp, addDoc, updateDoc, writeBatch } from 'firebase/firestore'; // Added addDoc, deleteDoc, updateDoc, writeBatch
 import { db } from '@/config/firebase';
@@ -159,6 +159,7 @@ const AdminPageSkeleton = () => (
                        <Skeleton className="h-6 w-16" /> {/* Removed Past filter skeleton */}
                     </div>
                     <AdminCampListSkeleton count={3} />
+                    <Skeleton className="h-10 w-32 mt-4" /> {/* View All Button Skeleton */}
                  </div>
                  <Separator className="my-12" />
 
@@ -740,6 +741,10 @@ export default function AdminPage() {
          });
 
     }, [allAdminCamps, filterStatus]);
+    
+    const displayedCamps = useMemo(() => {
+        return filteredAndSortedCamps.slice(0, 5);
+    }, [filteredAndSortedCamps]);
 
     // Filter for active camps that have started (startDate <= today)
     const startedActiveCamps = useMemo(() => {
@@ -1048,10 +1053,11 @@ export default function AdminPage() {
 
                          {/* Camp List */}
                          {campsLoading ? (
-                            <AdminCampListSkeleton count={3} />
-                         ) : filteredAndSortedCamps.length > 0 ? (
+                            <AdminCampListSkeleton count={displayedCamps.length > 0 ? displayedCamps.length : (filterStatus === 'all' ? 3 : 1) } />
+                         ) : displayedCamps.length > 0 ? (
+                            <>
                             <div className="border rounded-md">
-                                {filteredAndSortedCamps.map((camp) => (
+                                {displayedCamps.map((camp) => (
                                     <AdminCampListItem
                                         key={camp.id}
                                         camp={camp}
@@ -1064,6 +1070,16 @@ export default function AdminPage() {
                                     />
                                 ))}
                             </div>
+                            {filteredAndSortedCamps.length > 5 && (
+                                <div className="mt-4 text-center">
+                                    <Button asChild variant="outline">
+                                        <Link href="/admin/my-camps">
+                                            <List className="mr-2 h-4 w-4" /> View All My Camps
+                                        </Link>
+                                    </Button>
+                                </div>
+                            )}
+                            </>
                          ) : (
                              <Card className="text-center py-12 border-dashed">
                                  <CardContent>
@@ -1152,5 +1168,7 @@ export default function AdminPage() {
     );
 }
 
+
+    
 
     
