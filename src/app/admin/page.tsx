@@ -128,11 +128,12 @@ const AdminPageSkeleton = () => (
             <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
                  <Skeleton className="h-8 w-40 mb-8" /> {/* Back link placeholder */}
                  {/* Administrator Panel Title Skeleton */}
-                 <div className="flex items-center gap-2 mb-8">
+                 <div className="flex items-center gap-2 mb-4"> {/* Changed mb-8 to mb-4 to match actual implementation */}
                     <Skeleton className="h-8 w-8" /> {/* Icon skeleton */}
                     <Skeleton className="h-8 w-1/2" /> {/* Title skeleton */}
                  </div>
-                 <p className="text-muted-foreground mb-12"><Skeleton className="h-4 w-1/3" /></p> {/* Welcome message skeleton */}
+                 {/* Changed p to div to avoid hydration error */}
+                 <div className="text-muted-foreground mb-12"><Skeleton className="h-4 w-1/3" /></div> {/* Welcome message skeleton */}
 
 
                  {/* Organizer Management Skeleton */}
