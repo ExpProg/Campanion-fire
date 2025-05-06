@@ -127,16 +127,14 @@ const AdminPageSkeleton = () => (
         <main className="flex-1 p-4 md:p-8 lg:p-12">
             <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
                  <Skeleton className="h-8 w-40 mb-8" /> {/* Back link placeholder */}
-                 <Card className="mb-12">
-                     <CardHeader>
-                         <Skeleton className="h-8 w-1/2 mb-2" />
-                         <Skeleton className="h-4 w-3/4" />
-                     </CardHeader>
-                     <CardContent>
-                        <Skeleton className="h-6 w-full max-w-md" />
-                        {/* Removed Skeleton for User Management Placeholder */}
-                     </CardContent>
-                 </Card>
+                 {/* Administrator Panel Title Skeleton */}
+                 <div className="flex items-center gap-2 mb-8">
+                    <Skeleton className="h-8 w-8" /> {/* Icon skeleton */}
+                    <Skeleton className="h-8 w-1/2" /> {/* Title skeleton */}
+                 </div>
+                 <p className="text-muted-foreground mb-12"><Skeleton className="h-4 w-1/3" /></p> {/* Welcome message skeleton */}
+
+
                  {/* Organizer Management Skeleton */}
                  <div className="mb-10">
                     <Skeleton className="h-8 w-56 mb-4" /> {/* Section title */}
@@ -938,19 +936,13 @@ export default function AdminPage() {
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back to Main
                     </Link>
-                    <Card className="shadow-lg mb-12">
-                        <CardHeader>
-                             <div className="flex items-center gap-2">
-                                <ShieldCheck className="h-8 w-8 text-primary" />
-                                <CardTitle className="text-2xl md:text-3xl font-bold">Administrator Panel</CardTitle>
-                             </div>
-                            <CardDescription>Manage organizers, camps, and site settings.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-muted-foreground">Welcome, Admin ({user.email})!</p>
-                             {/* User Management Section Removed */}
-                        </CardContent>
-                    </Card>
+                    {/* Administrator Panel Title - Moved out of Card */}
+                    <div className="flex items-center gap-2 mb-4">
+                        <ShieldCheck className="h-8 w-8 text-primary" />
+                        <h1 className="text-3xl md:text-4xl font-bold">Administrator Panel</h1>
+                    </div>
+                    <p className="text-muted-foreground mb-12">Manage organizers, camps, and site settings. Welcome, Admin ({user.email})!</p>
+                    
 
                     {/* Organizer Management Section */}
                     <div className="mb-12">
