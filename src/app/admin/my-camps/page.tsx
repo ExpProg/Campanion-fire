@@ -29,6 +29,9 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import PaginationControls from '@/components/layout/PaginationControls'; // Import PaginationControls
+
+const ITEMS_PER_PAGE = 15;
 
 // Camp Data Interface (consistent with admin/page.tsx)
 interface Camp {
@@ -128,7 +131,7 @@ const AdminCampListItem = ({ camp, isCreator, onDeleteClick, onCopyClick, deleti
 };
 
 // Skeleton for the Camp List (from admin/page.tsx)
-const AdminCampListSkeleton = ({ count = 5 }: { count?: number }) => (
+const AdminCampListSkeleton = ({ count = ITEMS_PER_PAGE }: { count?: number }) => (
     <div className="border rounded-md">
         {[...Array(count)].map((_, index) => (
             <div key={index} className="flex items-center justify-between p-4 border-b last:border-b-0">
@@ -156,7 +159,15 @@ const AllMyCampsPageSkeleton = () => (
                  <Skeleton className="h-8 w-40 mb-8" /> {/* Back link placeholder */}
                  <div className="flex justify-between items-center mb-4"><Skeleton className="h-8 w-64" /><Skeleton className="h-10 w-40" /></div>
                  <div className="flex space-x-4 mb-6"><Skeleton className="h-6 w-16" /><Skeleton className="h-6 w-16" /><Skeleton className="h-6 w-16" /><Skeleton className="h-6 w-16" /></div>
-                 <AdminCampListSkeleton count={5} />
+                 <AdminCampListSkeleton count={ITEMS_PER_PAGE} />
+                 {/* Skeleton for pagination controls */}
+                 <div className="flex items-center justify-between mt-6">
+                    <Skeleton className="h-6 w-40" /> {/* Showing X-Y of Z */}
+                    <div className="flex items-center space-x-2">
+                        <Skeleton className="h-9 w-24" /> {/* Previous button */}
+                        <Skeleton className="h-9 w-24" /> {/* Next button */}
+                    </div>
+                </div>
             </div>
         </main>
         <footer className="py-6 px-4 md:px-6 border-t"><Skeleton className="h-4 w-1/4" /></footer>
@@ -173,6 +184,7 @@ export default function AllMyCampsPage() {
     const [deletingCampId, setDeletingCampId] = useState<string | null>(null);
     const [isCopyingCampId, setIsCopyingCampId] = useState<string | null>(null);
     const [filterStatus, setFilterStatus] = useState<CampStatusFilter>('all');
+    const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         if (!authLoading && (!user || !isAdmin)) {
@@ -228,6 +240,18 @@ export default function AllMyCampsPage() {
          });
     }, [allAdminCamps, filterStatus]);
 
+    const totalPages = Math.ceil(filteredAndSortedCamps.length / ITEMS_PER_PAGE);
+
+    const paginatedCamps = useMemo(() => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        return filteredAndSortedCamps.slice(startIndex, endIndex);
+    }, [filteredAndSortedCamps, currentPage]);
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
+
     const handleDeleteCamp = async (campId: string) => {
         if (!campId || !user || !isAdmin) return;
         const campToDelete = allAdminCamps.find(camp => camp.id === campId);
@@ -238,7 +262,12 @@ export default function AllMyCampsPage() {
         setDeletingCampId(campId);
         try {
             await deleteDoc(doc(db, 'camps', campId));
+            // Refetch or update local state
             setAllAdminCamps(prev => prev.filter(camp => camp.id !== campId));
+            // Adjust current page if the last item on the page was deleted
+            if (paginatedCamps.length === 1 && currentPage > 1) {
+                setCurrentPage(currentPage - 1);
+            }
             toast({ title: 'Camp Deleted', description: 'The camp has been removed.' });
         } catch (error) {
             console.error("Error deleting camp:", error);
@@ -305,7 +334,7 @@ export default function AllMyCampsPage() {
                         </Button>
                     </div>
 
-                    <RadioGroup defaultValue="all" onValueChange={(value) => setFilterStatus(value as CampStatusFilter)} className="flex space-x-4 mb-6">
+                    <RadioGroup defaultValue="all" onValueChange={(value) => { setFilterStatus(value as CampStatusFilter); setCurrentPage(1);}} className="flex space-x-4 mb-6">
                        <div className="flex items-center space-x-2"><RadioGroupItem value="all" id="r-all-page" /><Label htmlFor="r-all-page">All</Label></div>
                        <div className="flex items-center space-x-2"><RadioGroupItem value="active" id="r-active-page" /><Label htmlFor="r-active-page">Active</Label></div>
                        <div className="flex items-center space-x-2"><RadioGroupItem value="draft" id="r-draft-page" /><Label htmlFor="r-draft-page">Draft</Label></div>
@@ -313,22 +342,33 @@ export default function AllMyCampsPage() {
                     </RadioGroup>
 
                     {campsLoading ? (
-                       <AdminCampListSkeleton count={allAdminCamps.length > 0 ? allAdminCamps.length : 5} />
-                    ) : filteredAndSortedCamps.length > 0 ? (
-                       <div className="border rounded-md">
-                           {filteredAndSortedCamps.map((camp) => (
-                               <AdminCampListItem
-                                   key={camp.id}
-                                   camp={camp}
-                                   isCreator={camp.creatorId === user.uid}
-                                   onDeleteClick={handleDeleteCamp}
-                                   onCopyClick={handleCopyCamp}
-                                   deletingCampId={deletingCampId}
-                                   isCopyingCampId={isCopyingCampId}
-                                   status={getCampStatus(camp)}
+                       <AdminCampListSkeleton count={ITEMS_PER_PAGE} />
+                    ) : paginatedCamps.length > 0 ? (
+                        <>
+                           <div className="border rounded-md">
+                               {paginatedCamps.map((camp) => (
+                                   <AdminCampListItem
+                                       key={camp.id}
+                                       camp={camp}
+                                       isCreator={camp.creatorId === user.uid}
+                                       onDeleteClick={handleDeleteCamp}
+                                       onCopyClick={handleCopyCamp}
+                                       deletingCampId={deletingCampId}
+                                       isCopyingCampId={isCopyingCampId}
+                                       status={getCampStatus(camp)}
+                                   />
+                               ))}
+                           </div>
+                           {totalPages > 1 && (
+                               <PaginationControls
+                                   currentPage={currentPage}
+                                   totalPages={totalPages}
+                                   onPageChange={handlePageChange}
+                                   totalItems={filteredAndSortedCamps.length}
+                                   itemsPerPage={ITEMS_PER_PAGE}
                                />
-                           ))}
-                       </div>
+                           )}
+                        </>
                     ) : (
                         <Card className="text-center py-12 border-dashed">
                             <CardContent>
@@ -350,5 +390,3 @@ export default function AllMyCampsPage() {
         </div>
     );
 }
-
-    
