@@ -134,7 +134,7 @@ const AdminPageSkeleton = () => (
                      </CardHeader>
                      <CardContent>
                         <Skeleton className="h-6 w-full max-w-md" />
-                        <Skeleton className="h-16 w-full mt-6" />
+                        {/* Removed Skeleton for User Management Placeholder */}
                      </CardContent>
                  </Card>
                  {/* Organizer Management Skeleton */}
@@ -944,15 +944,11 @@ export default function AdminPage() {
                                 <ShieldCheck className="h-8 w-8 text-primary" />
                                 <CardTitle className="text-2xl md:text-3xl font-bold">Administrator Panel</CardTitle>
                              </div>
-                            <CardDescription>Manage users, organizers, camps, and site settings.</CardDescription>
+                            <CardDescription>Manage organizers, camps, and site settings.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <p className="text-muted-foreground">Welcome, Admin ({user.email})!</p>
-                            {/* Placeholder for user management */}
-                            <div className="mt-6 border p-4 rounded-md bg-muted/50">
-                                <h3 className="font-semibold mb-2">Placeholder: User Management</h3>
-                                <p className="text-sm text-muted-foreground">User management tools will be added here.</p>
-                            </div>
+                             {/* User Management Section Removed */}
                         </CardContent>
                     </Card>
 
