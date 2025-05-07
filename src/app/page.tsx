@@ -16,6 +16,7 @@ import Image from 'next/image';
 import { collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge'; // Added Badge import
 
 
 // Camp Data Interface - consistent with other pages
@@ -72,6 +73,24 @@ const CampCard = ({ camp }: { camp: Camp }) => {
         </CardHeader>
         <CardContent className="flex-grow">
           <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{camp.description}</p>
+          {/* Display Activities */}
+          {camp.activities && camp.activities.length > 0 && (
+            <div className="mb-4">
+              <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Activities</h4>
+              <div className="flex flex-wrap gap-1">
+                {camp.activities.slice(0, 3).map(activity => ( // Show max 3 activities
+                  <Badge key={activity} variant="secondary" className="text-xs">
+                    {activity}
+                  </Badge>
+                ))}
+                {camp.activities.length > 3 && (
+                  <Badge variant="secondary" className="text-xs">
+                    + {camp.activities.length - 3} more
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
         <div className="p-6 pt-0 flex justify-between items-center gap-2">
           <span className="text-lg font-semibold text-primary">{formattedPrice} ₽</span>
@@ -102,7 +121,8 @@ const SkeletonCard = ({ count = 3 }: { count?: number }) => (
           <CardContent className="space-y-2">
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-4 w-2/3" /> {/* Description placeholder */}
+            <Skeleton className="h-4 w-1/2 mt-2" /> {/* Activities placeholder */}
           </CardContent>
           <div className="p-6 pt-0 flex justify-between items-center">
             <Skeleton className="h-6 w-1/4" />
@@ -304,3 +324,4 @@ export default function LandingPage() {
     </div>
   );
 }
+

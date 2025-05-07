@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/layout/Header';
+import { Badge } from '@/components/ui/badge'; // Added Badge import
 
 // Camp Data Interface - consistent with other pages
 interface Camp {
@@ -41,7 +42,7 @@ const CampCard = ({ camp }: { camp: Camp }) => {
     const formattedPrice = camp.price.toLocaleString('ru-RU'); // Format price with spaces
 
     return (
-      <Card key={camp.id} className="overflow-hidden flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300 bg-card">
+      <Card key={camp.id} className="overflow-hidden flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300 bg-card h-full"> {/* Added h-full */}
         <div className="relative w-full h-48">
           <Image
             src={camp.imageUrl || 'https://picsum.photos/seed/placeholder/600/400'}
@@ -69,6 +70,24 @@ const CampCard = ({ camp }: { camp: Camp }) => {
         </CardHeader>
         <CardContent className="flex-grow">
           <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{camp.description}</p>
+           {/* Display Activities */}
+           {camp.activities && camp.activities.length > 0 && (
+            <div className="mb-4">
+              <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Activities</h4>
+              <div className="flex flex-wrap gap-1">
+                {camp.activities.slice(0, 3).map(activity => ( // Show max 3 activities
+                  <Badge key={activity} variant="secondary" className="text-xs">
+                    {activity}
+                  </Badge>
+                ))}
+                {camp.activities.length > 3 && (
+                  <Badge variant="secondary" className="text-xs">
+                    + {camp.activities.length - 3} more
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
         <div className="p-6 pt-0 flex justify-between items-center gap-2">
           <span className="text-lg font-semibold text-primary">{formattedPrice} ₽</span>
@@ -89,7 +108,7 @@ const CampCard = ({ camp }: { camp: Camp }) => {
 const SkeletonCard = ({ count = 6 }: { count?: number }) => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {[...Array(count)].map((_, index) => (
-        <Card key={index} className="overflow-hidden bg-card">
+        <Card key={index} className="overflow-hidden bg-card h-full"> {/* Added h-full */}
           <Skeleton className="h-48 w-full" />
           <CardHeader>
             <Skeleton className="h-6 w-3/4 mb-2" />
@@ -99,7 +118,8 @@ const SkeletonCard = ({ count = 6 }: { count?: number }) => (
           <CardContent className="space-y-2">
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-4 w-2/3" /> {/* Description placeholder */}
+            <Skeleton className="h-4 w-1/2 mt-2" /> {/* Activities placeholder */}
           </CardContent>
           <div className="p-6 pt-0 flex justify-between items-center">
             <Skeleton className="h-6 w-1/4" />
@@ -219,3 +239,4 @@ export default function AllCampsPage() {
     </div>
   );
 }
+
