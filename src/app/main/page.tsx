@@ -190,7 +190,7 @@ export default function MainPage() { // Renamed from DashboardPage
 
   // Helper component for rendering skeleton cards
   const SkeletonCard = ({ count = 3 }: { count?: number }) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6"> {/* Changed lg:grid-cols-3 to lg:grid-cols-2 */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> {/* Changed lg:grid-cols-2 to lg:grid-cols-3 */}
       {[...Array(count)].map((_, index) => (
         <Card key={index} className="overflow-hidden bg-card h-full"> {/* Added h-full */}
           <Skeleton className="h-48 w-full" />
@@ -269,7 +269,7 @@ export default function MainPage() { // Renamed from DashboardPage
           {firestoreLoading ? (
              <SkeletonCard count={6} />
           ) : firestoreCamps.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6"> {/* Changed lg:grid-cols-3 to lg:grid-cols-2 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> {/* Changed lg:grid-cols-2 to lg:grid-cols-3 */}
              {firestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} />)}
            </div>
           ) : (
