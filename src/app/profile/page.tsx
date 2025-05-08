@@ -431,8 +431,9 @@ export default function ProfilePage() {
                  </div>
              </header>
             <main className="flex-1 p-4 md:p-8 lg:p-12">
+                <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
                 {/* Profile Section Skeleton */}
-                <div className="w-full max-w-4xl mx-auto mb-12">
+                <div className="w-full mb-12">
                     <Card className="shadow-lg">
                         <CardHeader className="items-center text-center">
                             <Skeleton className="h-24 w-24 rounded-full mb-4" />
@@ -457,7 +458,7 @@ export default function ProfilePage() {
                     </Card>
                 </div>
                  {/* Camps Section Skeleton */}
-                 <div className="w-full max-w-4xl mx-auto">
+                 <div className="w-full">
                     <Skeleton className="h-8 w-48 mb-6" /> {/* Section title */}
                     <SkeletonCard count={2} />
                     <Skeleton className="h-px w-full my-8" /> {/* Separator */}
@@ -468,8 +469,9 @@ export default function ProfilePage() {
                         </CardContent>
                      </Card>
                 </div>
+                </div>
             </main>
-            <footer className="py-6 px-4 md:px-6 border-t mt-auto">
+            <footer className="py-6 px-4 md:px-6 border-t">
                <Skeleton className="h-4 w-1/4" />
             </footer>
         </div>
@@ -482,8 +484,9 @@ export default function ProfilePage() {
        <Header />
 
        <main className="flex-1 p-4 md:p-8 lg:p-12">
+            <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
             {/* Profile Section */}
-           <div className="w-full max-w-4xl mx-auto mb-12"> {/* Centered content */}
+           <div className="w-full mb-12"> {/* Centered content */}
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)}>
                         <Card className="shadow-lg bg-card text-card-foreground">
@@ -592,7 +595,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Events Section */}
-            <div className="w-full max-w-4xl mx-auto"> {/* Centered content */}
+            <div className="w-full"> {/* Centered content */}
                  {/* Section for User's Created Camps (Only shown to Admins) */}
                {isAdmin && (
                     <div className="mb-12">
@@ -660,7 +663,7 @@ export default function ProfilePage() {
                    )}
                </div>
             </div>
-
+            </div>
         </main>
 
         <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t mt-auto">

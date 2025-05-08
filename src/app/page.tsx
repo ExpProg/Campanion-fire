@@ -208,7 +208,7 @@ export default function LandingPage() {
                 {/* Hero Skeleton */}
                  {/* Adjusted vertical padding (py-*) */}
                  <section className="w-full py-8 md:py-12 lg:py-16 xl:py-20 flex justify-center items-center">
-                     <div className="container px-4 md:px-6 text-center space-y-6">
+                     <div className="container px-4 md:px-6 text-center space-y-6 max-w-6xl">
                          <Skeleton className="h-12 w-3/4 mx-auto" />
                          <Skeleton className="h-6 w-full max-w-[700px] mx-auto" />
                          <Skeleton className="h-6 w-11/12 max-w-[650px] mx-auto" />
@@ -221,7 +221,7 @@ export default function LandingPage() {
                  {/* Featured Camps Skeleton */}
                  <section className="w-full py-12 bg-muted/50"> {/* Changed padding */}
                     {/* Use container class directly */}
-                    <div className="container">
+                    <div className="container max-w-6xl">
                         {/* Skeleton for centered title */}
                         <Skeleton className="h-10 w-1/3 mx-auto mb-8" />
                         <SkeletonCard count={3} />
@@ -254,7 +254,7 @@ export default function LandingPage() {
         {/* Hero Section */}
         {/* Reduced vertical padding */}
         <section className="w-full py-8 md:py-12 lg:py-16 xl:py-20 flex justify-center items-center bg-gradient-to-b from-background to-muted/50">
-          <div className="container px-4 md:px-6 text-center">
+          <div className="container px-4 md:px-6 text-center max-w-6xl">
             <div className="space-y-6">
               <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl/none text-foreground">
                 Find Your Next Adventure
@@ -287,7 +287,7 @@ export default function LandingPage() {
         <section className="w-full py-12 bg-muted/50"> {/* Reduced padding to py-12 */}
            {/* Container for content within the full-width section */}
            {/* Apply container class which centers the content */}
-           <div className="container">
+           <div className="container max-w-6xl">
                {/* Added text-center to center the heading */}
                <h2 className="text-3xl md:text-4xl font-bold mb-8 text-center text-foreground">Recently Added Camps</h2>
                {campsLoading ? (

@@ -161,7 +161,7 @@ export default function CampDetailsPage() {
              </header>
              {/* Camp Details Content Skeleton */}
              <main className="flex-1 p-4 md:p-8 lg:p-12">
-                 <div className="container mx-auto px-4 py-8 md:py-12">
+                 <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
                      <Skeleton className="h-8 w-32 mb-8" /> {/* Back button placeholder */}
                      <Skeleton className="w-full h-64 md:h-96 mb-8" /> {/* Image placeholder */}
                      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -196,7 +196,7 @@ export default function CampDetailsPage() {
        <div className="flex flex-col min-h-screen">
           <Header /> {/* Keep header for consistent navigation */}
           <main className="flex-1 flex items-center justify-center p-4">
-             <div className="container mx-auto px-4 py-12 text-center">
+             <div className="container mx-auto px-4 py-12 text-center max-w-6xl">
                  <Link href="/main" className="inline-flex items-center text-primary hover:underline mb-4" prefetch={false}>
                      <ArrowLeft className="mr-2 h-4 w-4" />
                      Back to Main
@@ -220,7 +220,7 @@ export default function CampDetailsPage() {
        <Header /> {/* Use the reusable Header component */}
 
        <main className="flex-1 p-4 md:p-8 lg:p-12">
-          <div className="container mx-auto px-4 py-8 md:py-12">
+          <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
               <Link href="/main" className="inline-flex items-center text-primary hover:underline mb-6" prefetch={false}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back to Main
@@ -323,3 +323,4 @@ export default function CampDetailsPage() {
     </div>
   );
 }
+

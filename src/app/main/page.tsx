@@ -245,8 +245,8 @@ export default function MainPage() { // Renamed from DashboardPage
       {/* Conditionally render header or skeleton */}
       {authLoading ? <HeaderSkeleton /> : <Header />}
 
-      <main className="flex-1 p-4 md:p-8 lg:p-12"> {/* Reduced top-level space-y-12 */}
-
+      <main className="flex-1">
+        <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
          {/* Banners Section - Show skeleton if firestore is loading */}
          <div className="mb-12"> {/* Margin bottom to separate from camps */}
             {firestoreLoading ? <BannerSkeleton /> : (
@@ -287,7 +287,7 @@ export default function MainPage() { // Renamed from DashboardPage
              </Card>
           )}
         </div>
-
+        </div>
       </main>
 
         {/* Conditionally render footer or skeleton */}
