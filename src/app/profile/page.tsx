@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LogOut, Save, Trash2, Pencil, ArrowLeft, CalendarCheck, ShieldCheck, PlusCircle } from 'lucide-react'; // Keep Pencil/Trash2 imports for now, just remove usage
+import { LogOut, Save, Trash2, Pencil, ArrowLeft, CalendarCheck, ShieldCheck, PlusCircle, ArrowRight, Building } from 'lucide-react'; // Added ArrowRight, Building
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, Timestamp, collection, getDocs, deleteDoc } from 'firebase/firestore'; // Import Firestore functions
 import { auth, db } from '@/config/firebase';
@@ -90,6 +90,8 @@ interface Camp {
   imageUrl: string;
   price: number;
   organizerId?: string; // Link to the organizers collection
+  organizerName?: string; // Added organizerName
+  organizerLink?: string; // Added organizerLink
   creatorId: string; // ID of the user who created the camp
   creationMode: 'admin' | 'user'; // Added creationMode
   organizerEmail?: string; // May no longer be relevant
@@ -106,6 +108,7 @@ const CampCard = ({ camp, isOwner, onDeleteClick, deletingCampId }: {
     deletingCampId: string | null; // This will be effectively unused here now
 }) => {
     const formattedPrice = camp.price.toLocaleString('ru-RU'); // Format price with spaces
+    const organizerDisplay = camp.organizerName || 'Campanion Partner'; // Fallback
 
     return (
       <Card key={camp.id} className="overflow-hidden flex flex-col shadow-md hover:shadow-lg transition-shadow duration-300 bg-card">
@@ -122,9 +125,41 @@ const CampCard = ({ camp, isOwner, onDeleteClick, deletingCampId }: {
           <CardHeader>
           <CardTitle className="text-lg">{camp.name}</CardTitle> {/* Reduced font size for title */}
           <CardDescription>{camp.location} | {camp.dates}</CardDescription>
+            {/* Display Organizer Info */}
+            <CardDescription className="flex items-center pt-1">
+                <Building className="h-4 w-4 mr-1 text-muted-foreground" />
+                {camp.organizerLink ? (
+                    <a href={camp.organizerLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline truncate">
+                        {organizerDisplay}
+                    </a>
+                ) : (
+                    <span className="text-sm text-muted-foreground truncate">{organizerDisplay}</span>
+                )}
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow">
-          <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{camp.description}</p>
+          <p className="text-sm text-muted-foreground mb-1 line-clamp-3">{camp.description}</p>
+           <Link href={`/camps/${camp.id}`} prefetch={false} className="text-sm text-primary hover:underline inline-flex items-center">
+                Read more <ArrowRight className="ml-1 h-3 w-3" />
+           </Link>
+            {/* Display Activities */}
+            {camp.activities && camp.activities.length > 0 && (
+                <div className="mt-4 mb-2"> {/* Adjusted margin */}
+                    <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Activities</h4>
+                    <div className="flex flex-wrap gap-1">
+                        {camp.activities.slice(0, 3).map(activity => (
+                            <Badge key={activity} variant="secondary" className="text-xs">
+                                {activity}
+                            </Badge>
+                        ))}
+                        {camp.activities.length > 3 && (
+                            <Badge variant="secondary" className="text-xs">
+                                + {camp.activities.length - 3} more
+                            </Badge>
+                        )}
+                    </div>
+                </div>
+            )}
           </CardContent>
           <div className="p-6 pt-0 flex justify-between items-center gap-2">
           <span className="text-base font-semibold text-primary">{formattedPrice} ₽</span> {/* Reduced font size for price */}
@@ -150,11 +185,13 @@ const SkeletonCard = ({ count = 1 }: { count?: number }) => (
           <CardHeader>
             <Skeleton className="h-6 w-3/4 mb-2" /> {/* Title placeholder */}
             <Skeleton className="h-4 w-1/2" /> {/* Location/dates placeholder */}
+            <Skeleton className="h-4 w-2/5 mt-1" /> {/* Organizer placeholder */}
           </CardHeader>
           <CardContent className="space-y-2">
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-2/3" /> {/* Description placeholder */}
+            <Skeleton className="h-4 w-1/2 mt-2" /> {/* Activities placeholder */}
           </CardContent>
           <div className="p-6 pt-0 flex justify-between items-center">
             <Skeleton className="h-6 w-1/4" /> {/* Price placeholder */}

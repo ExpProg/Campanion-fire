@@ -72,10 +72,13 @@ const CampCard = ({ camp }: { camp: Camp }) => {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex-grow">
-          <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{camp.description}</p>
+          <p className="text-sm text-muted-foreground mb-1 line-clamp-3">{camp.description}</p>
+          <Link href={`/camps/${camp.id}`} prefetch={false} className="text-sm text-primary hover:underline inline-flex items-center">
+            Read more <ArrowRight className="ml-1 h-3 w-3" />
+          </Link>
           {/* Display Activities */}
           {camp.activities && camp.activities.length > 0 && (
-            <div className="mb-4">
+            <div className="mt-4 mb-2"> {/* Adjusted margin for activities */}
               <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Activities</h4>
               <div className="flex flex-wrap gap-1">
                 {camp.activities.slice(0, 3).map(activity => ( // Show max 3 activities
