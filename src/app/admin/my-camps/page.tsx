@@ -103,14 +103,14 @@ const AdminCampListItem = ({ camp, isCreator, onDeleteClick, onCopyClick, deleti
           </div>
          <div className="flex-1 min-w-0 mr-4">
              <div className="flex items-center gap-2 mb-1">
-                 <p className="font-semibold truncate">{camp.name}</p>
+                 <p className="font-semibold truncate text-sm">{camp.name}</p> {/* Reduced font size for name */}
                  <Badge variant={undefined} className={badgeClasses}>
                      <StatusIcon className="h-3 w-3 mr-1" />
                     {status}
                  </Badge>
              </div>
              <p className="text-sm text-muted-foreground truncate">{camp.location} | {formattedStartDate} - {formattedEndDate}</p>
-             <p className="text-sm text-primary font-medium">{formattedPrice} ₽</p>
+             <p className="text-xs text-primary font-medium">{formattedPrice} ₽</p> {/* Reduced font size for price */}
          </div>
          <div className="flex gap-1 sm:gap-2 items-center flex-shrink-0">
               <Button size="sm" asChild variant="ghost" aria-label={`View ${camp.name}`}>
@@ -404,5 +404,3 @@ export default function AllMyCampsPage() {
     );
 }
 
-
-    

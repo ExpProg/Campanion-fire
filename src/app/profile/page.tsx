@@ -120,14 +120,14 @@ const CampCard = ({ camp, isOwner, onDeleteClick, deletingCampId }: {
           />
           </div>
           <CardHeader>
-          <CardTitle>{camp.name}</CardTitle>
+          <CardTitle className="text-lg">{camp.name}</CardTitle> {/* Reduced font size for title */}
           <CardDescription>{camp.location} | {camp.dates}</CardDescription>
           </CardHeader>
           <CardContent className="flex-grow">
           <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{camp.description}</p>
           </CardContent>
           <div className="p-6 pt-0 flex justify-between items-center gap-2">
-          <span className="text-lg font-semibold text-primary">{formattedPrice} ₽</span>
+          <span className="text-base font-semibold text-primary">{formattedPrice} ₽</span> {/* Reduced font size for price */}
           <div className="flex gap-2 items-center">
               <Button size="sm" asChild variant="outline">
               <Link href={`/camps/${camp.id}`} prefetch={false}>
@@ -148,17 +148,17 @@ const SkeletonCard = ({ count = 1 }: { count?: number }) => (
         <Card key={index} className="overflow-hidden bg-card">
           <Skeleton className="h-48 w-full" />
           <CardHeader>
-            <Skeleton className="h-6 w-3/4 mb-2" />
-            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-6 w-3/4 mb-2" /> {/* Title placeholder */}
+            <Skeleton className="h-4 w-1/2" /> {/* Location/dates placeholder */}
           </CardHeader>
           <CardContent className="space-y-2">
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-4 w-2/3" /> {/* Description placeholder */}
           </CardContent>
           <div className="p-6 pt-0 flex justify-between items-center">
-            <Skeleton className="h-6 w-1/4" />
-            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-6 w-1/4" /> {/* Price placeholder */}
+            <Skeleton className="h-8 w-1/3" /> {/* Button placeholder */}
           </div>
         </Card>
       ))}

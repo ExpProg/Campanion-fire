@@ -228,14 +228,14 @@ const AdminCampListItem = ({ camp, isCreator, onDeleteClick, onCopyClick, deleti
          <div className="flex-1 min-w-0 mr-4">
              <div className="flex items-center gap-2 mb-1">
                  {highlight && <CalendarClock className="h-4 w-4 text-yellow-600 dark:text-yellow-500 flex-shrink-0" />}
-                 <p className={cn("font-semibold truncate", highlight && "text-yellow-800 dark:text-yellow-300")}>{camp.name}</p>
+                 <p className={cn("font-semibold truncate text-sm", highlight && "text-yellow-800 dark:text-yellow-300")}>{camp.name}</p> {/* Reduced font size for name */}
                  <Badge variant={badgeVariant} className={badgeClasses}>
                      <StatusIcon className="h-3 w-3 mr-1" />
                     {status}
                  </Badge>
              </div>
              <p className="text-sm text-muted-foreground truncate">{camp.location} | {formattedStartDate} - {formattedEndDate}</p>
-             <p className="text-sm text-primary font-medium">{formattedPrice} ₽</p> {/* Use formatted price */}
+             <p className="text-xs text-primary font-medium">{formattedPrice} ₽</p> {/* Reduced font size for price */}
              {highlight && camp.startDate && (
                 <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
                     Start date ({formattedStartDate}) is in the past or today.
@@ -1169,9 +1169,3 @@ export default function AdminPage() {
     );
 }
 
-
-    
-
-    
-
-    

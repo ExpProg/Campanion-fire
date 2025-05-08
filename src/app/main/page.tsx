@@ -135,7 +135,7 @@ export default function MainPage() { // Renamed from DashboardPage
           />
         </div>
         <CardHeader>
-          <CardTitle>{camp.name}</CardTitle>
+          <CardTitle className="text-lg">{camp.name}</CardTitle> {/* Reduced font size for title */}
           <CardDescription>{camp.location} | {camp.dates}</CardDescription>
           {/* Display Organizer Info */}
           <CardDescription className="flex items-center pt-1">
@@ -171,7 +171,7 @@ export default function MainPage() { // Renamed from DashboardPage
           )}
         </CardContent>
         <div className="p-6 pt-0 flex justify-between items-center gap-2">
-          <span className="text-lg font-semibold text-primary">{formattedPrice} ₽</span>
+          <span className="text-base font-semibold text-primary">{formattedPrice} ₽</span> {/* Reduced font size for price */}
           <div className="flex gap-2 items-center"> {/* Ensure items are vertically centered */}
             <Button size="sm" asChild variant="outline">
               <Link href={`/camps/${camp.id}`} prefetch={false}>
@@ -192,8 +192,8 @@ export default function MainPage() { // Renamed from DashboardPage
         <Card key={index} className="overflow-hidden bg-card h-full"> {/* Added h-full */}
           <Skeleton className="h-48 w-full" />
           <CardHeader>
-            <Skeleton className="h-6 w-3/4 mb-2" />
-            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-6 w-3/4 mb-2" /> {/* Title placeholder */}
+            <Skeleton className="h-4 w-1/2" /> {/* Location/dates placeholder */}
             <Skeleton className="h-4 w-2/5 mt-1" /> {/* Organizer placeholder */}
           </CardHeader>
           <CardContent className="space-y-2">
@@ -203,8 +203,8 @@ export default function MainPage() { // Renamed from DashboardPage
             <Skeleton className="h-4 w-1/2 mt-2" /> {/* Activities placeholder */}
           </CardContent>
           <div className="p-6 pt-0 flex justify-between items-center">
-            <Skeleton className="h-6 w-1/4" />
-            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-6 w-1/4" /> {/* Price placeholder */}
+            <Skeleton className="h-8 w-1/3" /> {/* Button placeholder */}
           </div>
         </Card>
       ))}
