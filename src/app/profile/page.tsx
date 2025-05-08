@@ -138,13 +138,16 @@ const CampCard = ({ camp, isOwner, onDeleteClick, deletingCampId }: {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow">
-          <p className="text-sm text-muted-foreground mb-1 line-clamp-3">{camp.description}</p>
-           <Link href={`/camps/${camp.id}`} prefetch={false} className="text-sm text-primary hover:underline inline-flex items-center">
+          <p className="text-sm text-muted-foreground mb-2 line-clamp-3"> {/* Adjusted margin */}
+            {camp.description}
+            {' '} {/* Space before link */}
+           <Link href={`/camps/${camp.id}`} prefetch={false} className="text-primary hover:underline inline-flex items-center font-medium whitespace-nowrap">
                 Read more <ArrowRight className="ml-1 h-3 w-3" />
            </Link>
+           </p>
             {/* Display Activities */}
             {camp.activities && camp.activities.length > 0 && (
-                <div className="mt-4 mb-2"> {/* Adjusted margin */}
+                <div className="mt-2 mb-2"> {/* Adjusted margin */}
                     <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Activities</h4>
                     <div className="flex flex-wrap gap-1">
                         {camp.activities.slice(0, 3).map(activity => (
