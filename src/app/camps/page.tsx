@@ -106,7 +106,7 @@ const CampCard = ({ camp }: { camp: Camp }) => {
 
 // Helper component for rendering skeleton cards (similar to main page)
 const SkeletonCard = ({ count = 6 }: { count?: number }) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6"> {/* Changed lg:grid-cols-3 to lg:grid-cols-2 */}
       {[...Array(count)].map((_, index) => (
         <Card key={index} className="overflow-hidden bg-card h-full"> {/* Added h-full */}
           <Skeleton className="h-48 w-full" />
@@ -209,7 +209,7 @@ export default function AllCampsPage() {
             {campsLoading ? (
                <SkeletonCard count={6} />
             ) : firestoreCamps.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6"> {/* Changed lg:grid-cols-3 to lg:grid-cols-2 */}
                {firestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} />)}
              </div>
             ) : (
