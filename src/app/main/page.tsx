@@ -10,7 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import Image from 'next/image';
 import { collection, getDocs, Timestamp, query, where } from 'firebase/firestore';
 import { db } from '@/config/firebase';
-import { Building, PlusCircle, ArrowRight, Search, CalendarIcon, FilterX } from 'lucide-react';
+import { Building, PlusCircle, ArrowRight, Search, CalendarIcon, FilterX, DollarSign } from 'lucide-react'; // Added DollarSign
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -161,6 +161,7 @@ export default function MainPage() {
   const [selectedOrganizer, setSelectedOrganizer] = useState<string | undefined>(undefined);
   const [dateRangeFilter, setDateRangeFilter] = useState<DateRange | undefined>(undefined);
   const [selectedLocation, setSelectedLocation] = useState<string | undefined>(undefined);
+  const [maxPrice, setMaxPrice] = useState<string>('');
 
 
   useEffect(() => {
@@ -212,6 +213,7 @@ export default function MainPage() {
 
 
   const filteredCamps = useMemo(() => {
+    const numericMaxPrice = parseFloat(maxPrice);
     return firestoreCamps.filter(camp => {
       const lowercasedSearchTerm = searchTerm.toLowerCase();
 
@@ -247,15 +249,18 @@ export default function MainPage() {
       
       const matchesLocation = !selectedLocation || camp.location === selectedLocation;
 
-      return matchesSearch && matchesOrganizer && matchesDateRange && matchesLocation;
+      const matchesPrice = isNaN(numericMaxPrice) || camp.price <= numericMaxPrice;
+
+      return matchesSearch && matchesOrganizer && matchesDateRange && matchesLocation && matchesPrice;
     });
-  }, [firestoreCamps, searchTerm, selectedOrganizer, dateRangeFilter, selectedLocation]);
+  }, [firestoreCamps, searchTerm, selectedOrganizer, dateRangeFilter, selectedLocation, maxPrice]);
 
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedOrganizer(undefined);
     setDateRangeFilter(undefined); 
     setSelectedLocation(undefined);
+    setMaxPrice('');
   };
 
   const CampCard = ({ camp }: { camp: Camp }) => {
@@ -408,10 +413,11 @@ export default function MainPage() {
           {isLoading ? (
             <>
               <Skeleton className="h-10 w-full mb-2" />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"> {/* Adjusted grid for 4 items */}
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" /> {/* Skeleton for price filter */}
               </div>
               <Skeleton className="h-9 w-28 mb-6" />
             </>
@@ -429,7 +435,7 @@ export default function MainPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4"> {/* Adjusted grid for 4 items */}
                 <div>
                   <Label htmlFor="organizer-filter">Organizer</Label>
                   <Select
@@ -473,6 +479,33 @@ export default function MainPage() {
                         disabled={isLoading || locationsLoading}
                     />
                 </div>
+                <div>
+                  <Label htmlFor="price-filter">Max Price (₽)</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        id="price-filter"
+                        type="number"
+                        placeholder="Any price"
+                        value={maxPrice}
+                        onChange={(e) => setMaxPrice(e.target.value)}
+                        className="pl-9" // Padding for icon
+                        disabled={isLoading}
+                        min="0"
+                    />
+                     {maxPrice && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setMaxPrice('')}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2 text-muted-foreground hover:bg-transparent hover:text-foreground"
+                            aria-label="Clear price filter"
+                        >
+                            <FilterX className="h-4 w-4" />
+                        </Button>
+                    )}
+                  </div>
+                </div>
               </div>
               <Button
                 variant="outline"
@@ -481,7 +514,7 @@ export default function MainPage() {
                 className="mb-6"
                 disabled={isLoading}
               >
-                <FilterX className="mr-2 h-4 w-4" /> Clear Filters
+                <FilterX className="mr-2 h-4 w-4" /> Clear All Filters
               </Button>
             </>
           )}
