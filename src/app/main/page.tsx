@@ -526,17 +526,6 @@ export default function MainPage() {
                     disabled={isLoading}
                     className="w-full"
                   />
-                  {priceRangeFilter && (
-                      <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setPriceRangeFilter(undefined)}
-                          className="mt-2 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground px-0"
-                          aria-label="Clear price range filter"
-                      >
-                          <FilterX className="mr-1 h-3 w-3" /> Clear Price
-                      </Button>
-                  )}
                 </div>
                 
                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
