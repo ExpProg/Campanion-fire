@@ -1,4 +1,3 @@
-
 // src/app/main/page.tsx
 'use client';
 
@@ -82,7 +81,7 @@ function DateRangePickerFilterField({
         <Button
           variant={"outline"}
           className={cn(
-            "w-full justify-start text-left font-normal",
+            "w-full justify-start text-left font-normal h-10", // Ensure consistent height
             !value && "text-muted-foreground"
           )}
           disabled={disabled}
@@ -501,32 +500,37 @@ export default function MainPage() {
 
           {isLoading ? (
             <>
-              <div className="sticky top-16 z-40 bg-background py-4 mb-6">
-                <Skeleton className="h-10 w-full mb-2" /> {/* Search bar skeleton */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"> {/* Visible filters skeletons */}
+              <div className="sticky top-16 z-40 bg-background/95 backdrop-blur-sm py-4 mb-6 -mx-4 px-4"> {/* Adjusted for sticky behavior with padding compensation */}
+                 {/* Grid for all filters including search */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[1fr_auto_auto_auto_auto] lg:grid-cols-[2fr_1fr_1fr_auto_auto] gap-4 items-end">
+                  <Skeleton className="h-10 w-full" /> {/* Search bar skeleton */}
                   <Skeleton className="h-10 w-full" /> {/* Date Range skeleton */}
                   <Skeleton className="h-10 w-full" /> {/* Price Slider skeleton (simplified) */}
                   <Skeleton className="h-10 w-full" /> {/* More Filters button skeleton */}
+                  <Skeleton className="h-10 w-10" />   {/* Clear All Filters button skeleton */}
                 </div>
-                <Skeleton className="h-9 w-28 mt-2" /> {/* Clear All Filters button skeleton */}
               </div>
             </>
           ) : (
-            <div className="sticky top-16 z-40 bg-background py-4 mb-6"> {/* Sticky container for filters */}
-              <div className="relative mb-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search by name, description, activities..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                  disabled={isLoading}
-                />
-              </div>
+             <div className="sticky top-16 z-40 bg-background/95 backdrop-blur-sm py-4 mb-6 -mx-4 px-4 shadow-sm"> {/* Added shadow for visual separation */}
+              {/* Grid for all filters including search */}
+               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_auto_auto] lg:grid-cols-[minmax(0,2.5fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_auto_auto] gap-4 items-end">
+                {/* Search Input */}
+                <div className="flex flex-col relative md:col-span-1"> {/* md:col-span-1 to take full width on smaller md screens before more filters appear */}
+                  <Label htmlFor="search-term-filter-main" className="mb-1 block text-sm font-medium">Search</Label>
+                  <Search className="absolute left-3 bottom-2.5 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="search-term-filter-main"
+                    type="text"
+                    placeholder="Name, description, activities..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 h-10" // Ensure consistent height
+                    disabled={isLoading}
+                  />
+                </div>
 
-              {/* Visible Filters */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] lg:grid-cols-[minmax(0,280px)_minmax(0,280px)_auto_auto] gap-4 items-end">
+                {/* Date Range Filter */}
                 <div className="flex flex-col">
                   <Label htmlFor="date-range-filter-main" className="mb-1 block text-sm font-medium">Date Range</Label>
                   <DateRangePickerFilterField
@@ -539,9 +543,11 @@ export default function MainPage() {
                     disabled={isLoading}
                   />
                 </div>
+
+                {/* Price Range Filter */}
                 <div className="flex flex-col">
                   <Label htmlFor="price-range-filter-main" className="mb-1 block text-sm font-medium">
-                    Price Range (₽): {priceRangeFilter ? `${formatPriceForDisplay(priceRangeFilter[0])} - ${formatPriceForDisplay(priceRangeFilter[1])}` : `0 - ${formatPriceForDisplay(maxPossiblePrice)}`}
+                    Price (₽): {priceRangeFilter ? `${formatPriceForDisplay(priceRangeFilter[0])} - ${formatPriceForDisplay(priceRangeFilter[1])}` : `0 - ${formatPriceForDisplay(maxPossiblePrice)}`}
                   </Label>
                   <Slider
                     id="price-range-filter-main"
@@ -551,13 +557,14 @@ export default function MainPage() {
                     max={maxPossiblePrice}
                     step={50}
                     disabled={isLoading}
-                    className="w-full mt-1" // Adjusted margin to align better with DateRangePicker
+                    className="w-full mt-2.5" // Adjusted margin for alignment
                   />
                 </div>
 
+                {/* More Filters Button (Sheet Trigger) */}
                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="w-full md:w-auto self-end h-10"> {/* Ensured height consistency */}
+                    <Button variant="outline" className="w-full md:w-auto h-10">
                       <ListFilter className="mr-2 h-4 w-4" /> More Filters
                        {activeSheetFilterCount > 0 && (
                         <Badge variant="secondary" className="ml-2">
@@ -637,11 +644,13 @@ export default function MainPage() {
                     </SheetFooter>
                   </SheetContent>
                 </Sheet>
+
+                {/* Clear All Filters Button */}
                 <Button
                   variant={isAnyFilterActive ? "destructive" : "outline"}
                   onClick={clearFilters}
                   disabled={isLoading}
-                  className="h-10 px-3 self-end" // Ensured height consistency
+                  className="h-10 px-3 w-full md:w-auto"
                   aria-label="Clear All Filters"
                 >
                   <FilterX className="h-4 w-4" />
