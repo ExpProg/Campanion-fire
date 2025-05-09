@@ -1,4 +1,3 @@
-
 // src/app/main/page.tsx
 'use client';
 
@@ -10,7 +9,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import Image from 'next/image';
 import { collection, getDocs, Timestamp, query, where } from 'firebase/firestore';
 import { db } from '@/config/firebase';
-import { Building, PlusCircle, ArrowRight, Search, CalendarIcon, FilterX, DollarSign } from 'lucide-react';
+import { Building, PlusCircle, ArrowRight, Search, CalendarIcon, FilterX, DollarSign, ListFilter } from 'lucide-react'; // Added ListFilter
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -25,7 +24,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Combobox } from '@/components/ui/combobox';
-import { Slider } from "@/components/ui/slider"; // Import Slider
+import { Slider } from "@/components/ui/slider";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetBody, // Import SheetBody
+} from "@/components/ui/sheet";
 
 // Camp Data Interface
 interface Camp {
@@ -155,14 +165,19 @@ export default function MainPage() {
   const [organizersLoading, setOrganizersLoading] = useState(true);
   const [uniqueLocations, setUniqueLocations] = useState<string[]>([]);
   const [locationsLoading, setLocationsLoading] = useState(true);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
 
   // Filter states
   const [selectedOrganizer, setSelectedOrganizer] = useState<string | undefined>(undefined);
   const [dateRangeFilter, setDateRangeFilter] = useState<DateRange | undefined>(undefined);
   const [selectedLocation, setSelectedLocation] = useState<string | undefined>(undefined);
-  const [priceRangeFilter, setPriceRangeFilter] = useState<[number, number] | undefined>(undefined); // Updated for range
-  const [maxPossiblePrice, setMaxPossiblePrice] = useState<number>(5000); // Default max price, will be updated
+  const [priceRangeFilter, setPriceRangeFilter] = useState<[number, number] | undefined>(undefined);
+  const [maxPossiblePrice, setMaxPossiblePrice] = useState<number>(5000);
+
+  // Temporary filter states for the sheet
+  const [selectedOrganizerInSheet, setSelectedOrganizerInSheet] = useState<string | undefined>(selectedOrganizer);
+  const [selectedLocationInSheet, setSelectedLocationInSheet] = useState<string | undefined>(selectedLocation);
 
 
   useEffect(() => {
@@ -189,20 +204,12 @@ export default function MainPage() {
 
       setFirestoreCamps(fetchedCamps);
 
-      // Calculate max price for slider
       if (fetchedCamps.length > 0) {
         const maxPrice = Math.max(...fetchedCamps.map(camp => camp.price), 0);
-        setMaxPossiblePrice(Math.max(maxPrice, 100)); // Ensure max is at least 100 for a usable range
-        if (!priceRangeFilter) { // Initialize filter if not set
-             // setPriceRangeFilter([0, Math.max(maxPrice, 100)]); // Initialize to full range by default
-        }
+        setMaxPossiblePrice(Math.max(maxPrice, 100));
       } else {
-        setMaxPossiblePrice(5000); // Default if no camps
-        if (!priceRangeFilter) {
-            // setPriceRangeFilter([0, 5000]);
-        }
+        setMaxPossiblePrice(5000);
       }
-
 
       const locations = Array.from(new Set(fetchedCamps.map(camp => camp.location))).sort();
       setUniqueLocations(locations);
@@ -227,7 +234,6 @@ export default function MainPage() {
     }
   };
 
-
   const filteredCamps = useMemo(() => {
     return firestoreCamps.filter(camp => {
       const lowercasedSearchTerm = searchTerm.toLowerCase();
@@ -242,34 +248,19 @@ export default function MainPage() {
       
       const matchesDateRange = (() => {
         if (!dateRangeFilter?.from && !dateRangeFilter?.to) return true;
-
         const campStart = camp.startDate?.toDate();
         const campEnd = camp.endDate?.toDate();
         if (!campStart || !campEnd) return false;
-
         const filterFrom = dateRangeFilter.from;
         const filterTo = dateRangeFilter.to;
-
-        if (filterFrom && filterTo) {
-          // Camp overlaps with the selected range
-          return campStart <= filterTo && campEnd >= filterFrom;
-        }
-        if (filterFrom) {
-          // Camp ends on or after the start of the range
-          return campEnd >= filterFrom;
-        }
-        if (filterTo) {
-          // Camp starts on or before the end of the range
-          return campStart <= filterTo;
-        }
+        if (filterFrom && filterTo) return campStart <= filterTo && campEnd >= filterFrom;
+        if (filterFrom) return campEnd >= filterFrom;
+        if (filterTo) return campStart <= filterTo;
         return true;
       })();
       
       const matchesLocation = !selectedLocation || camp.location === selectedLocation;
-
-      const matchesPriceRange = !priceRangeFilter || (
-        camp.price >= priceRangeFilter[0] && camp.price <= priceRangeFilter[1]
-      );
+      const matchesPriceRange = !priceRangeFilter || (camp.price >= priceRangeFilter[0] && camp.price <= priceRangeFilter[1]);
 
       return matchesSearch && matchesOrganizer && matchesDateRange && matchesLocation && matchesPriceRange;
     });
@@ -280,8 +271,33 @@ export default function MainPage() {
     setSelectedOrganizer(undefined);
     setDateRangeFilter(undefined); 
     setSelectedLocation(undefined);
-    setPriceRangeFilter(undefined); // Reset price range
+    setPriceRangeFilter(undefined);
+    // Also clear sheet filters
+    setSelectedOrganizerInSheet(undefined);
+    setSelectedLocationInSheet(undefined);
   };
+
+  const handleApplySheetFilters = () => {
+    setSelectedOrganizer(selectedOrganizerInSheet);
+    setSelectedLocation(selectedLocationInSheet);
+    setIsSheetOpen(false);
+  };
+
+  const handleCancelSheetFilters = () => {
+    // Reset sheet filters to main filters before closing
+    setSelectedOrganizerInSheet(selectedOrganizer);
+    setSelectedLocationInSheet(selectedLocation);
+    setIsSheetOpen(false);
+  };
+
+  // Update sheet filters when main filters change (e.g., "Clear All")
+  useEffect(() => {
+    setSelectedOrganizerInSheet(selectedOrganizer);
+  }, [selectedOrganizer]);
+
+  useEffect(() => {
+    setSelectedLocationInSheet(selectedLocation);
+  }, [selectedLocation]);
 
   const CampCard = ({ camp }: { camp: Camp }) => {
     const organizerDisplay = camp.organizerName || 'Campanion Partner';
@@ -409,7 +425,6 @@ export default function MainPage() {
     }));
   }, [uniqueLocations]);
 
-  // Handle slider value change for range
   const handlePriceRangeChange = (value: number[]) => {
     setPriceRangeFilter(value as [number, number]);
   };
@@ -441,18 +456,13 @@ export default function MainPage() {
 
           {isLoading ? (
             <>
-              <Skeleton className="h-10 w-full mb-2" />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"> {/* Adjusted grid for 4 items before price */}
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full mb-2" /> {/* Search bar skeleton */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6"> {/* Visible filters skeletons */}
+                <Skeleton className="h-10 w-full" /> {/* Date Range skeleton */}
+                <Skeleton className="h-10 w-full" /> {/* Price Slider skeleton (simplified) */}
+                <Skeleton className="h-10 w-full" /> {/* More Filters button skeleton */}
               </div>
-              <div className="mb-4 max-w-sm"> {/* Skeleton for price slider wrapper */}
-                <Skeleton className="h-6 w-3/4 mb-2" /> {/* Label skeleton */}
-                <Skeleton className="h-10 w-full" /> {/* Slider skeleton */}
-              </div>
-              <Skeleton className="h-9 w-28 mb-6" />
+              <Skeleton className="h-9 w-28 mb-6" /> {/* Clear All Filters button skeleton */}
             </>
           ) : (
             <>
@@ -468,27 +478,8 @@ export default function MainPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 items-end">
-                <div>
-                  <Label htmlFor="organizer-filter">Organizer</Label>
-                  <Select
-                    value={selectedOrganizer || "all"}
-                    onValueChange={(value) => {
-                        setSelectedOrganizer(value === "all" ? undefined : value);
-                    }}
-                    disabled={isLoading || organizersLoading}
-                  >
-                    <SelectTrigger id="organizer-filter">
-                      <SelectValue placeholder="All Organizers" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Organizers</SelectItem>
-                      {organizers.map(org => (
-                        <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Visible Filters */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4 items-end">
                 <div>
                   <Label htmlFor="date-range-filter">Date Range</Label>
                   <DateRangePickerFilterField
@@ -498,50 +489,91 @@ export default function MainPage() {
                     disabled={isLoading}
                   />
                 </div>
-                <div>
-                  <Label htmlFor="location-filter">Location</Label>
-                   <Combobox
-                        options={locationOptions}
-                        value={selectedLocation}
-                        onChange={(value) => {
-                            setSelectedLocation(value === "all" ? undefined : value);
-                        }}
-                        placeholder="Select location..."
-                        searchPlaceholder="Search location..."
-                        noResultsText="No location found."
-                        disabled={isLoading || locationsLoading}
-                    />
+                <div className="max-w-sm"> {/* Wrap price slider for better layout control */}
+                  <Label htmlFor="price-range-filter" className="mb-2 block">
+                    Price Range (₽): {priceRangeFilter ? `${formatPriceForDisplay(priceRangeFilter[0])} - ${formatPriceForDisplay(priceRangeFilter[1])}` : `0 - ${formatPriceForDisplay(maxPossiblePrice)}`}
+                  </Label>
+                  <Slider
+                    id="price-range-filter"
+                    value={priceRangeFilter || [0, maxPossiblePrice]}
+                    onValueChange={handlePriceRangeChange}
+                    min={0}
+                    max={maxPossiblePrice}
+                    step={50} 
+                    disabled={isLoading}
+                    className="w-full"
+                  />
+                  {priceRangeFilter && (
+                      <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setPriceRangeFilter(undefined)}
+                          className="mt-2 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground px-0"
+                          aria-label="Clear price range filter"
+                      >
+                          <FilterX className="mr-1 h-3 w-3" /> Clear Price
+                      </Button>
+                  )}
                 </div>
+                
+                {/* "More Filters" Button triggering the Sheet */}
+                <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="w-full md:w-auto">
+                      <ListFilter className="mr-2 h-4 w-4" /> More Filters
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-full sm:max-w-sm">
+                    <SheetHeader>
+                      <SheetTitle>Filters</SheetTitle>
+                      <SheetDescription>
+                        Apply additional filters to refine your camp search.
+                      </SheetDescription>
+                    </SheetHeader>
+                    <SheetBody className="space-y-4 py-4">
+                      <div>
+                        <Label htmlFor="sheet-organizer-filter">Organizer</Label>
+                        <Select
+                          value={selectedOrganizerInSheet || "all"}
+                          onValueChange={(value) => setSelectedOrganizerInSheet(value === "all" ? undefined : value)}
+                          disabled={isLoading || organizersLoading}
+                        >
+                          <SelectTrigger id="sheet-organizer-filter">
+                            <SelectValue placeholder="All Organizers" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Organizers</SelectItem>
+                            {organizers.map(org => (
+                              <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="sheet-location-filter">Location</Label>
+                        <Combobox
+                            options={locationOptions}
+                            value={selectedLocationInSheet}
+                            onChange={(value) => setSelectedLocationInSheet(value === "all" ? undefined : value)}
+                            placeholder="Select location..."
+                            searchPlaceholder="Search location..."
+                            noResultsText="No location found."
+                            disabled={isLoading || locationsLoading}
+                        />
+                      </div>
+                    </SheetBody>
+                    <SheetFooter>
+                      <SheetClose asChild>
+                        <Button type="button" variant="outline" onClick={handleCancelSheetFilters}>Cancel</Button>
+                      </SheetClose>
+                      <SheetClose asChild>
+                        <Button type="button" onClick={handleApplySheetFilters}>Apply Filters</Button>
+                      </SheetClose>
+                    </SheetFooter>
+                  </SheetContent>
+                </Sheet>
               </div>
               
-              <div className="mb-4 max-w-sm">
-                <Label htmlFor="price-range-filter" className="mb-2 block">
-                  Price Range (₽): {priceRangeFilter ? `${formatPriceForDisplay(priceRangeFilter[0])} - ${formatPriceForDisplay(priceRangeFilter[1])}` : `0 - ${formatPriceForDisplay(maxPossiblePrice)}`}
-                </Label>
-                <Slider
-                  id="price-range-filter"
-                  value={priceRangeFilter || [0, maxPossiblePrice]} // Slider expects an array for range
-                  onValueChange={handlePriceRangeChange} // Expects (value: number[]) => void
-                  min={0}
-                  max={maxPossiblePrice}
-                  step={50} 
-                  disabled={isLoading}
-                  className="w-full"
-                />
-                 {priceRangeFilter && ( // Show clear button if a range is selected
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setPriceRangeFilter(undefined)}
-                        className="mt-2 text-muted-foreground hover:bg-transparent hover:text-foreground"
-                        aria-label="Clear price range filter"
-                    >
-                        <FilterX className="mr-1 h-4 w-4" /> Clear Price
-                    </Button>
-                )}
-              </div>
-
-
               <Button
                 variant="outline"
                 size="sm"
