@@ -34,7 +34,7 @@ import {
   SheetFooter,
   SheetHeader,
   SheetBody,
-  SheetTitle, // Added SheetTitle import
+  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 
@@ -510,7 +510,7 @@ export default function MainPage() {
 
               {/* Visible Filters */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[1fr_1fr_auto_auto] lg:grid-cols-[1fr_1fr_auto_auto] gap-4 mb-6 items-end">
-                <div>
+                <div className="flex flex-col justify-end">
                   <Label htmlFor="date-range-filter-main" className="mb-1 block text-sm font-medium">Date Range</Label>
                   <DateRangePickerFilterField
                     value={dateRangeFilter}
@@ -519,7 +519,7 @@ export default function MainPage() {
                     disabled={isLoading}
                   />
                 </div>
-                <div className="flex flex-col">
+                <div className="flex flex-col justify-end">
                   <Label htmlFor="price-range-filter-main" className="mb-1 block text-sm font-medium">
                     Price Range (₽): {priceRangeFilter ? `${formatPriceForDisplay(priceRangeFilter[0])} - ${formatPriceForDisplay(priceRangeFilter[1])}` : `0 - ${formatPriceForDisplay(maxPossiblePrice)}`}
                   </Label>
@@ -531,7 +531,7 @@ export default function MainPage() {
                     max={maxPossiblePrice}
                     step={50}
                     disabled={isLoading}
-                    className="w-full mt-2"
+                    className="w-full mt-2" // Added mt-2 to better align with DatePicker
                   />
                 </div>
 
@@ -612,10 +612,10 @@ export default function MainPage() {
                 </Sheet>
                 <Button
                   variant="outline"
-                  size="icon"
+                  size="sm"
                   onClick={clearFilters}
                   disabled={isLoading}
-                  className="w-auto self-end"
+                  className="self-end"
                   aria-label="Clear All Filters"
                 >
                   <FilterX className="h-4 w-4" />
