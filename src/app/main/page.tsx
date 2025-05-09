@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format, isValid, parseISO } from 'date-fns';
+import type { DateRange } from 'react-day-picker'; // Import DateRange type
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -50,15 +51,15 @@ interface Organizer {
     name: string;
 }
 
-// Date Picker Component (reusable)
-function DatePickerFilterField({
+// Date Range Picker Component
+function DateRangePickerFilterField({
   value,
   onChange,
   placeholder,
   disabled,
 }: {
-  value: Date | undefined;
-  onChange: (date: Date | undefined) => void;
+  value: DateRange | undefined;
+  onChange: (range: DateRange | undefined) => void;
   placeholder: string;
   disabled: boolean;
 }) {
@@ -74,15 +75,28 @@ function DatePickerFilterField({
           disabled={disabled}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {value ? format(value, "PPP") : <span>{placeholder}</span>}
+          {value?.from ? (
+            value.to ? (
+              <>
+                {format(value.from, "LLL dd, y")} -{" "}
+                {format(value.to, "LLL dd, y")}
+              </>
+            ) : (
+              format(value.from, "LLL dd, y")
+            )
+          ) : (
+            <span>{placeholder}</span>
+          )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
+      <PopoverContent className="w-auto p-0" align="start">
         <Calendar
-          mode="single"
+          initialFocus
+          mode="range"
+          defaultMonth={value?.from}
           selected={value}
           onSelect={onChange}
-          initialFocus
+          numberOfMonths={2}
         />
       </PopoverContent>
     </Popover>
@@ -128,8 +142,7 @@ export default function MainPage() {
 
   // Filter states
   const [selectedOrganizer, setSelectedOrganizer] = useState<string | undefined>(undefined);
-  const [startDateFilter, setStartDateFilter] = useState<Date | undefined>(undefined);
-  const [endDateFilter, setEndDateFilter] = useState<Date | undefined>(undefined);
+  const [dateRangeFilter, setDateRangeFilter] = useState<DateRange | undefined>(undefined); // Combined date range filter
   const [locationFilter, setLocationFilter] = useState<string>('');
 
 
@@ -143,18 +156,17 @@ export default function MainPage() {
   const fetchFirestoreCamps = async () => {
     try {
       const campsCollectionRef = collection(db, 'camps');
-      // Query only for 'active' camps and that have a future or ongoing endDate
       const today = Timestamp.now();
       const q = query(
           campsCollectionRef,
           where('status', '==', 'active'),
-          where('endDate', '>=', today) // Ensure camp's end date is today or in the future
+          where('endDate', '>=', today) 
       );
       const querySnapshot = await getDocs(q);
       const fetchedCamps = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data() as Omit<Camp, 'id'>
-      })).sort((a, b) => (a.startDate?.toDate() ?? new Date(0)).getTime() - (b.startDate?.toDate() ?? new Date(0)).getTime()); // Sort by start date ascending
+      })).sort((a, b) => (a.startDate?.toDate() ?? new Date(0)).getTime() - (b.startDate?.toDate() ?? new Date(0)).getTime()); 
 
       setFirestoreCamps(fetchedCamps);
     } catch (error) {
@@ -171,7 +183,7 @@ export default function MainPage() {
         const querySnapshot = await getDocs(organizersCollectionRef);
         const fetchedOrganizers = querySnapshot.docs.map(doc => ({
             id: doc.id,
-            name: doc.data().name as string, // Assuming 'name' field exists
+            name: doc.data().name as string, 
         })).sort((a,b) => a.name.localeCompare(b.name));
         setOrganizers(fetchedOrganizers);
     } catch (error) {
@@ -195,24 +207,39 @@ export default function MainPage() {
       );
 
       const matchesOrganizer = !selectedOrganizer || camp.organizerId === selectedOrganizer;
+      
+      const matchesDateRange = (() => {
+        if (!dateRangeFilter?.from && !dateRangeFilter?.to) return true;
 
-      const campStartDate = camp.startDate?.toDate();
-      const campEndDate = camp.endDate?.toDate();
+        const campStart = camp.startDate?.toDate();
+        const campEnd = camp.endDate?.toDate();
+        if (!campStart || !campEnd) return false;
 
-      const matchesStartDate = !startDateFilter || (campStartDate && campStartDate >= startDateFilter);
-      const matchesEndDate = !endDateFilter || (campEndDate && campEndDate <= endDateFilter);
+        const filterFrom = dateRangeFilter.from;
+        const filterTo = dateRangeFilter.to;
+
+        if (filterFrom && filterTo) { // Full range selected
+          return campStart <= filterTo && campEnd >= filterFrom;
+        }
+        if (filterFrom) { // Only start date of range selected
+          return campEnd >= filterFrom;
+        }
+        if (filterTo) { // Only end date of range selected (less common for range picker)
+          return campStart <= filterTo;
+        }
+        return true;
+      })();
       
       const matchesLocation = !locationFilter || camp.location.toLowerCase().includes(lowercasedLocationFilter);
 
-      return matchesSearch && matchesOrganizer && matchesStartDate && matchesEndDate && matchesLocation;
+      return matchesSearch && matchesOrganizer && matchesDateRange && matchesLocation;
     });
-  }, [firestoreCamps, searchTerm, selectedOrganizer, startDateFilter, endDateFilter, locationFilter]);
+  }, [firestoreCamps, searchTerm, selectedOrganizer, dateRangeFilter, locationFilter]);
 
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedOrganizer(undefined);
-    setStartDateFilter(undefined);
-    setEndDateFilter(undefined);
+    setDateRangeFilter(undefined); // Clear date range filter
     setLocationFilter('');
   };
 
@@ -340,7 +367,7 @@ export default function MainPage() {
       {authLoading ? <HeaderSkeleton /> : <Header />}
 
       <main className="flex-1">
-        <div className="container mx-auto px-4 py-8 md:py-12"> {/* Removed max-w-6xl to use tailwind.config container */}
+        <div className="container mx-auto px-4 py-8 md:py-12"> 
          <div className="mb-12">
             {isLoading ? <BannerSkeleton /> : (
                  <Banner
@@ -359,10 +386,9 @@ export default function MainPage() {
           {isLoading ? (
             <>
               <Skeleton className="h-10 w-full mb-2" /> {/* Search Skeleton */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6"> {/* Adjusted grid for 3 filters */}
                 <Skeleton className="h-10 w-full" /> {/* Organizer Filter Skeleton */}
-                <Skeleton className="h-10 w-full" /> {/* Start Date Filter Skeleton */}
-                <Skeleton className="h-10 w-full" /> {/* End Date Filter Skeleton */}
+                <Skeleton className="h-10 w-full" /> {/* Date Range Filter Skeleton */}
                 <Skeleton className="h-10 w-full" /> {/* Location Filter Skeleton */}
               </div>
               <Skeleton className="h-9 w-28 mb-6" /> {/* Clear Filters Button Skeleton */}
@@ -383,7 +409,7 @@ export default function MainPage() {
               </div>
 
               {/* Filters Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4"> {/* Adjusted grid for 3 filters */}
                 <div>
                   <Label htmlFor="organizer-filter">Organizer</Label>
                   <Select
@@ -405,21 +431,12 @@ export default function MainPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="start-date-filter">Start Date</Label>
-                  <DatePickerFilterField
-                    value={startDateFilter}
-                    onChange={setStartDateFilter}
-                    placeholder="From"
+                  <Label htmlFor="date-range-filter">Date Range</Label>
+                  <DateRangePickerFilterField
+                    value={dateRangeFilter}
+                    onChange={setDateRangeFilter}
+                    placeholder="Pick a date range"
                     disabled={isLoading}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="end-date-filter">End Date</Label>
-                   <DatePickerFilterField
-                    value={endDateFilter}
-                    onChange={setEndDateFilter}
-                    placeholder="To"
-                    disabled={isLoading || !startDateFilter}
                   />
                 </div>
                 <div>
