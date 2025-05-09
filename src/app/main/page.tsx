@@ -33,7 +33,8 @@ import {
   SheetDescription,
   SheetFooter,
   SheetHeader,
-  SheetBody, // Make sure SheetBody is imported if you are using it elsewhere. For this specific component, it's used below.
+  SheetBody,
+  SheetTitle, // Added SheetTitle import
   SheetTrigger,
 } from "@/components/ui/sheet";
 
@@ -467,7 +468,7 @@ export default function MainPage() {
       {authLoading ? <HeaderSkeleton /> : <Header />}
 
       <main className="flex-1">
-        <div className="container mx-auto px-4 py-8 md:py-12">
+        <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
          <div className="mb-12">
             {isLoading ? <BannerSkeleton /> : (
                  <Banner
@@ -508,7 +509,7 @@ export default function MainPage() {
               </div>
 
               {/* Visible Filters */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-[1fr_1fr_auto_auto] gap-4 mb-6 items-end">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[1fr_1fr_auto_auto] lg:grid-cols-[1fr_1fr_auto_auto] gap-4 mb-6 items-end">
                 <div>
                   <Label htmlFor="date-range-filter-main" className="mb-1 block text-sm font-medium">Date Range</Label>
                   <DateRangePickerFilterField
@@ -530,13 +531,13 @@ export default function MainPage() {
                     max={maxPossiblePrice}
                     step={50}
                     disabled={isLoading}
-                    className="w-full mt-2" 
+                    className="w-full mt-2"
                   />
                 </div>
 
                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="w-full md:w-auto self-end"> {/* Added self-end for button alignment */}
+                    <Button variant="outline" className="w-full md:w-auto self-end">
                       <ListFilter className="mr-2 h-4 w-4" /> More Filters
                     </Button>
                   </SheetTrigger>
@@ -614,7 +615,7 @@ export default function MainPage() {
                   size="icon"
                   onClick={clearFilters}
                   disabled={isLoading}
-                  className="w-auto self-end" 
+                  className="w-auto self-end"
                   aria-label="Clear All Filters"
                 >
                   <FilterX className="h-4 w-4" />
