@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Combobox } from '@/components/ui/combobox';
+import { Slider } from "@/components/ui/slider"; // Import Slider
 
 // Camp Data Interface
 interface Camp {
@@ -159,8 +160,8 @@ export default function MainPage() {
   const [selectedOrganizer, setSelectedOrganizer] = useState<string | undefined>(undefined);
   const [dateRangeFilter, setDateRangeFilter] = useState<DateRange | undefined>(undefined);
   const [selectedLocation, setSelectedLocation] = useState<string | undefined>(undefined);
-  const [minPrice, setMinPrice] = useState<string>('');
-  const [maxPrice, setMaxPrice] = useState<string>('');
+  const [priceRangeFilter, setPriceRangeFilter] = useState<[number, number] | undefined>(undefined);
+  const [maxPossiblePrice, setMaxPossiblePrice] = useState<number>(5000); // Default max price
 
 
   useEffect(() => {
@@ -187,6 +188,15 @@ export default function MainPage() {
 
       setFirestoreCamps(fetchedCamps);
 
+      // Calculate max price for slider
+      if (fetchedCamps.length > 0) {
+        const maxPrice = Math.max(...fetchedCamps.map(camp => camp.price), 0);
+        setMaxPossiblePrice(Math.max(maxPrice, 100)); // Ensure max is at least 100 for a usable range
+      } else {
+        setMaxPossiblePrice(5000); // Default if no camps
+      }
+
+
       const locations = Array.from(new Set(fetchedCamps.map(camp => camp.location))).sort();
       setUniqueLocations(locations);
       setLocationsLoading(false);
@@ -212,9 +222,6 @@ export default function MainPage() {
 
 
   const filteredCamps = useMemo(() => {
-    const numericMinPrice = parseFloat(minPrice);
-    const numericMaxPrice = parseFloat(maxPrice);
-
     return firestoreCamps.filter(camp => {
       const lowercasedSearchTerm = searchTerm.toLowerCase();
 
@@ -237,12 +244,15 @@ export default function MainPage() {
         const filterTo = dateRangeFilter.to;
 
         if (filterFrom && filterTo) {
+          // Camp overlaps with the selected range
           return campStart <= filterTo && campEnd >= filterFrom;
         }
         if (filterFrom) {
+          // Camp ends on or after the start of the range
           return campEnd >= filterFrom;
         }
         if (filterTo) {
+          // Camp starts on or before the end of the range
           return campStart <= filterTo;
         }
         return true;
@@ -250,20 +260,20 @@ export default function MainPage() {
       
       const matchesLocation = !selectedLocation || camp.location === selectedLocation;
 
-      const matchesMinPrice = isNaN(numericMinPrice) || camp.price >= numericMinPrice;
-      const matchesMaxPrice = isNaN(numericMaxPrice) || camp.price <= numericMaxPrice;
+      const matchesPriceRange = !priceRangeFilter || (
+        camp.price >= priceRangeFilter[0] && camp.price <= priceRangeFilter[1]
+      );
 
-      return matchesSearch && matchesOrganizer && matchesDateRange && matchesLocation && matchesMinPrice && matchesMaxPrice;
+      return matchesSearch && matchesOrganizer && matchesDateRange && matchesLocation && matchesPriceRange;
     });
-  }, [firestoreCamps, searchTerm, selectedOrganizer, dateRangeFilter, selectedLocation, minPrice, maxPrice]);
+  }, [firestoreCamps, searchTerm, selectedOrganizer, dateRangeFilter, selectedLocation, priceRangeFilter]);
 
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedOrganizer(undefined);
     setDateRangeFilter(undefined); 
     setSelectedLocation(undefined);
-    setMinPrice('');
-    setMaxPrice('');
+    setPriceRangeFilter(undefined); // Reset price range
   };
 
   const CampCard = ({ camp }: { camp: Camp }) => {
@@ -392,6 +402,11 @@ export default function MainPage() {
     }));
   }, [uniqueLocations]);
 
+  // Handle slider value change
+  const handlePriceRangeChange = (value: [number, number]) => {
+    setPriceRangeFilter(value);
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {authLoading ? <HeaderSkeleton /> : <Header />}
@@ -416,13 +431,13 @@ export default function MainPage() {
           {isLoading ? (
             <>
               <Skeleton className="h-10 w-full mb-2" />
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-                <Skeleton className="h-10 w-full" />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"> {/* Adjusted grid for 4 items before price */}
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
+              <Skeleton className="h-10 w-full mb-4" /> {/* Price Slider Skeleton */}
               <Skeleton className="h-9 w-28 mb-6" />
             </>
           ) : (
@@ -439,7 +454,7 @@ export default function MainPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4 items-end">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 items-end">
                 <div>
                   <Label htmlFor="organizer-filter">Organizer</Label>
                   <Select
@@ -483,66 +498,36 @@ export default function MainPage() {
                         disabled={isLoading || locationsLoading}
                     />
                 </div>
-                
-                <div className="lg:col-span-2 grid grid-cols-2 gap-2">
-                  <div>
-                    <Label htmlFor="min-price-filter">Min Price (₽)</Label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                          id="min-price-filter"
-                          type="number"
-                          placeholder="0"
-                          value={minPrice}
-                          onChange={(e) => setMinPrice(e.target.value)}
-                          className="pl-9"
-                          disabled={isLoading}
-                          min="0"
-                      />
-                      {minPrice && (
-                          <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setMinPrice('')}
-                              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2 text-muted-foreground hover:bg-transparent hover:text-foreground"
-                              aria-label="Clear min price filter"
-                          >
-                              <FilterX className="h-4 w-4" />
-                          </Button>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="max-price-filter">Max Price (₽)</Label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                          id="max-price-filter"
-                          type="number"
-                          placeholder="Any"
-                          value={maxPrice}
-                          onChange={(e) => setMaxPrice(e.target.value)}
-                          className="pl-9"
-                          disabled={isLoading}
-                          min="0"
-                      />
-                      {maxPrice && (
-                          <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setMaxPrice('')}
-                              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2 text-muted-foreground hover:bg-transparent hover:text-foreground"
-                              aria-label="Clear max price filter"
-                          >
-                              <FilterX className="h-4 w-4" />
-                          </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-
               </div>
+              
+              <div className="mb-4">
+                <Label htmlFor="price-range-filter" className="mb-2 block">
+                  Price Range (₽): {priceRangeFilter ? `${priceRangeFilter[0]} - ${priceRangeFilter[1]}` : `0 - ${maxPossiblePrice}`}
+                </Label>
+                <Slider
+                  id="price-range-filter"
+                  value={priceRangeFilter || [0, maxPossiblePrice]}
+                  onValueChange={handlePriceRangeChange}
+                  min={0}
+                  max={maxPossiblePrice}
+                  step={50} // Adjust step as needed
+                  disabled={isLoading}
+                  className="w-full"
+                />
+                 {priceRangeFilter && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setPriceRangeFilter(undefined)}
+                        className="mt-2 text-muted-foreground hover:bg-transparent hover:text-foreground"
+                        aria-label="Clear price range filter"
+                    >
+                        <FilterX className="mr-1 h-4 w-4" /> Clear Price
+                    </Button>
+                )}
+              </div>
+
+
               <Button
                 variant="outline"
                 size="sm"
