@@ -2,7 +2,7 @@
 // src/app/main/page.tsx
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -10,12 +10,13 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import Image from 'next/image';
 import { collection, getDocs, Timestamp, query, where } from 'firebase/firestore'; // Added query, where
 import { db } from '@/config/firebase';
-import { Building, PlusCircle, ArrowRight } from 'lucide-react'; // Added ArrowRight
+import { Building, PlusCircle, ArrowRight, Search } from 'lucide-react'; // Added ArrowRight, Search
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/layout/Header';
 import { Badge } from '@/components/ui/badge'; // Added Badge import
+import { Input } from '@/components/ui/input'; // Import Input for search
 
 // Camp Data Interface - reflects Firestore structure, including status
 interface Camp {
@@ -70,6 +71,7 @@ export default function MainPage() { // Renamed from DashboardPage
   const { toast } = useToast();
   const [firestoreCamps, setFirestoreCamps] = useState<Camp[]>([]);
   const [firestoreLoading, setFirestoreLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState(''); // State for search term
 
   useEffect(() => {
     // Fetch Firestore data regardless of user login status
@@ -115,6 +117,21 @@ export default function MainPage() { // Renamed from DashboardPage
       setFirestoreLoading(false);
     }
   };
+
+  // Filter camps based on search term
+  const filteredCamps = useMemo(() => {
+    if (!searchTerm) {
+      return firestoreCamps;
+    }
+    const lowercasedSearchTerm = searchTerm.toLowerCase();
+    return firestoreCamps.filter(camp =>
+      camp.name.toLowerCase().includes(lowercasedSearchTerm) ||
+      camp.description.toLowerCase().includes(lowercasedSearchTerm) ||
+      camp.location.toLowerCase().includes(lowercasedSearchTerm) ||
+      (camp.activities && camp.activities.some(activity => activity.toLowerCase().includes(lowercasedSearchTerm))) ||
+      (camp.organizerName && camp.organizerName.toLowerCase().includes(lowercasedSearchTerm))
+    );
+  }, [firestoreCamps, searchTerm]);
 
 
   // Helper component for rendering camp cards
@@ -267,19 +284,38 @@ export default function MainPage() { // Renamed from DashboardPage
         {/* Section for All Available Firestore Camps */}
         <div id="available-camps"> {/* Added ID for potential linking */}
           {/* Changed title to reflect showing all camps */}
-          <h2 className="text-2xl font-bold mb-6 text-foreground">Available Camps</h2>
+          <h2 className="text-2xl font-bold mb-4 text-foreground">Available Camps</h2> {/* Reduced mb from mb-6 to mb-4 */}
+          
+          {/* Search Input */}
+          {firestoreLoading ? (
+            <Skeleton className="h-10 w-full mb-6" /> // Skeleton for search input
+          ) : (
+            <div className="relative mb-6">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search camps by name, description, location, activities, organizer..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10" // Add padding for the icon
+              />
+            </div>
+          )}
+
           {/* Show skeleton if firestore is loading */}
           {firestoreLoading ? (
              <SkeletonCard count={6} />
-          ) : firestoreCamps.length > 0 ? (
+          ) : filteredCamps.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> {/* Changed lg:grid-cols-2 to lg:grid-cols-3 */}
-             {firestoreCamps.map((camp) => <CampCard key={camp.id} camp={camp} />)}
+             {filteredCamps.map((camp) => <CampCard key={camp.id} camp={camp} />)}
            </div>
           ) : (
              <Card className="text-center py-12">
                 <CardContent>
                     {/* Updated message when no camps are found */}
-                    <p className="text-muted-foreground mb-4">No active camps found.</p>
+                    <p className="text-muted-foreground mb-4">
+                        {searchTerm ? "No camps found matching your search." : "No active camps found."}
+                    </p>
                     {/* Show create camp button only if user is admin and logged in */}
                     {isAdmin && user && (
                         <Button asChild>
