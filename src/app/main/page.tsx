@@ -33,7 +33,6 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
   SheetBody, // Import SheetBody
 } from "@/components/ui/sheet";
 
@@ -502,7 +501,7 @@ export default function MainPage() {
               </div>
 
               {/* Visible Filters */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4 items-end">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4 items-start">
                 <div>
                   <Label htmlFor="date-range-filter-main">Date Range</Label>
                   <DateRangePickerFilterField
@@ -512,8 +511,8 @@ export default function MainPage() {
                     disabled={isLoading}
                   />
                 </div>
-                <div className="max-w-sm">
-                  <Label htmlFor="price-range-filter-main" className="mb-2 block">
+                <div>
+                  <Label htmlFor="price-range-filter-main">
                     Price Range (₽): {priceRangeFilter ? `${formatPriceForDisplay(priceRangeFilter[0])} - ${formatPriceForDisplay(priceRangeFilter[1])}` : `0 - ${formatPriceForDisplay(maxPossiblePrice)}`}
                   </Label>
                   <Slider
@@ -524,13 +523,13 @@ export default function MainPage() {
                     max={maxPossiblePrice}
                     step={50} 
                     disabled={isLoading}
-                    className="w-full"
+                    className="w-full mt-2" 
                   />
                 </div>
                 
                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="w-full md:w-auto">
+                    <Button variant="outline" className="w-full md:w-auto self-end"> {/* Added self-end for button alignment */}
                       <ListFilter className="mr-2 h-4 w-4" /> More Filters
                     </Button>
                   </SheetTrigger>
