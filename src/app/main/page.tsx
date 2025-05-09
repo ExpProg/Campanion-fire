@@ -293,9 +293,6 @@ export default function MainPage() {
   const handleApplySheetFilters = () => {
     setSelectedOrganizer(selectedOrganizerInSheet);
     setSelectedLocation(selectedLocationInSheet);
-    // Note: Date range and price range from sheet are applied directly to main filters
-    // via their respective handlers, so no need to set them here again.
-    // We keep them in sync for the sheet's display.
     setDateRangeFilter(dateRangeFilterInSheet);
     setPriceRangeFilter(priceRangeFilterInSheet);
     setIsSheetOpen(false);
@@ -504,16 +501,18 @@ export default function MainPage() {
 
           {isLoading ? (
             <>
-              <Skeleton className="h-10 w-full mb-2" /> {/* Search bar skeleton */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6"> {/* Visible filters skeletons */}
-                <Skeleton className="h-10 w-full" /> {/* Date Range skeleton */}
-                <Skeleton className="h-10 w-full" /> {/* Price Slider skeleton (simplified) */}
-                <Skeleton className="h-10 w-full" /> {/* More Filters button skeleton */}
+              <div className="sticky top-16 z-40 bg-background py-4 mb-6">
+                <Skeleton className="h-10 w-full mb-2" /> {/* Search bar skeleton */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"> {/* Visible filters skeletons */}
+                  <Skeleton className="h-10 w-full" /> {/* Date Range skeleton */}
+                  <Skeleton className="h-10 w-full" /> {/* Price Slider skeleton (simplified) */}
+                  <Skeleton className="h-10 w-full" /> {/* More Filters button skeleton */}
+                </div>
+                <Skeleton className="h-9 w-28 mt-2" /> {/* Clear All Filters button skeleton */}
               </div>
-              <Skeleton className="h-9 w-28 mb-6" /> {/* Clear All Filters button skeleton */}
             </>
           ) : (
-            <>
+            <div className="sticky top-16 z-40 bg-background py-4 mb-6"> {/* Sticky container for filters */}
               <div className="relative mb-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
@@ -527,7 +526,7 @@ export default function MainPage() {
               </div>
 
               {/* Visible Filters */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] lg:grid-cols-[minmax(0,280px)_minmax(0,280px)_auto_auto] gap-4 mb-6 items-end">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] lg:grid-cols-[minmax(0,280px)_minmax(0,280px)_auto_auto] gap-4 items-end">
                 <div className="flex flex-col">
                   <Label htmlFor="date-range-filter-main" className="mb-1 block text-sm font-medium">Date Range</Label>
                   <DateRangePickerFilterField
@@ -552,13 +551,13 @@ export default function MainPage() {
                     max={maxPossiblePrice}
                     step={50}
                     disabled={isLoading}
-                    className="w-full mt-1"
+                    className="w-full mt-1" // Adjusted margin to align better with DateRangePicker
                   />
                 </div>
 
                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="w-full md:w-auto">
+                    <Button variant="outline" className="w-full md:w-auto self-end h-10"> {/* Ensured height consistency */}
                       <ListFilter className="mr-2 h-4 w-4" /> More Filters
                        {activeSheetFilterCount > 0 && (
                         <Badge variant="secondary" className="ml-2">
@@ -642,13 +641,13 @@ export default function MainPage() {
                   variant={isAnyFilterActive ? "destructive" : "outline"}
                   onClick={clearFilters}
                   disabled={isLoading}
-                  className="h-10 px-3" // Ensured height consistency
+                  className="h-10 px-3 self-end" // Ensured height consistency
                   aria-label="Clear All Filters"
                 >
                   <FilterX className="h-4 w-4" />
                 </Button>
               </div>
-            </>
+            </div>
           )}
 
           {isLoading ? (
