@@ -463,6 +463,8 @@ export default function MainPage() {
     return price.toLocaleString('ru-RU');
   };
 
+  const isAnyFilterActive = !!(searchTerm || selectedOrganizer || dateRangeFilter || selectedLocation || priceRangeFilter);
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {authLoading ? <HeaderSkeleton /> : <Header />}
@@ -615,7 +617,7 @@ export default function MainPage() {
                   </SheetContent>
                 </Sheet>
                 <Button
-                  variant="outline"
+                  variant={isAnyFilterActive ? "destructive" : "outline"}
                   onClick={clearFilters}
                   disabled={isLoading}
                   className="self-end"
