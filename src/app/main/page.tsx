@@ -34,6 +34,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetBody, // Import SheetBody
+  SheetTrigger, // Added SheetTrigger import
 } from "@/components/ui/sheet";
 
 // Camp Data Interface
@@ -501,7 +502,7 @@ export default function MainPage() {
               </div>
 
               {/* Visible Filters */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4 items-start">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4 items-end"> {/* Changed items-start to items-end */}
                 <div>
                   <Label htmlFor="date-range-filter-main">Date Range</Label>
                   <DateRangePickerFilterField
@@ -511,8 +512,8 @@ export default function MainPage() {
                     disabled={isLoading}
                   />
                 </div>
-                <div>
-                  <Label htmlFor="price-range-filter-main">
+                <div className="flex flex-col"> {/* Wrapped in flex-col for alignment */}
+                  <Label htmlFor="price-range-filter-main" className="mb-1"> {/* Added margin-bottom to label */}
                     Price Range (₽): {priceRangeFilter ? `${formatPriceForDisplay(priceRangeFilter[0])} - ${formatPriceForDisplay(priceRangeFilter[1])}` : `0 - ${formatPriceForDisplay(maxPossiblePrice)}`}
                   </Label>
                   <Slider
@@ -523,13 +524,13 @@ export default function MainPage() {
                     max={maxPossiblePrice}
                     step={50} 
                     disabled={isLoading}
-                    className="w-full mt-2" 
+                    className="w-full" 
                   />
                 </div>
                 
                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="w-full md:w-auto self-end"> {/* Added self-end for button alignment */}
+                    <Button variant="outline" className="w-full md:w-auto"> {/* Removed self-end */}
                       <ListFilter className="mr-2 h-4 w-4" /> More Filters
                     </Button>
                   </SheetTrigger>
