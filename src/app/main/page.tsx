@@ -160,8 +160,8 @@ export default function MainPage() {
   const [selectedOrganizer, setSelectedOrganizer] = useState<string | undefined>(undefined);
   const [dateRangeFilter, setDateRangeFilter] = useState<DateRange | undefined>(undefined);
   const [selectedLocation, setSelectedLocation] = useState<string | undefined>(undefined);
-  const [priceRangeFilter, setPriceRangeFilter] = useState<[number, number] | undefined>(undefined);
-  const [maxPossiblePrice, setMaxPossiblePrice] = useState<number>(5000); // Default max price
+  const [priceRangeFilter, setPriceRangeFilter] = useState<[number, number] | undefined>(undefined); // Updated for range
+  const [maxPossiblePrice, setMaxPossiblePrice] = useState<number>(5000); // Default max price, will be updated
 
 
   useEffect(() => {
@@ -192,8 +192,14 @@ export default function MainPage() {
       if (fetchedCamps.length > 0) {
         const maxPrice = Math.max(...fetchedCamps.map(camp => camp.price), 0);
         setMaxPossiblePrice(Math.max(maxPrice, 100)); // Ensure max is at least 100 for a usable range
+        if (!priceRangeFilter) { // Initialize filter if not set
+             // setPriceRangeFilter([0, Math.max(maxPrice, 100)]); // Initialize to full range by default
+        }
       } else {
         setMaxPossiblePrice(5000); // Default if no camps
+        if (!priceRangeFilter) {
+            // setPriceRangeFilter([0, 5000]);
+        }
       }
 
 
@@ -402,9 +408,9 @@ export default function MainPage() {
     }));
   }, [uniqueLocations]);
 
-  // Handle slider value change
-  const handlePriceRangeChange = (value: [number, number]) => {
-    setPriceRangeFilter(value);
+  // Handle slider value change for range
+  const handlePriceRangeChange = (value: number[]) => {
+    setPriceRangeFilter(value as [number, number]);
   };
 
   return (
@@ -503,21 +509,21 @@ export default function MainPage() {
                 </div>
               </div>
               
-              <div className="mb-4 max-w-sm"> {/* Wrapper to make the price slider smaller */}
+              <div className="mb-4 max-w-sm">
                 <Label htmlFor="price-range-filter" className="mb-2 block">
                   Price Range (₽): {priceRangeFilter ? `${priceRangeFilter[0]} - ${priceRangeFilter[1]}` : `0 - ${maxPossiblePrice}`}
                 </Label>
                 <Slider
                   id="price-range-filter"
-                  value={priceRangeFilter || [0, maxPossiblePrice]}
-                  onValueChange={handlePriceRangeChange}
+                  value={priceRangeFilter || [0, maxPossiblePrice]} // Slider expects an array for range
+                  onValueChange={handlePriceRangeChange} // Expects (value: number[]) => void
                   min={0}
                   max={maxPossiblePrice}
                   step={50} 
                   disabled={isLoading}
-                  className="w-full" 
+                  className="w-full"
                 />
-                 {priceRangeFilter && (
+                 {priceRangeFilter && ( // Show clear button if a range is selected
                     <Button
                         variant="ghost"
                         size="sm"
