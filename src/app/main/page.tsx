@@ -1,3 +1,4 @@
+
 // src/app/main/page.tsx
 'use client';
 
@@ -412,6 +413,10 @@ export default function MainPage() {
   const handlePriceRangeChange = (value: number[]) => {
     setPriceRangeFilter(value as [number, number]);
   };
+  
+  const formatPriceForDisplay = (price: number) => {
+    return price.toLocaleString('ru-RU');
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -511,7 +516,7 @@ export default function MainPage() {
               
               <div className="mb-4 max-w-sm">
                 <Label htmlFor="price-range-filter" className="mb-2 block">
-                  Price Range (₽): {priceRangeFilter ? `${priceRangeFilter[0]} - ${priceRangeFilter[1]}` : `0 - ${maxPossiblePrice}`}
+                  Price Range (₽): {priceRangeFilter ? `${formatPriceForDisplay(priceRangeFilter[0])} - ${formatPriceForDisplay(priceRangeFilter[1])}` : `0 - ${formatPriceForDisplay(maxPossiblePrice)}`}
                 </Label>
                 <Slider
                   id="price-range-filter"
