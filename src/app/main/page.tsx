@@ -168,7 +168,7 @@ export default function MainPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
 
-  // Filter states
+  // Main Filter states
   const [selectedOrganizer, setSelectedOrganizer] = useState<string | undefined>(undefined);
   const [dateRangeFilter, setDateRangeFilter] = useState<DateRange | undefined>(undefined);
   const [selectedLocation, setSelectedLocation] = useState<string | undefined>(undefined);
@@ -178,6 +178,8 @@ export default function MainPage() {
   // Temporary filter states for the sheet
   const [selectedOrganizerInSheet, setSelectedOrganizerInSheet] = useState<string | undefined>(selectedOrganizer);
   const [selectedLocationInSheet, setSelectedLocationInSheet] = useState<string | undefined>(selectedLocation);
+  const [dateRangeFilterInSheet, setDateRangeFilterInSheet] = useState<DateRange | undefined>(dateRangeFilter);
+  const [priceRangeFilterInSheet, setPriceRangeFilterInSheet] = useState<[number, number] | undefined>(priceRangeFilter);
 
 
   useEffect(() => {
@@ -207,8 +209,15 @@ export default function MainPage() {
       if (fetchedCamps.length > 0) {
         const maxPrice = Math.max(...fetchedCamps.map(camp => camp.price), 0);
         setMaxPossiblePrice(Math.max(maxPrice, 100));
+        // Initialize sheet price range if not set by user yet
+        if (!priceRangeFilterInSheet) {
+            setPriceRangeFilterInSheet([0, Math.max(maxPrice, 100)]);
+        }
       } else {
         setMaxPossiblePrice(5000);
+         if (!priceRangeFilterInSheet) {
+            setPriceRangeFilterInSheet([0, 5000]);
+        }
       }
 
       const locations = Array.from(new Set(fetchedCamps.map(camp => camp.location))).sort();
@@ -275,11 +284,15 @@ export default function MainPage() {
     // Also clear sheet filters
     setSelectedOrganizerInSheet(undefined);
     setSelectedLocationInSheet(undefined);
+    setDateRangeFilterInSheet(undefined);
+    setPriceRangeFilterInSheet([0, maxPossiblePrice]); // Reset to full range
   };
 
   const handleApplySheetFilters = () => {
     setSelectedOrganizer(selectedOrganizerInSheet);
     setSelectedLocation(selectedLocationInSheet);
+    setDateRangeFilter(dateRangeFilterInSheet);
+    setPriceRangeFilter(priceRangeFilterInSheet);
     setIsSheetOpen(false);
   };
 
@@ -287,6 +300,8 @@ export default function MainPage() {
     // Reset sheet filters to main filters before closing
     setSelectedOrganizerInSheet(selectedOrganizer);
     setSelectedLocationInSheet(selectedLocation);
+    setDateRangeFilterInSheet(dateRangeFilter);
+    setPriceRangeFilterInSheet(priceRangeFilter || [0, maxPossiblePrice]);
     setIsSheetOpen(false);
   };
 
@@ -298,6 +313,14 @@ export default function MainPage() {
   useEffect(() => {
     setSelectedLocationInSheet(selectedLocation);
   }, [selectedLocation]);
+
+  useEffect(() => {
+    setDateRangeFilterInSheet(dateRangeFilter);
+  }, [dateRangeFilter]);
+
+  useEffect(() => {
+    setPriceRangeFilterInSheet(priceRangeFilter || [0, maxPossiblePrice]);
+  }, [priceRangeFilter, maxPossiblePrice]);
 
   const CampCard = ({ camp }: { camp: Camp }) => {
     const organizerDisplay = camp.organizerName || 'Campanion Partner';
@@ -481,7 +504,7 @@ export default function MainPage() {
               {/* Visible Filters */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4 items-end">
                 <div>
-                  <Label htmlFor="date-range-filter">Date Range</Label>
+                  <Label htmlFor="date-range-filter-main">Date Range</Label>
                   <DateRangePickerFilterField
                     value={dateRangeFilter}
                     onChange={setDateRangeFilter}
@@ -489,12 +512,12 @@ export default function MainPage() {
                     disabled={isLoading}
                   />
                 </div>
-                <div className="max-w-sm"> {/* Wrap price slider for better layout control */}
-                  <Label htmlFor="price-range-filter" className="mb-2 block">
+                <div className="max-w-sm">
+                  <Label htmlFor="price-range-filter-main" className="mb-2 block">
                     Price Range (₽): {priceRangeFilter ? `${formatPriceForDisplay(priceRangeFilter[0])} - ${formatPriceForDisplay(priceRangeFilter[1])}` : `0 - ${formatPriceForDisplay(maxPossiblePrice)}`}
                   </Label>
                   <Slider
-                    id="price-range-filter"
+                    id="price-range-filter-main"
                     value={priceRangeFilter || [0, maxPossiblePrice]}
                     onValueChange={handlePriceRangeChange}
                     min={0}
@@ -516,7 +539,6 @@ export default function MainPage() {
                   )}
                 </div>
                 
-                {/* "More Filters" Button triggering the Sheet */}
                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                   <SheetTrigger asChild>
                     <Button variant="outline" className="w-full md:w-auto">
@@ -561,14 +583,34 @@ export default function MainPage() {
                             disabled={isLoading || locationsLoading}
                         />
                       </div>
+                      <div>
+                        <Label htmlFor="sheet-date-range-filter">Date Range</Label>
+                        <DateRangePickerFilterField
+                          value={dateRangeFilterInSheet}
+                          onChange={setDateRangeFilterInSheet}
+                          placeholder="Pick a date range"
+                          disabled={isLoading}
+                        />
+                      </div>
+                       <div>
+                          <Label htmlFor="sheet-price-range-filter" className="mb-2 block">
+                            Price Range (₽): {priceRangeFilterInSheet ? `${formatPriceForDisplay(priceRangeFilterInSheet[0])} - ${formatPriceForDisplay(priceRangeFilterInSheet[1])}` : `0 - ${formatPriceForDisplay(maxPossiblePrice)}`}
+                          </Label>
+                          <Slider
+                            id="sheet-price-range-filter"
+                            value={priceRangeFilterInSheet || [0, maxPossiblePrice]}
+                            onValueChange={(value) => setPriceRangeFilterInSheet(value as [number, number])}
+                            min={0}
+                            max={maxPossiblePrice}
+                            step={50} 
+                            disabled={isLoading}
+                            className="w-full"
+                          />
+                        </div>
                     </SheetBody>
                     <SheetFooter>
-                      <SheetClose asChild>
-                        <Button type="button" variant="outline" onClick={handleCancelSheetFilters}>Cancel</Button>
-                      </SheetClose>
-                      <SheetClose asChild>
-                        <Button type="button" onClick={handleApplySheetFilters}>Apply Filters</Button>
-                      </SheetClose>
+                      <Button type="button" variant="outline" onClick={handleCancelSheetFilters}>Cancel</Button>
+                      <Button type="button" onClick={handleApplySheetFilters}>Apply Filters</Button>
                     </SheetFooter>
                   </SheetContent>
                 </Sheet>
