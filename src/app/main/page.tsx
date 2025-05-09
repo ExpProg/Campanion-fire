@@ -437,7 +437,10 @@ export default function MainPage() {
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
               </div>
-              <Skeleton className="h-10 w-full mb-4" /> {/* Price Slider Skeleton */}
+              <div className="mb-4 max-w-sm"> {/* Skeleton for price slider wrapper */}
+                <Skeleton className="h-6 w-3/4 mb-2" /> {/* Label skeleton */}
+                <Skeleton className="h-10 w-full" /> {/* Slider skeleton */}
+              </div>
               <Skeleton className="h-9 w-28 mb-6" />
             </>
           ) : (
@@ -500,7 +503,7 @@ export default function MainPage() {
                 </div>
               </div>
               
-              <div className="mb-4">
+              <div className="mb-4 max-w-sm"> {/* Wrapper to make the price slider smaller */}
                 <Label htmlFor="price-range-filter" className="mb-2 block">
                   Price Range (₽): {priceRangeFilter ? `${priceRangeFilter[0]} - ${priceRangeFilter[1]}` : `0 - ${maxPossiblePrice}`}
                 </Label>
@@ -510,9 +513,9 @@ export default function MainPage() {
                   onValueChange={handlePriceRangeChange}
                   min={0}
                   max={maxPossiblePrice}
-                  step={50} // Adjust step as needed
+                  step={50} 
                   disabled={isLoading}
-                  className="w-full"
+                  className="w-full" 
                 />
                  {priceRangeFilter && (
                     <Button
