@@ -19,11 +19,12 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format, isValid, parseISO } from 'date-fns';
-import type { DateRange } from 'react-day-picker'; // Import DateRange type
+import { format } from 'date-fns';
+import type { DateRange } from 'react-day-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { Combobox } from '@/components/ui/combobox'; // Import Combobox
 
 // Camp Data Interface
 interface Camp {
@@ -145,7 +146,7 @@ export default function MainPage() {
 
   // Filter states
   const [selectedOrganizer, setSelectedOrganizer] = useState<string | undefined>(undefined);
-  const [dateRangeFilter, setDateRangeFilter] = useState<DateRange | undefined>(undefined); // Combined date range filter
+  const [dateRangeFilter, setDateRangeFilter] = useState<DateRange | undefined>(undefined);
   const [selectedLocation, setSelectedLocation] = useState<string | undefined>(undefined);
 
 
@@ -193,7 +194,6 @@ export default function MainPage() {
       setOrganizers([]);
     } finally {
       setFirestoreLoading(false);
-      // organizersLoading and locationsLoading are set inside the try/catch
     }
   };
 
@@ -220,13 +220,13 @@ export default function MainPage() {
         const filterFrom = dateRangeFilter.from;
         const filterTo = dateRangeFilter.to;
 
-        if (filterFrom && filterTo) { // Full range selected
+        if (filterFrom && filterTo) {
           return campStart <= filterTo && campEnd >= filterFrom;
         }
-        if (filterFrom) { // Only start date of range selected
+        if (filterFrom) {
           return campEnd >= filterFrom;
         }
-        if (filterTo) { // Only end date of range selected (less common for range picker)
+        if (filterTo) {
           return campStart <= filterTo;
         }
         return true;
@@ -363,6 +363,13 @@ export default function MainPage() {
   );
 
   const isLoading = authLoading || firestoreLoading || organizersLoading || locationsLoading;
+  
+  const locationOptions = useMemo(() => {
+    return uniqueLocations.map(location => ({
+        value: location,
+        label: location,
+    }));
+  }, [uniqueLocations]);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -387,17 +394,16 @@ export default function MainPage() {
 
           {isLoading ? (
             <>
-              <Skeleton className="h-10 w-full mb-2" /> {/* Search Skeleton */}
+              <Skeleton className="h-10 w-full mb-2" />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                <Skeleton className="h-10 w-full" /> {/* Organizer Filter Skeleton */}
-                <Skeleton className="h-10 w-full" /> {/* Date Range Filter Skeleton */}
-                <Skeleton className="h-10 w-full" /> {/* Location Filter Skeleton */}
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
               </div>
-              <Skeleton className="h-9 w-28 mb-6" /> {/* Clear Filters Button Skeleton */}
+              <Skeleton className="h-9 w-28 mb-6" />
             </>
           ) : (
             <>
-              {/* Search Input */}
               <div className="relative mb-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
@@ -410,7 +416,6 @@ export default function MainPage() {
                 />
               </div>
 
-              {/* Filters Section */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                 <div>
                   <Label htmlFor="organizer-filter">Organizer</Label>
@@ -443,23 +448,17 @@ export default function MainPage() {
                 </div>
                 <div>
                   <Label htmlFor="location-filter">Location</Label>
-                   <Select
-                    value={selectedLocation}
-                    onValueChange={(value) => {
-                        setSelectedLocation(value === "all" ? undefined : value);
-                    }}
-                    disabled={isLoading || locationsLoading}
-                  >
-                    <SelectTrigger id="location-filter">
-                      <SelectValue placeholder="All Locations" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Locations</SelectItem>
-                      {uniqueLocations.map(loc => (
-                        <SelectItem key={loc} value={loc}>{loc}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                   <Combobox
+                        options={locationOptions}
+                        value={selectedLocation}
+                        onChange={(value) => {
+                            setSelectedLocation(value === "all" ? undefined : value);
+                        }}
+                        placeholder="Select location..."
+                        searchPlaceholder="Search location..."
+                        noResultsText="No location found."
+                        disabled={isLoading || locationsLoading}
+                    />
                 </div>
               </div>
               <Button
@@ -506,4 +505,3 @@ export default function MainPage() {
     </div>
   );
 }
-
