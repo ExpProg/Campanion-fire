@@ -33,7 +33,7 @@ import {
   SheetDescription,
   SheetFooter,
   SheetHeader,
-  SheetBody,
+  SheetBody, // Added SheetBody
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
@@ -605,14 +605,17 @@ export default function MainPage() {
                         </div>
                     </SheetBody>
                     <SheetFooter>
-                      <Button type="button" variant="outline" onClick={handleCancelSheetFilters}>Cancel</Button>
-                      <Button type="button" onClick={handleApplySheetFilters}>Apply Filters</Button>
+                      <SheetClose asChild>
+                        <Button type="button" variant="outline" onClick={handleCancelSheetFilters}>Cancel</Button>
+                      </SheetClose>
+                      <SheetClose asChild>
+                        <Button type="button" onClick={handleApplySheetFilters}>Apply Filters</Button>
+                      </SheetClose>
                     </SheetFooter>
                   </SheetContent>
                 </Sheet>
                 <Button
                   variant="outline"
-                  size="sm"
                   onClick={clearFilters}
                   disabled={isLoading}
                   className="self-end"
