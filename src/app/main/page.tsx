@@ -99,6 +99,19 @@ function DateRangePickerFilterField({
           onSelect={onChange}
           numberOfMonths={2}
         />
+         {/* Add a clear button if a date range is selected */}
+        {value && (
+          <div className="p-2 border-t">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onChange(undefined)}
+              className="w-full"
+            >
+              Clear Dates
+            </Button>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
@@ -420,7 +433,7 @@ export default function MainPage() {
                 <div>
                   <Label htmlFor="organizer-filter">Organizer</Label>
                   <Select
-                    value={selectedOrganizer}
+                    value={selectedOrganizer || "all"}
                     onValueChange={(value) => {
                         setSelectedOrganizer(value === "all" ? undefined : value);
                     }}
@@ -505,3 +518,4 @@ export default function MainPage() {
     </div>
   );
 }
+
