@@ -511,7 +511,7 @@ export default function MainPage() {
               </div>
 
               {/* Visible Filters */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[1fr_1fr_auto_auto] lg:grid-cols-[1fr_1fr_auto_auto] gap-4 mb-6 items-baseline">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[minmax(0,320px)_minmax(0,320px)_auto_auto] lg:grid-cols-[minmax(0,320px)_minmax(0,320px)_auto_auto] gap-4 mb-6 items-end">
                 <div className="flex flex-col">
                   <Label htmlFor="date-range-filter-main" className="mb-1 block text-sm font-medium">Date Range</Label>
                   <DateRangePickerFilterField
@@ -539,7 +539,7 @@ export default function MainPage() {
 
                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="w-full md:w-auto self-end">
+                    <Button variant="outline" className="w-full md:w-auto">
                       <ListFilter className="mr-2 h-4 w-4" /> More Filters
                     </Button>
                   </SheetTrigger>
@@ -620,7 +620,7 @@ export default function MainPage() {
                   variant={isAnyFilterActive ? "destructive" : "outline"}
                   onClick={clearFilters}
                   disabled={isLoading}
-                  className="self-end h-10 px-3" // Ensured height consistency
+                  className="h-10 px-3" // Ensured height consistency
                   aria-label="Clear All Filters"
                 >
                   <FilterX className="h-4 w-4" />
