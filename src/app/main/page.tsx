@@ -1,3 +1,4 @@
+
 // src/app/main/page.tsx
 'use client';
 
@@ -32,7 +33,6 @@ import {
   SheetDescription,
   SheetFooter,
   SheetHeader,
-  SheetTitle,
   SheetBody, // Make sure SheetBody is imported if you are using it elsewhere. For this specific component, it's used below.
   SheetTrigger,
 } from "@/components/ui/sheet";
@@ -536,7 +536,7 @@ export default function MainPage() {
 
                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="w-full md:w-auto">
+                    <Button variant="outline" className="w-full md:w-auto self-end"> {/* Added self-end for button alignment */}
                       <ListFilter className="mr-2 h-4 w-4" /> More Filters
                     </Button>
                   </SheetTrigger>
@@ -611,12 +611,13 @@ export default function MainPage() {
                 </Sheet>
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon"
                   onClick={clearFilters}
                   disabled={isLoading}
-                  className="w-full md:w-auto" 
+                  className="w-auto self-end" 
+                  aria-label="Clear All Filters"
                 >
-                  <FilterX className="mr-2 h-4 w-4" /> Clear All Filters
+                  <FilterX className="h-4 w-4" />
                 </Button>
               </div>
             </>
