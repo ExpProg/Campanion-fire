@@ -514,7 +514,7 @@ export default function MainPage() {
           ) : (
              <div className="sticky top-16 z-40 bg-background/95 backdrop-blur-sm py-4 mb-6 -mx-4 px-4 shadow-sm"> {/* Added shadow for visual separation */}
               {/* Grid for all filters including search */}
-               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_auto_auto] lg:grid-cols-[minmax(0,2.5fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_auto_auto] gap-4 items-end">
+               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_auto_auto] lg:grid-cols-[minmax(0,2.5fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_auto_auto] gap-4 items-center">
                 {/* Search Input */}
                 <div className="flex flex-col relative md:col-span-1"> {/* md:col-span-1 to take full width on smaller md screens before more filters appear */}
                   <Label htmlFor="search-term-filter-main" className="mb-1 block text-sm font-medium">Search</Label>
@@ -557,7 +557,7 @@ export default function MainPage() {
                     max={maxPossiblePrice}
                     step={50}
                     disabled={isLoading}
-                    className="w-full mt-2.5" // Adjusted margin for alignment
+                    className="w-full h-10" 
                   />
                 </div>
 
