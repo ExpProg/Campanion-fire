@@ -33,8 +33,8 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetBody, 
-  SheetTrigger, 
+  SheetBody,
+  SheetTrigger,
 } from "@/components/ui/sheet";
 
 // Camp Data Interface
@@ -254,7 +254,7 @@ export default function MainPage() {
       );
 
       const matchesOrganizer = !selectedOrganizer || camp.organizerId === selectedOrganizer;
-      
+
       const matchesDateRange = (() => {
         if (!dateRangeFilter?.from && !dateRangeFilter?.to) return true;
         const campStart = camp.startDate?.toDate();
@@ -267,7 +267,7 @@ export default function MainPage() {
         if (filterTo) return campStart <= filterTo;
         return true;
       })();
-      
+
       const matchesLocation = !selectedLocation || camp.location === selectedLocation;
       const matchesPriceRange = !priceRangeFilter || (camp.price >= priceRangeFilter[0] && camp.price <= priceRangeFilter[1]);
 
@@ -278,7 +278,7 @@ export default function MainPage() {
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedOrganizer(undefined);
-    setDateRangeFilter(undefined); 
+    setDateRangeFilter(undefined);
     setSelectedLocation(undefined);
     setPriceRangeFilter(undefined);
     // Also clear sheet filters
@@ -440,7 +440,7 @@ export default function MainPage() {
   );
 
   const isLoading = authLoading || firestoreLoading || organizersLoading || locationsLoading;
-  
+
   const locationOptions = useMemo(() => {
     return uniqueLocations.map(location => ({
         value: location,
@@ -449,9 +449,15 @@ export default function MainPage() {
   }, [uniqueLocations]);
 
   const handlePriceRangeChange = (value: number[]) => {
-    setPriceRangeFilter(value as [number, number]);
+    setPriceRangeFilterInSheet(value as [number, number]); // Update sheet filter first
   };
-  
+
+  const handleMainPriceRangeChange = (value: number[]) => {
+    setPriceRangeFilter(value as [number, number]);
+    setPriceRangeFilterInSheet(value as [number, number]); // Keep sheet filter in sync
+  };
+
+
   const formatPriceForDisplay = (price: number) => {
     return price.toLocaleString('ru-RU');
   };
@@ -504,7 +510,7 @@ export default function MainPage() {
               {/* Visible Filters */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4 items-end">
                 <div>
-                  <Label htmlFor="date-range-filter-main" className="mb-1 block">Date Range</Label>
+                  <Label htmlFor="date-range-filter-main" className="mb-1 block text-sm font-medium">Date Range</Label>
                   <DateRangePickerFilterField
                     value={dateRangeFilter}
                     onChange={setDateRangeFilter}
@@ -512,25 +518,25 @@ export default function MainPage() {
                     disabled={isLoading}
                   />
                 </div>
-                <div className="flex flex-col"> 
-                  <Label htmlFor="price-range-filter-main" className="mb-1"> 
+                <div className="flex flex-col">
+                  <Label htmlFor="price-range-filter-main" className="mb-1 block text-sm font-medium">
                     Price Range (₽): {priceRangeFilter ? `${formatPriceForDisplay(priceRangeFilter[0])} - ${formatPriceForDisplay(priceRangeFilter[1])}` : `0 - ${formatPriceForDisplay(maxPossiblePrice)}`}
                   </Label>
                   <Slider
                     id="price-range-filter-main"
                     value={priceRangeFilter || [0, maxPossiblePrice]}
-                    onValueChange={handlePriceRangeChange}
+                    onValueChange={handleMainPriceRangeChange}
                     min={0}
                     max={maxPossiblePrice}
-                    step={50} 
+                    step={50}
                     disabled={isLoading}
-                    className="w-full" 
+                    className="w-full mt-2" // Added mt-2 for spacing
                   />
                 </div>
-                
+
                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="w-full md:w-auto self-end"> 
+                    <Button variant="outline" className="w-full md:w-auto self-end">
                       <ListFilter className="mr-2 h-4 w-4" /> More Filters
                     </Button>
                   </SheetTrigger>
@@ -543,7 +549,7 @@ export default function MainPage() {
                     </SheetHeader>
                     <SheetBody className="space-y-4 py-4">
                       <div>
-                        <Label htmlFor="sheet-organizer-filter">Organizer</Label>
+                        <Label htmlFor="sheet-organizer-filter" className="text-sm font-medium">Organizer</Label>
                         <Select
                           value={selectedOrganizerInSheet || "all"}
                           onValueChange={(value) => setSelectedOrganizerInSheet(value === "all" ? undefined : value)}
@@ -561,7 +567,7 @@ export default function MainPage() {
                         </Select>
                       </div>
                       <div>
-                        <Label htmlFor="sheet-location-filter">Location</Label>
+                        <Label htmlFor="sheet-location-filter" className="text-sm font-medium">Location</Label>
                         <Combobox
                             options={locationOptions}
                             value={selectedLocationInSheet}
@@ -573,7 +579,7 @@ export default function MainPage() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="sheet-date-range-filter">Date Range</Label>
+                        <Label htmlFor="sheet-date-range-filter" className="text-sm font-medium">Date Range</Label>
                         <DateRangePickerFilterField
                           value={dateRangeFilterInSheet}
                           onChange={setDateRangeFilterInSheet}
@@ -582,16 +588,16 @@ export default function MainPage() {
                         />
                       </div>
                        <div>
-                          <Label htmlFor="sheet-price-range-filter" className="mb-2 block">
+                          <Label htmlFor="sheet-price-range-filter" className="mb-2 block text-sm font-medium">
                             Price Range (₽): {priceRangeFilterInSheet ? `${formatPriceForDisplay(priceRangeFilterInSheet[0])} - ${formatPriceForDisplay(priceRangeFilterInSheet[1])}` : `0 - ${formatPriceForDisplay(maxPossiblePrice)}`}
                           </Label>
                           <Slider
                             id="sheet-price-range-filter"
                             value={priceRangeFilterInSheet || [0, maxPossiblePrice]}
-                            onValueChange={(value) => setPriceRangeFilterInSheet(value as [number, number])}
+                            onValueChange={handlePriceRangeChange}
                             min={0}
                             max={maxPossiblePrice}
-                            step={50} 
+                            step={50}
                             disabled={isLoading}
                             className="w-full"
                           />
@@ -604,7 +610,7 @@ export default function MainPage() {
                   </SheetContent>
                 </Sheet>
               </div>
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -649,4 +655,3 @@ export default function MainPage() {
     </div>
   );
 }
-
