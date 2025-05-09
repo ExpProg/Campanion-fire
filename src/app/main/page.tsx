@@ -139,58 +139,61 @@ export default function MainPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [organizers, setOrganizers] = useState<Organizer[]>([]);
   const [organizersLoading, setOrganizersLoading] = useState(true);
+  const [uniqueLocations, setUniqueLocations] = useState<string[]>([]);
+  const [locationsLoading, setLocationsLoading] = useState(true);
+
 
   // Filter states
   const [selectedOrganizer, setSelectedOrganizer] = useState<string | undefined>(undefined);
   const [dateRangeFilter, setDateRangeFilter] = useState<DateRange | undefined>(undefined); // Combined date range filter
-  const [locationFilter, setLocationFilter] = useState<string>('');
+  const [selectedLocation, setSelectedLocation] = useState<string | undefined>(undefined);
 
 
   useEffect(() => {
     setFirestoreLoading(true);
     setOrganizersLoading(true);
-    fetchFirestoreCamps();
-    fetchOrganizers();
+    setLocationsLoading(true);
+    fetchFirestoreData();
   }, []);
 
-  const fetchFirestoreCamps = async () => {
+  const fetchFirestoreData = async () => {
     try {
       const campsCollectionRef = collection(db, 'camps');
       const today = Timestamp.now();
-      const q = query(
+      const campsQuery = query(
           campsCollectionRef,
           where('status', '==', 'active'),
-          where('endDate', '>=', today) 
+          where('endDate', '>=', today)
       );
-      const querySnapshot = await getDocs(q);
-      const fetchedCamps = querySnapshot.docs.map(doc => ({
+      const campsSnapshot = await getDocs(campsQuery);
+      const fetchedCamps = campsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data() as Omit<Camp, 'id'>
-      })).sort((a, b) => (a.startDate?.toDate() ?? new Date(0)).getTime() - (b.startDate?.toDate() ?? new Date(0)).getTime()); 
+      })).sort((a, b) => (a.startDate?.toDate() ?? new Date(0)).getTime() - (b.startDate?.toDate() ?? new Date(0)).getTime());
 
       setFirestoreCamps(fetchedCamps);
+
+      const locations = Array.from(new Set(fetchedCamps.map(camp => camp.location))).sort();
+      setUniqueLocations(locations);
+      setLocationsLoading(false);
+
+      const organizersCollectionRef = collection(db, 'organizers');
+      const organizersSnapshot = await getDocs(organizersCollectionRef);
+      const fetchedOrganizers = organizersSnapshot.docs.map(doc => ({
+          id: doc.id,
+          name: doc.data().name as string,
+      })).sort((a,b) => a.name.localeCompare(b.name));
+      setOrganizers(fetchedOrganizers);
+      setOrganizersLoading(false);
+
     } catch (error) {
-      console.error("Error fetching camps from Firestore:", error);
-      toast({ title: 'Error fetching camps', description: 'Could not load camps.', variant: 'destructive' });
+      console.error("Error fetching data from Firestore:", error);
+      toast({ title: 'Error fetching data', description: 'Could not load camps, organizers, or locations.', variant: 'destructive' });
+      setUniqueLocations([]);
+      setOrganizers([]);
     } finally {
       setFirestoreLoading(false);
-    }
-  };
-
-  const fetchOrganizers = async () => {
-    try {
-        const organizersCollectionRef = collection(db, 'organizers');
-        const querySnapshot = await getDocs(organizersCollectionRef);
-        const fetchedOrganizers = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            name: doc.data().name as string, 
-        })).sort((a,b) => a.name.localeCompare(b.name));
-        setOrganizers(fetchedOrganizers);
-    } catch (error) {
-        console.error("Error fetching organizers:", error);
-        toast({ title: 'Error', description: 'Could not load organizers for filtering.', variant: 'destructive' });
-    } finally {
-        setOrganizersLoading(false);
+      // organizersLoading and locationsLoading are set inside the try/catch
     }
   };
 
@@ -198,7 +201,6 @@ export default function MainPage() {
   const filteredCamps = useMemo(() => {
     return firestoreCamps.filter(camp => {
       const lowercasedSearchTerm = searchTerm.toLowerCase();
-      const lowercasedLocationFilter = locationFilter.toLowerCase();
 
       const matchesSearch = !searchTerm || (
         camp.name.toLowerCase().includes(lowercasedSearchTerm) ||
@@ -230,17 +232,17 @@ export default function MainPage() {
         return true;
       })();
       
-      const matchesLocation = !locationFilter || camp.location.toLowerCase().includes(lowercasedLocationFilter);
+      const matchesLocation = !selectedLocation || camp.location === selectedLocation;
 
       return matchesSearch && matchesOrganizer && matchesDateRange && matchesLocation;
     });
-  }, [firestoreCamps, searchTerm, selectedOrganizer, dateRangeFilter, locationFilter]);
+  }, [firestoreCamps, searchTerm, selectedOrganizer, dateRangeFilter, selectedLocation]);
 
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedOrganizer(undefined);
-    setDateRangeFilter(undefined); // Clear date range filter
-    setLocationFilter('');
+    setDateRangeFilter(undefined); 
+    setSelectedLocation(undefined);
   };
 
   const CampCard = ({ camp }: { camp: Camp }) => {
@@ -360,14 +362,14 @@ export default function MainPage() {
    </footer>
   );
 
-  const isLoading = authLoading || firestoreLoading || organizersLoading;
+  const isLoading = authLoading || firestoreLoading || organizersLoading || locationsLoading;
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {authLoading ? <HeaderSkeleton /> : <Header />}
 
       <main className="flex-1">
-        <div className="container mx-auto px-4 py-8 md:py-12"> 
+        <div className="container mx-auto px-4 py-8 md:py-12">
          <div className="mb-12">
             {isLoading ? <BannerSkeleton /> : (
                  <Banner
@@ -382,11 +384,11 @@ export default function MainPage() {
 
         <div id="available-camps">
           <h2 className="text-2xl font-bold mb-4 text-foreground">Available Camps</h2>
-          
+
           {isLoading ? (
             <>
               <Skeleton className="h-10 w-full mb-2" /> {/* Search Skeleton */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6"> {/* Adjusted grid for 3 filters */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 <Skeleton className="h-10 w-full" /> {/* Organizer Filter Skeleton */}
                 <Skeleton className="h-10 w-full" /> {/* Date Range Filter Skeleton */}
                 <Skeleton className="h-10 w-full" /> {/* Location Filter Skeleton */}
@@ -409,7 +411,7 @@ export default function MainPage() {
               </div>
 
               {/* Filters Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4"> {/* Adjusted grid for 3 filters */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                 <div>
                   <Label htmlFor="organizer-filter">Organizer</Label>
                   <Select
@@ -441,14 +443,23 @@ export default function MainPage() {
                 </div>
                 <div>
                   <Label htmlFor="location-filter">Location</Label>
-                  <Input
-                    id="location-filter"
-                    type="text"
-                    placeholder="Enter location"
-                    value={locationFilter}
-                    onChange={(e) => setLocationFilter(e.target.value)}
-                    disabled={isLoading}
-                  />
+                   <Select
+                    value={selectedLocation}
+                    onValueChange={(value) => {
+                        setSelectedLocation(value === "all" ? undefined : value);
+                    }}
+                    disabled={isLoading || locationsLoading}
+                  >
+                    <SelectTrigger id="location-filter">
+                      <SelectValue placeholder="All Locations" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Locations</SelectItem>
+                      {uniqueLocations.map(loc => (
+                        <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <Button
