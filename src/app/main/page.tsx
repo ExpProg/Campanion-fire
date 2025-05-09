@@ -143,12 +143,19 @@ export default function MainPage() {
   const fetchFirestoreCamps = async () => {
     try {
       const campsCollectionRef = collection(db, 'camps');
-      const q = query(campsCollectionRef, where('status', '==', 'active'));
+      // Query only for 'active' camps and that have a future or ongoing endDate
+      const today = Timestamp.now();
+      const q = query(
+          campsCollectionRef,
+          where('status', '==', 'active'),
+          where('endDate', '>=', today) // Ensure camp's end date is today or in the future
+      );
       const querySnapshot = await getDocs(q);
       const fetchedCamps = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data() as Omit<Camp, 'id'>
-      })).sort((a, b) => (b.createdAt?.toDate() ?? new Date(0)).getTime() - (a.createdAt?.toDate() ?? new Date(0)).getTime());
+      })).sort((a, b) => (a.startDate?.toDate() ?? new Date(0)).getTime() - (b.startDate?.toDate() ?? new Date(0)).getTime()); // Sort by start date ascending
+
       setFirestoreCamps(fetchedCamps);
     } catch (error) {
       console.error("Error fetching camps from Firestore:", error);
@@ -333,7 +340,7 @@ export default function MainPage() {
       {authLoading ? <HeaderSkeleton /> : <Header />}
 
       <main className="flex-1">
-        <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
+        <div className="container mx-auto px-4 py-8 md:py-12"> {/* Removed max-w-6xl to use tailwind.config container */}
          <div className="mb-12">
             {isLoading ? <BannerSkeleton /> : (
                  <Banner
@@ -381,14 +388,16 @@ export default function MainPage() {
                   <Label htmlFor="organizer-filter">Organizer</Label>
                   <Select
                     value={selectedOrganizer}
-                    onValueChange={setSelectedOrganizer}
+                    onValueChange={(value) => {
+                        setSelectedOrganizer(value === "all" ? undefined : value);
+                    }}
                     disabled={isLoading || organizersLoading}
                   >
                     <SelectTrigger id="organizer-filter">
                       <SelectValue placeholder="All Organizers" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Organizers</SelectItem>
+                      <SelectItem value="all">All Organizers</SelectItem>
                       {organizers.map(org => (
                         <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
                       ))}
