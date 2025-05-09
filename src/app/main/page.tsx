@@ -33,7 +33,7 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetBody,
+  SheetBody, // Make sure SheetBody is imported if you are using it elsewhere. For this specific component, it's used below.
   SheetTrigger,
 } from "@/components/ui/sheet";
 
@@ -508,7 +508,7 @@ export default function MainPage() {
               </div>
 
               {/* Visible Filters */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4 items-end">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-[1fr_1fr_auto_auto] gap-4 mb-6 items-end">
                 <div>
                   <Label htmlFor="date-range-filter-main" className="mb-1 block text-sm font-medium">Date Range</Label>
                   <DateRangePickerFilterField
@@ -530,13 +530,13 @@ export default function MainPage() {
                     max={maxPossiblePrice}
                     step={50}
                     disabled={isLoading}
-                    className="w-full mt-2" // Added mt-2 for spacing
+                    className="w-full mt-2" 
                   />
                 </div>
 
                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="w-full md:w-auto self-end">
+                    <Button variant="outline" className="w-full md:w-auto">
                       <ListFilter className="mr-2 h-4 w-4" /> More Filters
                     </Button>
                   </SheetTrigger>
@@ -609,17 +609,16 @@ export default function MainPage() {
                     </SheetFooter>
                   </SheetContent>
                 </Sheet>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearFilters}
+                  disabled={isLoading}
+                  className="w-full md:w-auto" 
+                >
+                  <FilterX className="mr-2 h-4 w-4" /> Clear All Filters
+                </Button>
               </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearFilters}
-                className="mb-6"
-                disabled={isLoading}
-              >
-                <FilterX className="mr-2 h-4 w-4" /> Clear All Filters
-              </Button>
             </>
           )}
 
@@ -655,3 +654,4 @@ export default function MainPage() {
     </div>
   );
 }
+
