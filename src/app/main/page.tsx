@@ -209,13 +209,14 @@ export default function MainPage() {
 
       if (fetchedCamps.length > 0) {
         const maxPrice = Math.max(...fetchedCamps.map(camp => camp.price), 0);
-        setMaxPossiblePrice(Math.max(maxPrice, 100));
+        const calculatedMaxPrice = Math.max(maxPrice, 100); // Ensure max price is at least 100
+        setMaxPossiblePrice(calculatedMaxPrice);
         // Initialize sheet price range if not set by user yet
         if (!priceRangeFilterInSheet) {
-            setPriceRangeFilterInSheet([0, Math.max(maxPrice, 100)]);
+            setPriceRangeFilterInSheet([0, calculatedMaxPrice]);
         }
       } else {
-        setMaxPossiblePrice(5000);
+        setMaxPossiblePrice(5000); // Default if no camps
          if (!priceRangeFilterInSheet) {
             setPriceRangeFilterInSheet([0, 5000]);
         }
@@ -292,6 +293,9 @@ export default function MainPage() {
   const handleApplySheetFilters = () => {
     setSelectedOrganizer(selectedOrganizerInSheet);
     setSelectedLocation(selectedLocationInSheet);
+    // Note: Date range and price range from sheet are applied directly to main filters
+    // via their respective handlers, so no need to set them here again.
+    // We keep them in sync for the sheet's display.
     setDateRangeFilter(dateRangeFilterInSheet);
     setPriceRangeFilter(priceRangeFilterInSheet);
     setIsSheetOpen(false);
@@ -322,6 +326,17 @@ export default function MainPage() {
   useEffect(() => {
     setPriceRangeFilterInSheet(priceRangeFilter || [0, maxPossiblePrice]);
   }, [priceRangeFilter, maxPossiblePrice]);
+
+  // Calculate active filter count for the sheet
+   const activeSheetFilterCount = useMemo(() => {
+    let count = 0;
+    if (selectedOrganizerInSheet) count++;
+    if (selectedLocationInSheet) count++;
+    if (dateRangeFilterInSheet?.from || dateRangeFilterInSheet?.to) count++;
+    if (priceRangeFilterInSheet && (priceRangeFilterInSheet[0] !== 0 || priceRangeFilterInSheet[1] !== maxPossiblePrice)) count++;
+    return count;
+  }, [selectedOrganizerInSheet, selectedLocationInSheet, dateRangeFilterInSheet, priceRangeFilterInSheet, maxPossiblePrice]);
+
 
   const CampCard = ({ camp }: { camp: Camp }) => {
     const organizerDisplay = camp.organizerName || 'Campanion Partner';
@@ -463,7 +478,8 @@ export default function MainPage() {
     return price.toLocaleString('ru-RU');
   };
 
-  const isAnyFilterActive = !!(searchTerm || selectedOrganizer || dateRangeFilter || selectedLocation || priceRangeFilter);
+  const isAnyFilterActive = !!(searchTerm || selectedOrganizer || dateRangeFilter?.from || dateRangeFilter?.to || selectedLocation || (priceRangeFilter && (priceRangeFilter[0] !== 0 || priceRangeFilter[1] !== maxPossiblePrice)));
+
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -511,12 +527,15 @@ export default function MainPage() {
               </div>
 
               {/* Visible Filters */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[minmax(0,320px)_minmax(0,320px)_auto_auto] lg:grid-cols-[minmax(0,320px)_minmax(0,320px)_auto_auto] gap-4 mb-6 items-end">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] lg:grid-cols-[minmax(0,280px)_minmax(0,280px)_auto_auto] gap-4 mb-6 items-end">
                 <div className="flex flex-col">
                   <Label htmlFor="date-range-filter-main" className="mb-1 block text-sm font-medium">Date Range</Label>
                   <DateRangePickerFilterField
                     value={dateRangeFilter}
-                    onChange={setDateRangeFilter}
+                    onChange={(range) => {
+                        setDateRangeFilter(range);
+                        setDateRangeFilterInSheet(range); // Sync sheet filter
+                    }}
                     placeholder="Pick a date range"
                     disabled={isLoading}
                   />
@@ -533,7 +552,7 @@ export default function MainPage() {
                     max={maxPossiblePrice}
                     step={50}
                     disabled={isLoading}
-                    className="w-full mt-1" 
+                    className="w-full mt-1"
                   />
                 </div>
 
@@ -541,6 +560,11 @@ export default function MainPage() {
                   <SheetTrigger asChild>
                     <Button variant="outline" className="w-full md:w-auto">
                       <ListFilter className="mr-2 h-4 w-4" /> More Filters
+                       {activeSheetFilterCount > 0 && (
+                        <Badge variant="secondary" className="ml-2">
+                          {activeSheetFilterCount}
+                        </Badge>
+                      )}
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="right" className="w-full sm:max-w-sm">
@@ -610,9 +634,7 @@ export default function MainPage() {
                       <SheetClose asChild>
                         <Button type="button" variant="outline" onClick={handleCancelSheetFilters}>Cancel</Button>
                       </SheetClose>
-                      <SheetClose asChild>
                         <Button type="button" onClick={handleApplySheetFilters}>Apply Filters</Button>
-                      </SheetClose>
                     </SheetFooter>
                   </SheetContent>
                 </Sheet>
