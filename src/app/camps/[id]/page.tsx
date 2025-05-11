@@ -145,10 +145,10 @@ export default function CampDetailsPage() {
              <main className="flex-1 p-4 md:p-8 lg:p-12">
                  <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
                      <Skeleton className="h-8 w-32 mb-8" /> {/* Back button */}
-                     <Skeleton className="h-10 w-3/4 mb-6" /> {/* Title */}
                      <Skeleton className="w-full h-64 md:h-96 mb-8 rounded-lg" /> {/* Image */}
                      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                          <div className="md:col-span-2 space-y-6">
+                             <Skeleton className="h-10 w-3/4 mb-6" /> {/* Title */}
                              <Skeleton className="h-6 w-1/2 mb-3" /> {/* Organizer */}
                              <Skeleton className="h-6 w-1/3 mb-3" /> {/* Description Title */}
                              <Skeleton className="h-4 w-full" />
@@ -216,8 +216,6 @@ export default function CampDetailsPage() {
                   Back to Main
               </Link>
 
-              <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-6">{camp.name}</h1>
-
               <div className="relative w-full h-64 md:h-96 mb-8 rounded-lg overflow-hidden shadow-lg">
                   <Image
                       src={camp.imageUrl}
@@ -232,6 +230,7 @@ export default function CampDetailsPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div className="md:col-span-2 space-y-6">
+                      <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-6">{camp.name}</h1>
                       <div className="text-lg text-muted-foreground flex items-center">
                           <Building className="h-5 w-5 mr-2 text-muted-foreground flex-shrink-0" />
                           Organized by {camp.organizerLink ? (
