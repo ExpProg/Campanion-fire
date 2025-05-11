@@ -148,8 +148,9 @@ export default function CampDetailsPage() {
                      <Skeleton className="w-full h-64 md:h-96 mb-8 rounded-lg" /> {/* Image */}
                      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                          <div className="md:col-span-2 space-y-6">
-                             <Skeleton className="h-10 w-3/4 mb-6" /> {/* Title */}
+                             <Skeleton className="h-10 w-3/4 mb-2" /> {/* Title Skeleton */}
                              <Skeleton className="h-6 w-1/2 mb-3" /> {/* Organizer */}
+                             <Skeleton className="h-6 w-1/3 mb-3" /> {/* Location */}
                              <Skeleton className="h-6 w-1/3 mb-3" /> {/* Description Title */}
                              <Skeleton className="h-4 w-full" />
                              <Skeleton className="h-4 w-full" />
@@ -165,10 +166,10 @@ export default function CampDetailsPage() {
                             <Card className="shadow-lg">
                                 <CardHeader><Skeleton className="h-7 w-1/2" /></CardHeader> {/* Info Card Title */}
                                 <CardContent className="space-y-4">
-                                     <Skeleton className="h-8 w-full" />
-                                     <Skeleton className="h-8 w-full" />
-                                     <Skeleton className="h-8 w-full" />
-                                     <Skeleton className="h-8 w-full" />
+                                     {/* Location removed from here */}
+                                     <Skeleton className="h-8 w-full" /> {/* Dates */}
+                                     <Skeleton className="h-8 w-full" /> {/* Price */}
+                                     <Skeleton className="h-8 w-full" /> {/* Original Link */}
                                 </CardContent>
                                 <CardFooter><Skeleton className="h-10 w-full" /></CardFooter> {/* Button placeholder */}
                             </Card>
@@ -230,7 +231,8 @@ export default function CampDetailsPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div className="md:col-span-2 space-y-6">
-                      <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-6">{camp.name}</h1>
+                      <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">{camp.name}</h1>
+                      
                       <div className="text-lg text-muted-foreground flex items-center">
                           <Building className="h-5 w-5 mr-2 text-muted-foreground flex-shrink-0" />
                           Organized by {camp.organizerLink ? (
@@ -240,6 +242,11 @@ export default function CampDetailsPage() {
                           ) : (
                               <span className="ml-1">{organizerDisplay}</span>
                           )}
+                      </div>
+
+                      <div className="text-lg text-muted-foreground flex items-center">
+                          <MapPin className="h-5 w-5 mr-2 text-muted-foreground flex-shrink-0" />
+                          {camp.location}
                       </div>
 
                       <div>
@@ -265,13 +272,7 @@ export default function CampDetailsPage() {
                               <CardTitle className="text-xl text-foreground">Camp Information</CardTitle>
                           </CardHeader>
                           <CardContent className="space-y-4">
-                              <div className="flex items-start">
-                                  <MapPin className="h-5 w-5 mr-3 mt-1 text-primary flex-shrink-0" />
-                                  <div>
-                                      <p className="font-medium text-foreground">Location</p>
-                                      <p className="text-muted-foreground">{camp.location}</p>
-                                  </div>
-                              </div>
+                              {/* Location removed from here */}
                               <div className="flex items-start">
                                   <CalendarDays className="h-5 w-5 mr-3 mt-1 text-primary flex-shrink-0" />
                                   <div>
@@ -313,3 +314,4 @@ export default function CampDetailsPage() {
     </div>
   );
 }
+
