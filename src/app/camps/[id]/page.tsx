@@ -1,4 +1,3 @@
-
 // src/app/camps/[id]/page.tsx
 'use client';
 
@@ -8,13 +7,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import Image from 'next/image';
-import { ArrowLeft, CalendarDays, MapPin, DollarSign, Building, Link as LinkIcon } from 'lucide-react'; // Added LinkIcon
+import { ArrowLeft, CalendarDays, MapPin, DollarSign, Building, Link as LinkIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
-import { format } from 'date-fns'; // Import format for date display if needed
-import Header from '@/components/layout/Header'; // Import Header component
+import { format } from 'date-fns';
+import Header from '@/components/layout/Header';
+import { Badge } from '@/components/ui/badge'; // Import Badge
 
 // Camp Data Interface (ensure consistency with Firestore structure)
 interface Camp {
@@ -34,7 +34,6 @@ interface Camp {
   activities?: string[];
   creatorId?: string; // Added creatorId
   originalLink?: string; // Added optional originalLink
-  // Add any other fields present in your Firestore document
 }
 
 // Function to fetch camp details from Firestore
@@ -45,11 +44,7 @@ async function fetchCampDetailsFromFirestore(id: string): Promise<Camp | null> {
 
     if (campDocSnap.exists()) {
       const data = campDocSnap.data();
-
-      // --- Date Handling ---
-      let datesDisplay = data.dates || 'Dates not specified'; // Default to stored string
-
-      // Optional: If 'dates' string is missing, try to reconstruct from Timestamps
+      let datesDisplay = data.dates || 'Dates not specified';
       if (!datesDisplay && data.startDate && data.endDate && data.startDate.toDate && data.endDate.toDate) {
         try {
             const formattedStartDate = format(data.startDate.toDate(), "MMM d");
@@ -57,36 +52,29 @@ async function fetchCampDetailsFromFirestore(id: string): Promise<Camp | null> {
             datesDisplay = `${formattedStartDate} - ${formattedEndDate}`;
         } catch (formatError) {
             console.error("Error formatting dates from Timestamps:", formatError);
-            // Fallback if formatting fails
             datesDisplay = 'Date range available';
         }
       }
-      // --- End Date Handling ---
+      const organizerName = data.organizerName || 'Campanion Partner';
+      const organizerLink = data.organizerLink;
 
-      // --- Organizer Handling ---
-      // Use denormalized data directly from the camp document
-      const organizerName = data.organizerName || 'Campanion Partner'; // Fallback name
-      const organizerLink = data.organizerLink; // Get denormalized link (might be undefined)
-
-
-      // Construct the Camp object, mapping Firestore fields to the interface
       const camp: Camp = {
         id: campDocSnap.id,
         name: data.name || 'Unnamed Camp',
         description: data.description || '',
-        dates: datesDisplay, // Use the determined display string
-        startDate: data.startDate, // Keep timestamp if needed elsewhere
-        endDate: data.endDate,     // Keep timestamp if needed elsewhere
+        dates: datesDisplay,
+        startDate: data.startDate,
+        endDate: data.endDate,
         location: data.location || 'Location not specified',
-        imageUrl: data.imageUrl || 'https://picsum.photos/seed/placeholder/800/500', // Fallback image
+        imageUrl: data.imageUrl || 'https://picsum.photos/seed/placeholder/800/500',
         price: data.price || 0,
-        status: data.status || 'draft', // Default to draft if status is missing
-        organizerId: data.organizerId || '', // Get organizerId
-        organizerName: organizerName, // Use the determined organizer name
-        organizerLink: organizerLink, // Use the fetched or denormalized link
-        activities: data.activities || [], // Assuming activities is an array of strings
-        creatorId: data.creatorId, // Added creatorId
-        originalLink: data.originalLink, // Added originalLink
+        status: data.status || 'draft',
+        organizerId: data.organizerId || '',
+        organizerName: organizerName,
+        organizerLink: organizerLink,
+        activities: data.activities || [],
+        creatorId: data.creatorId,
+        originalLink: data.originalLink,
       };
       return camp;
     } else {
@@ -95,13 +83,13 @@ async function fetchCampDetailsFromFirestore(id: string): Promise<Camp | null> {
     }
   } catch (error) {
     console.error("Error fetching camp details from Firestore:", error);
-    throw error; // Re-throw the error to be caught in the component
+    throw error;
   }
 }
 
 
 export default function CampDetailsPage() {
-  const { user, isAdmin, loading: authLoading } = useAuth(); // Keep user context for potential future use (e.g., booking button) & isAdmin check
+  const { isAdmin, loading: authLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
   const campId = params.id as string;
@@ -110,81 +98,84 @@ export default function CampDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Removed useEffect dependency on user for redirecting non-logged in users
-
   useEffect(() => {
-    // Fetch camp details regardless of login status
     if (campId) {
       setLoading(true);
-      setError(null); // Reset error state
+      setError(null);
       fetchCampDetailsFromFirestore(campId)
         .then(data => {
           if (data) {
-            // Check if camp is draft or archived and user is not admin
             if ((data.status === 'draft' || data.status === 'archive') && !isAdmin) {
-               setError("Camp not found."); // Treat non-active camps as not found for non-admins
+               setError("Camp not found.");
                setCamp(null);
             } else {
               setCamp(data);
             }
           } else {
-             setError("Camp not found."); // Set error if data is null
+             setError("Camp not found.");
              setCamp(null);
           }
         })
         .catch(error => {
           console.error("Failed to fetch camp details:", error);
-          setError("Failed to load camp details. Please try again."); // Set error on fetch failure
+          setError("Failed to load camp details. Please try again.");
           setCamp(null);
         })
         .finally(() => {
           setLoading(false);
         });
     } else {
-        setLoading(false); // Stop loading if no ID
+        setLoading(false);
         setError("Camp ID is missing.");
         console.error("Camp ID is missing");
         setCamp(null);
     }
-  }, [campId, isAdmin]); // Added isAdmin dependency
+  }, [campId, isAdmin]);
 
-  if (authLoading || loading) { // Show skeleton if auth is loading OR camp data is loading
+  if (authLoading || loading) {
      return (
          <div className="flex flex-col min-h-screen">
-             {/* Header Skeleton */}
              <header className="px-4 lg:px-6 h-16 flex items-center border-b sticky top-0 bg-background z-10">
-                 <Skeleton className="h-6 w-6 mr-2" /> {/* Icon Skeleton */}
-                 <Skeleton className="h-6 w-32" />     {/* Title Skeleton */}
+                 <Skeleton className="h-6 w-6 mr-2" />
+                 <Skeleton className="h-6 w-32" />
                  <div className="ml-auto flex gap-4 sm:gap-6 items-center">
-                     <Skeleton className="h-8 w-20" /> {/* Button Skeleton */}
+                     <Skeleton className="h-8 w-20" />
                  </div>
              </header>
-             {/* Camp Details Content Skeleton */}
              <main className="flex-1 p-4 md:p-8 lg:p-12">
                  <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
-                     <Skeleton className="h-8 w-32 mb-8" /> {/* Back button placeholder */}
-                     <Skeleton className="h-10 w-3/4 mb-4" /> {/* Title placeholder moved above image */}
-                     <Skeleton className="w-full h-64 md:h-96 mb-8" /> {/* Image placeholder */}
+                     <Skeleton className="h-8 w-32 mb-8" /> {/* Back button */}
+                     <Skeleton className="h-10 w-3/4 mb-6" /> {/* Title */}
+                     <Skeleton className="w-full h-64 md:h-96 mb-8 rounded-lg" /> {/* Image */}
                      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                         <div className="md:col-span-2 space-y-4">
-                             {/* <Skeleton className="h-10 w-3/4" />  Title placeholder removed from here */}
-                             <Skeleton className="h-6 w-1/2" /> {/* Organizer placeholder */}
+                         <div className="md:col-span-2 space-y-6">
+                             <Skeleton className="h-6 w-1/2 mb-3" /> {/* Organizer */}
+                             <Skeleton className="h-6 w-1/3 mb-3" /> {/* Description Title */}
                              <Skeleton className="h-4 w-full" />
                              <Skeleton className="h-4 w-full" />
-                             <Skeleton className="h-4 w-5/6" /> {/* Description placeholder */}
+                             <Skeleton className="h-4 w-5/6 mb-3" />
+                             <Skeleton className="h-6 w-1/3 mb-3" /> {/* Activities Title */}
+                             <div className="flex flex-wrap gap-2">
+                                <Skeleton className="h-6 w-20 rounded-full" />
+                                <Skeleton className="h-6 w-24 rounded-full" />
+                                <Skeleton className="h-6 w-16 rounded-full" />
+                             </div>
                          </div>
-                         <div className="space-y-4">
-                            {/* Info block skeleton */}
-                             <Skeleton className="h-8 w-full" />
-                             <Skeleton className="h-8 w-full" />
-                             <Skeleton className="h-8 w-full" />
-                             <Skeleton className="h-8 w-full" /> {/* Original Link placeholder */}
-                             <Skeleton className="h-10 w-full mt-4" /> {/* Button placeholder */}
+                         <div className="md:col-span-1">
+                            <Card className="shadow-lg">
+                                <CardHeader><Skeleton className="h-7 w-1/2" /></CardHeader> {/* Info Card Title */}
+                                <CardContent className="space-y-4">
+                                     <Skeleton className="h-8 w-full" />
+                                     <Skeleton className="h-8 w-full" />
+                                     <Skeleton className="h-8 w-full" />
+                                     <Skeleton className="h-8 w-full" />
+                                </CardContent>
+                                <CardFooter><Skeleton className="h-10 w-full" /></CardFooter> {/* Button placeholder */}
+                            </Card>
                          </div>
                      </div>
                  </div>
              </main>
-             {/* Footer Skeleton */}
              <footer className="py-6 px-4 md:px-6 border-t">
                  <Skeleton className="h-4 w-1/4" />
              </footer>
@@ -195,7 +186,7 @@ export default function CampDetailsPage() {
   if (error || !camp) {
     return (
        <div className="flex flex-col min-h-screen">
-          <Header /> {/* Keep header for consistent navigation */}
+          <Header />
           <main className="flex-1 flex items-center justify-center p-4">
              <div className="container mx-auto px-4 py-12 text-center max-w-6xl">
                  <Link href="/main" className="inline-flex items-center text-primary hover:underline mb-4" prefetch={false}>
@@ -212,14 +203,12 @@ export default function CampDetailsPage() {
     );
   }
 
-  // Camp data is available
-  const organizerDisplay = camp.organizerName || 'Campanion Partner'; // Fallback
-  const formattedPrice = camp.price.toLocaleString('ru-RU'); // Format price with spaces
+  const organizerDisplay = camp.organizerName || 'Campanion Partner';
+  const formattedPrice = camp.price.toLocaleString('ru-RU');
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-       <Header /> {/* Use the reusable Header component */}
-
+       <Header />
        <main className="flex-1 p-4 md:p-8 lg:p-12">
           <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
               <Link href="/main" className="inline-flex items-center text-primary hover:underline mb-6" prefetch={false}>
@@ -227,99 +216,95 @@ export default function CampDetailsPage() {
                   Back to Main
               </Link>
 
-              <Card className="overflow-hidden shadow-lg">
-                  {/* Camp Name moved above the image */}
-                  <CardHeader className="px-6 pt-6 pb-0 md:px-8 md:pt-8 md:pb-0">
-                     <CardTitle className="text-3xl md:text-4xl font-bold text-foreground">{camp.name}</CardTitle>
-                  </CardHeader>
+              <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-6">{camp.name}</h1>
 
-                  <div className="relative w-full h-64 md:h-96">
-                      <Image
-                          src={camp.imageUrl}
-                          alt={camp.name}
-                          fill
-                          style={{ objectFit: 'cover' }}
-                          sizes="(max-width: 768px) 100vw, 100vw" // Full width on details page
-                          priority // Prioritize loading the main image
-                          data-ai-hint="camp nature activity"
-                      />
-                      {/* Removed overlay and camp name from here */}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
-                      <div className="md:col-span-2 p-6 md:p-8">
-                          <CardHeader className="px-0 pt-0 pb-4">
-                              {/* Organizer details remain */}
-                              <CardDescription className="text-lg text-muted-foreground flex items-center">
-                                <Building className="h-4 w-4 mr-2 text-muted-foreground" />
-                                Organized by {camp.organizerLink ? (
-                                    <a href={camp.organizerLink} target="_blank" rel="noopener noreferrer" className="ml-1 text-primary hover:underline">
-                                        {organizerDisplay}
-                                    </a>
-                                ) : (
-                                    <span className="ml-1">{organizerDisplay}</span>
-                                )}
-                              </CardDescription>
-                          </CardHeader>
-                          <CardContent className="px-0">
-                              <p className="mb-6">{camp.description}</p>
+              <div className="relative w-full h-64 md:h-96 mb-8 rounded-lg overflow-hidden shadow-lg">
+                  <Image
+                      src={camp.imageUrl}
+                      alt={camp.name}
+                      fill
+                      style={{ objectFit: 'cover' }}
+                      sizes="(max-width: 768px) 100vw, 100vw"
+                      priority
+                      data-ai-hint="camp nature activity"
+                  />
+              </div>
 
-                              {camp.activities && camp.activities.length > 0 && (
-                                  <div className="mb-6">
-                                      <h3 className="text-lg font-semibold mb-2">Activities</h3>
-                                      <div className="flex flex-wrap gap-2">
-                                          {camp.activities.map(activity => (
-                                              <span key={activity} className="inline-block bg-secondary text-secondary-foreground text-xs font-medium px-2.5 py-0.5 rounded-full">{activity}</span>
-                                          ))}
-                                      </div>
-                                  </div>
-                              )}
-
-                          </CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="md:col-span-2 space-y-6">
+                      <div className="text-lg text-muted-foreground flex items-center">
+                          <Building className="h-5 w-5 mr-2 text-muted-foreground flex-shrink-0" />
+                          Organized by {camp.organizerLink ? (
+                              <a href={camp.organizerLink} target="_blank" rel="noopener noreferrer" className="ml-1 text-primary hover:underline">
+                                  {organizerDisplay}
+                              </a>
+                          ) : (
+                              <span className="ml-1">{organizerDisplay}</span>
+                          )}
                       </div>
-                      <div className="bg-muted/50 p-6 md:p-8 border-t md:border-t-0 md:border-l">
-                          <h3 className="text-xl font-semibold mb-4">Camp Information</h3>
-                          <div className="space-y-4">
+
+                      <div>
+                          <h2 className="text-2xl font-semibold mb-3 text-foreground">Description</h2>
+                          <p className="text-muted-foreground leading-relaxed">{camp.description}</p>
+                      </div>
+
+                      {camp.activities && camp.activities.length > 0 && (
+                          <div>
+                              <h2 className="text-2xl font-semibold mb-3 text-foreground">Activities</h2>
+                              <div className="flex flex-wrap gap-2">
+                                  {camp.activities.map(activity => (
+                                      <Badge key={activity} variant="secondary">{activity}</Badge>
+                                  ))}
+                              </div>
+                          </div>
+                      )}
+                  </div>
+
+                  <div className="md:col-span-1">
+                      <Card className="shadow-lg sticky top-24"> {/* Adjust top-X based on your header height */}
+                          <CardHeader>
+                              <CardTitle className="text-xl text-foreground">Camp Information</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
                               <div className="flex items-start">
                                   <MapPin className="h-5 w-5 mr-3 mt-1 text-primary flex-shrink-0" />
                                   <div>
-                                      <p className="font-medium">Location</p>
+                                      <p className="font-medium text-foreground">Location</p>
                                       <p className="text-muted-foreground">{camp.location}</p>
                                   </div>
                               </div>
                               <div className="flex items-start">
                                   <CalendarDays className="h-5 w-5 mr-3 mt-1 text-primary flex-shrink-0" />
                                   <div>
-                                      <p className="font-medium">Dates</p>
-                                      {/* Display the pre-formatted 'dates' string */}
+                                      <p className="font-medium text-foreground">Dates</p>
                                       <p className="text-muted-foreground">{camp.dates}</p>
                                   </div>
                               </div>
                               <div className="flex items-start">
                                   <DollarSign className="h-5 w-5 mr-3 mt-1 text-primary flex-shrink-0" />
                                   <div>
-                                      <p className="font-medium">Price</p>
-                                      <p className="text-2xl font-bold text-primary">{formattedPrice} ₽</p> {/* Use formatted price */}
+                                      <p className="font-medium text-foreground">Price</p>
+                                      <p className="text-2xl font-bold text-primary">{formattedPrice} ₽</p>
                                   </div>
                               </div>
-                              {/* Display Original Link if it exists */}
-                               {camp.originalLink && (
-                                   <div className="flex items-start">
-                                       <LinkIcon className="h-5 w-5 mr-3 mt-1 text-primary flex-shrink-0" />
-                                       <div>
-                                           <p className="font-medium">Original Source</p>
-                                           <a href={camp.originalLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline break-all">
-                                               {camp.originalLink}
-                                           </a>
-                                       </div>
-                                   </div>
-                               )}
-                          </div>
-                          <CardFooter className="px-0 pb-0 pt-8">
-                              <Button className="w-full" size="lg">Book Now</Button> {/* Add booking functionality later */}
+                              {camp.originalLink && (
+                                 <div className="flex items-start">
+                                     <LinkIcon className="h-5 w-5 mr-3 mt-1 text-primary flex-shrink-0" />
+                                     <div>
+                                         <p className="font-medium text-foreground">Original Source</p>
+                                         <a href={camp.originalLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline break-all">
+                                             {camp.originalLink}
+                                         </a>
+                                     </div>
+                                 </div>
+                             )}
+                          </CardContent>
+                          <CardFooter>
+                              <Button className="w-full" size="lg">Book Now</Button>
                           </CardFooter>
-                      </div>
+                      </Card>
                   </div>
-              </Card>
+              </div>
           </div>
        </main>
 
@@ -329,4 +314,3 @@ export default function CampDetailsPage() {
     </div>
   );
 }
-
