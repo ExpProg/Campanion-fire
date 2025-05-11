@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import Image from 'next/image';
-import { ArrowLeft, CalendarDays, MapPin, DollarSign, Building, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, CalendarDays, MapPin, DollarSign, Users, Link as LinkIcon } from 'lucide-react'; // Changed Building to Users
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
@@ -238,13 +238,13 @@ export default function CampDetailsPage() {
                               {camp.location}
                           </div>
                           <div className="flex items-center">
-                              <Building className="h-5 w-5 mr-2 text-muted-foreground flex-shrink-0" />
-                              Organized by {camp.organizerLink ? (
-                                  <a href={camp.organizerLink} target="_blank" rel="noopener noreferrer" className="ml-1 text-primary hover:underline">
+                              <Users className="h-5 w-5 mr-2 text-muted-foreground flex-shrink-0" /> 
+                              {camp.organizerLink ? (
+                                  <a href={camp.organizerLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                                       {organizerDisplay}
                                   </a>
                               ) : (
-                                  <span className="ml-1">{organizerDisplay}</span>
+                                  <span>{organizerDisplay}</span>
                               )}
                           </div>
                       </div>
