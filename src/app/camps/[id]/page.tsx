@@ -149,8 +149,7 @@ export default function CampDetailsPage() {
                      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                          <div className="md:col-span-2 space-y-6">
                              <Skeleton className="h-10 w-3/4 mb-2" /> {/* Title Skeleton */}
-                             <Skeleton className="h-6 w-1/2 mb-3" /> {/* Organizer */}
-                             <Skeleton className="h-6 w-1/3 mb-3" /> {/* Location */}
+                             <Skeleton className="h-6 w-1/2 mb-3" /> {/* Organizer & Location */}
                              <Skeleton className="h-6 w-1/3 mb-3" /> {/* Description Title */}
                              <Skeleton className="h-4 w-full" />
                              <Skeleton className="h-4 w-full" />
@@ -233,20 +232,21 @@ export default function CampDetailsPage() {
                   <div className="md:col-span-2 space-y-6">
                       <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">{camp.name}</h1>
                       
-                      <div className="text-lg text-muted-foreground flex items-center">
-                          <Building className="h-5 w-5 mr-2 text-muted-foreground flex-shrink-0" />
-                          Organized by {camp.organizerLink ? (
-                              <a href={camp.organizerLink} target="_blank" rel="noopener noreferrer" className="ml-1 text-primary hover:underline">
-                                  {organizerDisplay}
-                              </a>
-                          ) : (
-                              <span className="ml-1">{organizerDisplay}</span>
-                          )}
-                      </div>
-
-                      <div className="text-lg text-muted-foreground flex items-center">
-                          <MapPin className="h-5 w-5 mr-2 text-muted-foreground flex-shrink-0" />
-                          {camp.location}
+                      <div className="text-lg text-muted-foreground flex items-center flex-wrap gap-x-4 gap-y-1">
+                          <div className="flex items-center">
+                              <MapPin className="h-5 w-5 mr-2 text-muted-foreground flex-shrink-0" />
+                              {camp.location}
+                          </div>
+                          <div className="flex items-center">
+                              <Building className="h-5 w-5 mr-2 text-muted-foreground flex-shrink-0" />
+                              Organized by {camp.organizerLink ? (
+                                  <a href={camp.organizerLink} target="_blank" rel="noopener noreferrer" className="ml-1 text-primary hover:underline">
+                                      {organizerDisplay}
+                                  </a>
+                              ) : (
+                                  <span className="ml-1">{organizerDisplay}</span>
+                              )}
+                          </div>
                       </div>
 
                       <div>
@@ -272,7 +272,6 @@ export default function CampDetailsPage() {
                               <CardTitle className="text-xl text-foreground">Camp Information</CardTitle>
                           </CardHeader>
                           <CardContent className="space-y-4">
-                              {/* Location removed from here */}
                               <div className="flex items-start">
                                   <CalendarDays className="h-5 w-5 mr-3 mt-1 text-primary flex-shrink-0" />
                                   <div>
