@@ -163,10 +163,11 @@ export default function CampDetailsPage() {
              <main className="flex-1 p-4 md:p-8 lg:p-12">
                  <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl">
                      <Skeleton className="h-8 w-32 mb-8" /> {/* Back button placeholder */}
+                     <Skeleton className="h-10 w-3/4 mb-4" /> {/* Title placeholder moved above image */}
                      <Skeleton className="w-full h-64 md:h-96 mb-8" /> {/* Image placeholder */}
                      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                          <div className="md:col-span-2 space-y-4">
-                             <Skeleton className="h-10 w-3/4" /> {/* Title placeholder */}
+                             {/* <Skeleton className="h-10 w-3/4" />  Title placeholder removed from here */}
                              <Skeleton className="h-6 w-1/2" /> {/* Organizer placeholder */}
                              <Skeleton className="h-4 w-full" />
                              <Skeleton className="h-4 w-full" />
@@ -227,6 +228,11 @@ export default function CampDetailsPage() {
               </Link>
 
               <Card className="overflow-hidden shadow-lg">
+                  {/* Camp Name moved above the image */}
+                  <CardHeader className="px-6 pt-6 pb-0 md:px-8 md:pt-8 md:pb-0">
+                     <CardTitle className="text-3xl md:text-4xl font-bold text-foreground">{camp.name}</CardTitle>
+                  </CardHeader>
+
                   <div className="relative w-full h-64 md:h-96">
                       <Image
                           src={camp.imageUrl}
@@ -237,12 +243,12 @@ export default function CampDetailsPage() {
                           priority // Prioritize loading the main image
                           data-ai-hint="camp nature activity"
                       />
+                      {/* Removed overlay and camp name from here */}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
                       <div className="md:col-span-2 p-6 md:p-8">
                           <CardHeader className="px-0 pt-0 pb-4">
-                              <CardTitle className="text-3xl md:text-4xl font-bold mb-2">{camp.name}</CardTitle>
-                              {/* Display organizer name, optionally link if link exists */}
+                              {/* Organizer details remain */}
                               <CardDescription className="text-lg text-muted-foreground flex items-center">
                                 <Building className="h-4 w-4 mr-2 text-muted-foreground" />
                                 Organized by {camp.organizerLink ? (
